@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import MenuDrawer from "@/components/layout/MenuDrawer";
 import SearchModal from "@/components/layout/SearchModal";
+import SellerFAB from "@/components/layout/SellerFAB";
 import LocationFilter from "@/components/home/LocationFilter";
 import AIGreeting from "@/components/home/AIGreeting";
 import DailyMotivation from "@/components/home/DailyMotivation";
@@ -12,6 +13,7 @@ import ProductCard from "@/components/home/ProductCard";
 import ShopCard from "@/components/home/ShopCard";
 import RentCard from "@/components/home/RentCard";
 import SectionHeader from "@/components/home/SectionHeader";
+import { useAuth } from "@/hooks/useAuth";
 import {
   trendingProducts,
   recommendedShops,
@@ -22,6 +24,7 @@ import {
 } from "@/data/mockData";
 
 const Index = () => {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState("home");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -32,6 +35,8 @@ const Index = () => {
       prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
     );
   };
+
+  const isSeller = profile?.user_type === 'seller';
 
   return (
     <div className="min-h-screen bg-background pb-20 pt-14">
@@ -182,6 +187,9 @@ const Index = () => {
           </p>
         </section>
       </main>
+
+      {/* Seller Floating Action Button */}
+      {isSeller && <SellerFAB />}
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
