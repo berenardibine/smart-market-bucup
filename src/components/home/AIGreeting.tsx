@@ -1,12 +1,17 @@
 import { Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const AIGreeting = () => {
+  const { profile, user } = useAuth();
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";
     return "Good evening";
   };
+
+  const displayName = profile?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Friend";
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-primary p-4 shadow-orange">
@@ -20,10 +25,10 @@ const AIGreeting = () => {
         </div>
         <div>
           <h2 className="text-primary-foreground font-bold text-lg mb-1">
-            {getGreeting()}, Berenard 👋
+            {getGreeting()}, {displayName} 👋
           </h2>
           <p className="text-primary-foreground/90 text-sm leading-relaxed">
-            Your market in <span className="font-semibold">Kivu Sector</span> is ready for you! 
+            Your smart market is ready for you! 
             Discover fresh products from local sellers.
           </p>
         </div>
