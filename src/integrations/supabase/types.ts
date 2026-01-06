@@ -191,6 +191,33 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
       challenge_participants: {
         Row: {
           challenge_id: string
@@ -1907,6 +1934,53 @@ export type Database = {
           },
         ]
       }
+      product_requests: {
+        Row: {
+          buyer_id: string
+          buyer_location: string | null
+          buyer_name: string
+          buyer_phone: string
+          created_at: string | null
+          id: string
+          product_id: string
+          seller_id: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_id: string
+          buyer_location?: string | null
+          buyer_name: string
+          buyer_phone: string
+          created_at?: string | null
+          id?: string
+          product_id: string
+          seller_id: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          buyer_location?: string | null
+          buyer_name?: string
+          buyer_phone?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          seller_id?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       "product-": {
         Row: {
           category: string | null
@@ -1984,6 +2058,7 @@ export type Database = {
           location: string | null
           location_id: string | null
           price: number
+          product_type: string | null
           quantity: number
           rental_rate_type: string | null
           seller_id: string
@@ -2011,6 +2086,7 @@ export type Database = {
           location?: string | null
           location_id?: string | null
           price: number
+          product_type?: string | null
           quantity: number
           rental_rate_type?: string | null
           seller_id: string
@@ -2038,6 +2114,7 @@ export type Database = {
           location?: string | null
           location_id?: string | null
           price?: number
+          product_type?: string | null
           quantity?: number
           rental_rate_type?: string | null
           seller_id?: string
@@ -2670,7 +2747,9 @@ export type Database = {
           province_id: string | null
           sector_id: string | null
           seller_id: string
+          trading_center: string | null
           updated_at: string | null
+          whatsapp: string | null
         }
         Insert: {
           contact_email?: string | null
@@ -2687,7 +2766,9 @@ export type Database = {
           province_id?: string | null
           sector_id?: string | null
           seller_id: string
+          trading_center?: string | null
           updated_at?: string | null
+          whatsapp?: string | null
         }
         Update: {
           contact_email?: string | null
@@ -2704,7 +2785,9 @@ export type Database = {
           province_id?: string | null
           sector_id?: string | null
           seller_id?: string
+          trading_center?: string | null
           updated_at?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
