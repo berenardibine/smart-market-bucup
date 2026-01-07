@@ -6,6 +6,7 @@ import MenuDrawer from "@/components/layout/MenuDrawer";
 import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
 import LocationFilter from "@/components/home/LocationFilter";
+import CategoryFilter from "@/components/home/CategoryFilter";
 import AIGreeting from "@/components/home/AIGreeting";
 import DailyMotivation from "@/components/home/DailyMotivation";
 import SmartChallenge from "@/components/home/SmartChallenge";
@@ -26,8 +27,12 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   
-  const { products: allProducts, loading: productsLoading } = useProducts();
+  // Use selected category for filtering, 'all' means no filter
+  const categoryFilter = selectedCategory === 'all' ? undefined : selectedCategory;
+  
+  const { products: allProducts, loading: productsLoading } = useProducts(categoryFilter);
   const { products: assetProducts, loading: assetsLoading } = useProducts('asset');
   const { products: agricultureProducts, loading: agriLoading } = useProducts('agriculture');
 
@@ -52,6 +57,14 @@ const Index = () => {
         {/* Location Filter */}
         <section className="animate-fade-up">
           <LocationFilter />
+        </section>
+
+        {/* Category Filter */}
+        <section className="animate-fade-up" style={{ animationDelay: "0.03s" }}>
+          <CategoryFilter 
+            selectedCategory={selectedCategory} 
+            onCategoryChange={setSelectedCategory} 
+          />
         </section>
 
         {/* AI Greeting */}
