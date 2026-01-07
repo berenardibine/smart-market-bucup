@@ -108,10 +108,16 @@ export const useProduct = (productId: string | undefined) => {
   }, [productId]);
 
   const fetchProduct = async () => {
-    if (!productId) return;
+    if (!productId) {
+      setLoading(false);
+      setError('No product ID provided');
+      return;
+    }
     
     try {
       setLoading(true);
+      setError(null);
+      
       const { data, error: fetchError } = await supabase
         .from('products')
         .select(`
@@ -120,16 +126,33 @@ export const useProduct = (productId: string | undefined) => {
           shop:shops(id, name, logo_url, trading_center)
         `)
         .eq('id', productId)
-        .single();
+        .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Error fetching product:', fetchError);
+        setError(fetchError.message);
+        setProduct(null);
+        return;
+      }
       
-      // Increment view count
-      await supabase.rpc('increment_product_view', { product_uuid: productId });
+      if (!data) {
+        setError('Product not found');
+        setProduct(null);
+        return;
+      }
+      
+      // Increment view count (ignore errors - non-critical)
+      try {
+        await supabase.rpc('increment_product_view', { product_uuid: productId });
+      } catch {
+        // Ignore view count errors
+      }
       
       setProduct(data);
     } catch (err: any) {
-      setError(err.message);
+      console.error('Error fetching product:', err);
+      setError(err.message || 'Failed to load product');
+      setProduct(null);
     } finally {
       setLoading(false);
     }

@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
   ArrowLeft, Heart, MessageCircle, Phone, Bell, Share2, 
   MapPin, Store, ShieldCheck, ChevronLeft, ChevronRight,
-  Package, Tag
+  Package, Tag, Home, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +14,49 @@ import { useSendRequest } from "@/hooks/useProductRequests";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
+// Loading Component
+const ProductLoader = () => (
+  <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+    <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+    <p className="text-muted-foreground">Loading product details...</p>
+  </div>
+);
+
+// Not Found Component
+const ProductNotFound = () => (
+  <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 flex flex-col items-center justify-center p-8">
+    <div className="text-center max-w-md">
+      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+        <Package className="h-10 w-10 text-primary/60" />
+      </div>
+      <h1 className="text-3xl font-bold text-primary mb-2">Product Not Found 😊</h1>
+      <p className="text-muted-foreground mb-6">
+        This product may have been removed or is no longer available.
+      </p>
+      <Button asChild size="lg" className="gap-2">
+        <Link to="/">
+          <Home className="h-5 w-5" />
+          Browse Products
+        </Link>
+      </Button>
+    </div>
+  </div>
+);
+
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { product, loading } = useProduct(id);
+  const { product, loading, error } = useProduct(id);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { sendRequest, sending } = useSendRequest();
   const [currentImage, setCurrentImage] = useState(0);
+
+  // Handle invalid ID early
+  if (!id) {
+    return <ProductNotFound />;
+  }
 
   const handleWhatsApp = () => {
     const phone = product?.contact_whatsapp || product?.seller?.whatsapp_number;
@@ -72,15 +106,20 @@ const ProductDetail = () => {
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({
-        title: product?.title,
-        text: `Check out this product: ${product?.title}`,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast({ title: "Link copied to clipboard!" });
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: product?.title,
+          text: `Check out this product: ${product?.title}`,
+          url: window.location.href,
+        });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast({ title: "Link copied to clipboard!" });
+      }
+    } catch (err) {
+      // User cancelled share or clipboard failed
+      console.log("Share cancelled");
     }
   };
 
@@ -92,37 +131,17 @@ const ProductDetail = () => {
     }).format(amount);
   };
 
+  // Show loading state
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b">
-          <div className="flex items-center gap-3 p-4">
-            <Skeleton className="w-10 h-10 rounded-full" />
-            <Skeleton className="h-6 w-48" />
-          </div>
-        </div>
-        <Skeleton className="w-full aspect-square" />
-        <div className="p-4 space-y-4">
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-6 w-1/2" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-      </div>
-    );
+    return <ProductLoader />;
   }
 
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Product not found</h2>
-          <Button onClick={() => navigate('/')}>Go Home</Button>
-        </div>
-      </div>
-    );
+  // Show not found if product doesn't exist or there was an error
+  if (!product || error) {
+    return <ProductNotFound />;
   }
 
-  const images = product.images || ['/placeholder.svg'];
+  const images = product.images?.length > 0 ? product.images : ['/placeholder.svg'];
   const favorite = isFavorite(product.id);
 
   return (
@@ -149,7 +168,7 @@ const ProductDetail = () => {
               className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center transition-all",
                 favorite 
-                  ? "bg-primary text-white" 
+                  ? "bg-primary text-primary-foreground" 
                   : "bg-muted hover:bg-muted/80"
               )}
             >
@@ -166,6 +185,9 @@ const ProductDetail = () => {
             src={images[currentImage]} 
             alt={product.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.svg';
+            }}
           />
           
           {/* Image Navigation */}
@@ -205,7 +227,7 @@ const ProductDetail = () => {
 
         {/* Thumbnail Strip */}
         {images.length > 1 && (
-          <div className="flex gap-2 p-3 overflow-x-auto">
+          <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide">
             {images.map((img, idx) => (
               <button
                 key={idx}
@@ -217,7 +239,14 @@ const ProductDetail = () => {
                     : "border-transparent opacity-60 hover:opacity-100"
                 )}
               >
-                <img src={img} alt="" className="w-full h-full object-cover" />
+                <img 
+                  src={img} 
+                  alt="" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                  }}
+                />
               </button>
             ))}
           </div>
@@ -256,7 +285,7 @@ const ProductDetail = () => {
 
         {/* Quick Info */}
         <div className="flex flex-wrap gap-3">
-          {product.quantity && (
+          {product.quantity && product.quantity > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
               <Package className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">{product.quantity} available</span>
@@ -271,6 +300,11 @@ const ProductDetail = () => {
           {product.product_type && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
               <span className="text-sm capitalize">{product.product_type}</span>
+            </div>
+          )}
+          {product.category && (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-secondary/10 text-secondary">
+              <span className="text-sm capitalize">{product.category.replace(/-/g, ' ')}</span>
             </div>
           )}
         </div>
@@ -298,13 +332,13 @@ const ProductDetail = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Store className="h-6 w-6 text-white" />
+                <Store className="h-6 w-6 text-primary-foreground" />
               )}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <h4 className="font-semibold">
-                  {product.shop?.name || product.seller?.full_name}
+                  {product.shop?.name || product.seller?.full_name || 'Seller'}
                 </h4>
                 <ShieldCheck className="h-4 w-4 text-green-500" />
               </div>
@@ -319,7 +353,7 @@ const ProductDetail = () => {
       </div>
 
       {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border/50 p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border/50 p-4 safe-bottom">
         <div className="flex gap-3 max-w-lg mx-auto">
           <Button
             variant="outline"
@@ -345,7 +379,7 @@ const ProductDetail = () => {
             className="flex-1 gap-2 bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90"
           >
             <Bell className="h-5 w-5" />
-            {sending ? "Sending..." : "I Need This"}
+            {sending ? "..." : "I Need This"}
           </Button>
         </div>
       </div>
