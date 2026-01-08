@@ -1,4 +1,4 @@
-import { Search, Bell, Menu, User } from "lucide-react";
+import { Search, Bell, Menu, ShoppingBag, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,23 +20,26 @@ const Header = ({ onMenuClick, onSearchClick, notificationCount = 3 }: HeaderPro
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50 safe-top">
       <div className="container flex items-center justify-between h-14 px-4">
         {/* Logo */}
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center shadow-orange">
-            <span className="text-primary-foreground font-bold text-sm">RS</span>
+        <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => navigate('/')}>
+          <div className="relative w-9 h-9 rounded-xl bg-gradient-primary flex items-center justify-center shadow-orange group-hover:shadow-glow transition-all duration-300">
+            <ShoppingBag className="h-5 w-5 text-white" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-secondary flex items-center justify-center">
+              <Sparkles className="h-2 w-2 text-white" />
+            </div>
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-foreground text-sm leading-tight">Rwanda Smart</span>
-            <span className="text-primary font-semibold text-xs leading-tight">Market</span>
+            <span className="font-bold text-foreground text-sm leading-tight tracking-tight">Rwanda Smart</span>
+            <span className="text-gradient-primary font-bold text-xs leading-tight">Market</span>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <Button 
             variant="ghost" 
             size="icon-sm" 
             onClick={onSearchClick}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
           >
             <Search className="h-5 w-5" />
           </Button>
@@ -44,12 +47,12 @@ const Header = ({ onMenuClick, onSearchClick, notificationCount = 3 }: HeaderPro
           <Button 
             variant="ghost" 
             size="icon-sm" 
-            className="relative text-muted-foreground hover:text-foreground"
+            className="relative text-muted-foreground hover:text-secondary hover:bg-secondary/10 transition-colors"
           >
             <Bell className="h-5 w-5" />
             {notificationCount > 0 && (
               <Badge 
-                className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-2xs bg-destructive text-destructive-foreground border-2 border-background"
+                className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-2xs bg-destructive text-destructive-foreground border-2 border-background animate-pulse"
               >
                 {notificationCount > 9 ? "9+" : notificationCount}
               </Badge>
@@ -61,10 +64,10 @@ const Header = ({ onMenuClick, onSearchClick, notificationCount = 3 }: HeaderPro
               variant="ghost" 
               size="icon-sm" 
               onClick={onMenuClick}
-              className="relative overflow-hidden"
+              className="relative overflow-hidden hover:scale-105 transition-transform"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-semibold text-xs">{initials}</span>
+              <div className="w-8 h-8 rounded-full bg-gradient-hero flex items-center justify-center shadow-soft">
+                <span className="text-white font-semibold text-sm">{initials}</span>
               </div>
             </Button>
           ) : (
