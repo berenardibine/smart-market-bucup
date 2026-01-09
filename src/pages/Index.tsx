@@ -1,42 +1,65 @@
 import { useState } from "react";
-import { TrendingUp, Store, Wheat, Car, Wrench, ShoppingBag, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { TrendingUp, Store, ShoppingBag, Sparkles, Laptop, UtensilsCrossed, Heart, BookOpen, Settings } from "lucide-react";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import MenuDrawer from "@/components/layout/MenuDrawer";
 import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
-import LocationFilter from "@/components/home/LocationFilter";
-import CategoryFilter from "@/components/home/CategoryFilter";
+import AdminFAB from "@/components/layout/AdminFAB";
+import SmartLocationHeader from "@/components/location/SmartLocationHeader";
+import LocationLevelFilter from "@/components/location/LocationLevelFilter";
+import LocationModal from "@/components/location/LocationModal";
 import AIGreeting from "@/components/home/AIGreeting";
 import DailyMotivation from "@/components/home/DailyMotivation";
 import SmartChallenge from "@/components/home/SmartChallenge";
 import ProductCard from "@/components/products/ProductCard";
-import ShopCard from "@/components/home/ShopCard";
-import RentCard from "@/components/home/RentCard";
 import SectionHeader from "@/components/home/SectionHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useProducts } from "@/hooks/useProducts";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  recommendedShops,
-  rentProducts,
-} from "@/data/mockData";
+import { cn } from "@/lib/utils";
+
+// General categories for home page (excluding asset, agriculture, rent)
+const homeCategories = [
+  { id: 'all', label: 'All', icon: <Sparkles className="h-4 w-4" />, color: 'from-primary to-orange-400' },
+  { id: 'general', label: 'General', icon: <ShoppingBag className="h-4 w-4" />, color: 'from-pink-500 to-rose-400' },
+  { id: 'electronics', label: 'Electronics', icon: <Laptop className="h-4 w-4" />, color: 'from-blue-500 to-cyan-400' },
+  { id: 'food-drinks', label: 'Food', icon: <UtensilsCrossed className="h-4 w-4" />, color: 'from-amber-500 to-yellow-400' },
+  { id: 'health-care', label: 'Health', icon: <Heart className="h-4 w-4" />, color: 'from-red-500 to-pink-400' },
+  { id: 'education', label: 'Education', icon: <BookOpen className="h-4 w-4" />, color: 'from-indigo-500 to-violet-400' },
+  { id: 'services', label: 'Services', icon: <Settings className="h-4 w-4" />, color: 'from-gray-600 to-slate-500' },
+];
 
 const Index = () => {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState("home");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   
-  // Use selected category for filtering, 'all' means no filter
-  const categoryFilter = selectedCategory === 'all' ? undefined : selectedCategory;
+  const { 
+    level, setLevel, 
+    showLocationModal, setShowLocationModal, 
+    saveUserLocation, getLocationLabel 
+  } = useUserLocation();
   
-  const { products: allProducts, loading: productsLoading } = useProducts(categoryFilter);
-  const { products: assetProducts, loading: assetsLoading } = useProducts('asset');
-  const { products: agricultureProducts, loading: agriLoading } = useProducts('agriculture');
+  // Get products excluding asset, agriculture, and rent types
+  const { products: allProducts, loading: productsLoading } = useProducts(
+    selectedCategory === 'all' ? 'general' : selectedCategory
+  );
 
   const isSeller = profile?.user_type === 'seller';
+
+  // Handle tab navigation
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'asset') navigate('/assets');
+    else if (tab === 'agriculture') navigate('/agriculture');
+    else if (tab === 'rent') navigate('/rent');
+  };
 
   const ProductSkeleton = () => (
     <div className="space-y-3">
@@ -53,18 +76,18 @@ const Index = () => {
         onSearchClick={() => setIsSearchOpen(true)}
       />
       
-      <main className="container px-4 py-4 space-y-6">
-        {/* Location Filter */}
+      <main className="container px-4 py-4 space-y-5">
+        {/* Smart Location Header */}
         <section className="animate-fade-up">
-          <LocationFilter />
+          <SmartLocationHeader 
+            locationLabel={getLocationLabel()} 
+            onChangeLocation={() => setShowLocationModal(true)} 
+          />
         </section>
 
-        {/* Category Filter */}
+        {/* Location Level Filter */}
         <section className="animate-fade-up" style={{ animationDelay: "0.03s" }}>
-          <CategoryFilter 
-            selectedCategory={selectedCategory} 
-            onCategoryChange={setSelectedCategory} 
-          />
+          <LocationLevelFilter level={level} onLevelChange={setLevel} />
         </section>
 
         {/* AI Greeting */}
@@ -82,8 +105,29 @@ const Index = () => {
           <SmartChallenge />
         </section>
 
-        {/* Trending Products */}
+        {/* Category Filter */}
         <section className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
+            {homeCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shrink-0",
+                  selectedCategory === cat.id
+                    ? `bg-gradient-to-r ${cat.color} text-white shadow-lg shadow-primary/20`
+                    : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                )}
+              >
+                {cat.icon}
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Trending Products */}
+        <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
           <SectionHeader
             title="Trending Now"
             icon={<TrendingUp className="h-4 w-4 text-primary" />}
@@ -95,7 +139,7 @@ const Index = () => {
             </div>
           ) : allProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {allProducts.slice(0, 6).map((product) => (
+              {allProducts.slice(0, 8).map((product) => (
                 <ProductCard
                   key={product.id}
                   id={product.id}
@@ -116,125 +160,16 @@ const Index = () => {
           )}
         </section>
 
-        {/* Recommended Shops */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
-          <SectionHeader
-            title="Recommended Shops"
-            icon={<Store className="h-4 w-4 text-primary" />}
-            onViewAll={() => {}}
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {recommendedShops.map((shop) => (
-              <ShopCard key={shop.id} {...shop} />
-            ))}
-          </div>
-        </section>
-
-        {/* Agriculture */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
-          <SectionHeader
-            title="Fresh from Farms"
-            icon={<Wheat className="h-4 w-4 text-primary" />}
-            onViewAll={() => {}}
-          />
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-            {agriLoading ? (
-              [1, 2, 3, 4].map(i => (
-                <div key={i} className="w-40 shrink-0">
-                  <ProductSkeleton />
-                </div>
-              ))
-            ) : agricultureProducts.length > 0 ? (
-              agricultureProducts.map((product) => (
-                <div key={product.id} className="w-40 shrink-0">
-                  <ProductCard
-                    id={product.id}
-                    title={product.title}
-                    price={product.price}
-                    images={product.images}
-                    location={product.location}
-                    is_negotiable={product.is_negotiable}
-                    compact
-                  />
-                </div>
-              ))
-            ) : (
-              <div className="w-full text-center py-8 text-muted-foreground">
-                No agriculture products yet
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Assets */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.35s" }}>
-          <SectionHeader
-            title="Assets & Properties"
-            icon={<Car className="h-4 w-4 text-primary" />}
-            onViewAll={() => {}}
-          />
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4">
-            {assetsLoading ? (
-              [1, 2, 3, 4].map(i => (
-                <div key={i} className="w-44 shrink-0">
-                  <ProductSkeleton />
-                </div>
-              ))
-            ) : assetProducts.length > 0 ? (
-              assetProducts.map((product) => (
-                <div key={product.id} className="w-44 shrink-0">
-                  <ProductCard
-                    id={product.id}
-                    title={product.title}
-                    price={product.price}
-                    images={product.images}
-                    location={product.location}
-                    is_negotiable={product.is_negotiable}
-                    compact
-                  />
-                </div>
-              ))
-            ) : (
-              <div className="w-full text-center py-8 text-muted-foreground">
-                No asset products yet
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Rent */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.4s" }}>
-          <SectionHeader
-            title="Equipment for Rent"
-            icon={<Wrench className="h-4 w-4 text-primary" />}
-            onViewAll={() => {}}
-          />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {rentProducts.slice(0, 4).map((item) => (
-              <RentCard
-                key={item.id}
-                {...item}
-                isFavorite={false}
-                onFavoriteToggle={() => {}}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* General Products */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.45s" }}>
-          <SectionHeader
-            title="More for You"
-            icon={<ShoppingBag className="h-4 w-4 text-primary" />}
-            onViewAll={() => {}}
-          />
-          {productsLoading ? (
+        {/* More Products */}
+        {allProducts.length > 8 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
+            <SectionHeader
+              title="More for You"
+              icon={<ShoppingBag className="h-4 w-4 text-primary" />}
+              onViewAll={() => {}}
+            />
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {[1, 2, 3, 4].map(i => <ProductSkeleton key={i} />)}
-            </div>
-          ) : allProducts.length > 6 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {allProducts.slice(6).map((product) => (
+              {allProducts.slice(8).map((product) => (
                 <ProductCard
                   key={product.id}
                   id={product.id}
@@ -247,12 +182,8 @@ const Index = () => {
                 />
               ))}
             </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              More products coming soon!
-            </div>
-          )}
-        </section>
+          </section>
+        )}
 
         {/* Tagline Footer */}
         <section className="text-center py-8">
@@ -269,12 +200,16 @@ const Index = () => {
         </section>
       </main>
 
-      {/* Seller Floating Action Button */}
       {isSeller && <SellerFAB />}
-
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <AdminFAB />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <LocationModal 
+        isOpen={showLocationModal} 
+        onClose={() => setShowLocationModal(false)}
+        onSave={saveUserLocation}
+      />
     </div>
   );
 };
