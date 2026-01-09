@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface Profile {
   id: string;
@@ -163,4 +164,20 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+// Hook to protect actions for guests - redirects to auth page
+export const useAuthAction = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const withAuth = (action: () => void) => {
+    if (!user && !loading) {
+      navigate('/auth');
+      return;
+    }
+    action();
+  };
+
+  return { withAuth, isAuthenticated: !!user };
 };
