@@ -1,0 +1,229 @@
+import { useState } from "react";
+import { 
+  Package, Search, MoreVertical, Trash2, Edit, Eye, 
+  Plus, Image, Tag, DollarSign
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useAdminProducts } from "@/hooks/useAdmin";
+import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+
+const ProductManagement = () => {
+  const navigate = useNavigate();
+  const { products, loading, deleteProduct, updateProductStatus, refetch } = useAdminProducts();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-RW', {
+      style: 'currency',
+      currency: 'RWF',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    const { error } = await deleteProduct(id);
+    if (error) {
+      toast({ title: "Failed to delete product", variant: "destructive" });
+    } else {
+      toast({ title: "Product deleted successfully" });
+      refetch();
+    }
+  };
+
+  const handleApproveProduct = async (id: string) => {
+    const { error } = await updateProductStatus(id, 'active');
+    if (error) {
+      toast({ title: "Failed to approve product", variant: "destructive" });
+    } else {
+      toast({ title: "Product approved" });
+      refetch();
+    }
+  };
+
+  const categories = [
+    { value: 'all', label: 'All' },
+    { value: 'general', label: 'General' },
+    { value: 'asset', label: 'Asset' },
+    { value: 'agriculture', label: 'Agriculture' },
+    { value: 'rent', label: 'For Rent' },
+    { value: 'electronics', label: 'Electronics' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Search and Add */}
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-12 rounded-xl bg-white"
+          />
+        </div>
+        <Button className="h-12 px-4 gap-2 bg-primary hover:bg-primary/90">
+          <Plus className="h-4 w-4" />
+          Add Product
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl p-3 border">
+          <div className="flex items-center gap-2 text-orange-600 mb-1">
+            <Package className="h-4 w-4" />
+            <span className="text-xs font-medium">Total</span>
+          </div>
+          <p className="text-xl font-bold">{products.length}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 border">
+          <div className="flex items-center gap-2 text-green-600 mb-1">
+            <Tag className="h-4 w-4" />
+            <span className="text-xs font-medium">Active</span>
+          </div>
+          <p className="text-xl font-bold">{products.filter(p => p.status === 'active').length}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 border">
+          <div className="flex items-center gap-2 text-yellow-600 mb-1">
+            <Image className="h-4 w-4" />
+            <span className="text-xs font-medium">Pending</span>
+          </div>
+          <p className="text-xl font-bold">{products.filter(p => p.status === 'pending').length}</p>
+        </div>
+        <div className="bg-white rounded-xl p-3 border">
+          <div className="flex items-center gap-2 text-blue-600 mb-1">
+            <DollarSign className="h-4 w-4" />
+            <span className="text-xs font-medium">Avg Price</span>
+          </div>
+          <p className="text-xl font-bold">
+            {products.length > 0 ? formatPrice(products.reduce((a, b) => a + (b.price || 0), 0) / products.length) : 'N/A'}
+          </p>
+        </div>
+      </div>
+
+      {/* Category Tabs */}
+      <Tabs value={categoryFilter} onValueChange={setCategoryFilter}>
+        <TabsList className="w-full grid grid-cols-6 h-10 bg-white rounded-xl p-1 border">
+          {categories.map(cat => (
+            <TabsTrigger 
+              key={cat.value}
+              value={cat.value}
+              className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-white"
+            >
+              {cat.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {/* Product List */}
+      <div className="bg-white rounded-2xl border overflow-hidden">
+        <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-white">
+          <h3 className="font-semibold">Products ({filteredProducts.length})</h3>
+        </div>
+        <div className="divide-y max-h-[500px] overflow-y-auto">
+          {loading ? (
+            Array(5).fill(0).map((_, i) => (
+              <div key={i} className="p-4">
+                <Skeleton className="h-16" />
+              </div>
+            ))
+          ) : filteredProducts.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              No products found
+            </div>
+          ) : (
+            filteredProducts.map(product => (
+              <div key={product.id} className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
+                <img 
+                  src={product.images?.[0] || '/placeholder.svg'}
+                  alt={product.title}
+                  className="w-16 h-16 rounded-xl object-cover"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{product.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {product.seller?.full_name} • {product.category}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs">
+                      <Eye className="h-3 w-3 mr-1" />
+                      {product.views || 0}
+                    </Badge>
+                    <Badge 
+                      className={cn(
+                        "text-xs",
+                        product.status === 'active' 
+                          ? "bg-green-100 text-green-700" 
+                          : product.status === 'pending'
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-red-100 text-red-700"
+                      )}
+                    >
+                      {product.status}
+                    </Badge>
+                  </div>
+                </div>
+                <p className="font-bold text-primary">{formatPrice(product.price)}</p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-white">
+                    <DropdownMenuItem onClick={() => navigate(`/product/${product.id}`)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    {product.status === 'pending' && (
+                      <DropdownMenuItem onClick={() => handleApproveProduct(product.id)}>
+                        <Package className="h-4 w-4 mr-2 text-green-600" />
+                        Approve
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem 
+                      onClick={() => handleDeleteProduct(product.id)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProductManagement;

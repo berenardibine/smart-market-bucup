@@ -1,4 +1,4 @@
-import { Search, Bell, Menu, ShoppingBag, UserPlus } from "lucide-react";
+import { Search, Bell, Menu, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +21,12 @@ const Header = ({ onMenuClick, onSearchClick, notificationCount = 0 }: HeaderPro
       <div className="container flex items-center justify-between h-14 px-4">
         {/* Logo */}
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-            <ShoppingBag className="h-5 w-5 text-white" />
+          <div className="w-9 h-9 rounded-xl overflow-hidden bg-white flex items-center justify-center shadow-sm">
+            <img 
+              src="/favicon.ico" 
+              alt="Logo" 
+              className="w-7 h-7 object-contain"
+            />
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-white text-sm leading-tight tracking-tight">Rwanda Smart</span>
