@@ -140,7 +140,7 @@ const Auth = () => {
               <ShoppingBag className="h-4 w-4 text-white" />
             </div>
             <span className="font-bold text-lg bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Rwanda Smart Market
+              Smart Market
             </span>
           </div>
         </div>
