@@ -29,8 +29,8 @@ const Header = ({ onMenuClick, onSearchClick, notificationCount = 0 }: HeaderPro
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-white text-sm leading-tight tracking-tight">Rwanda Smart</span>
-            <span className="text-orange-100 font-medium text-xs leading-tight">Market</span>
+            <span className="font-bold text-white text-sm leading-tight tracking-tight">Smart Market</span>
+            <span className="text-orange-100 font-medium text-xs leading-tight">Buy Smart, Live Smart</span>
           </div>
         </div>
 

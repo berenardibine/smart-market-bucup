@@ -105,7 +105,7 @@ const AdminDashboard = () => {
                 <h1 className="font-bold text-lg flex items-center gap-2">
                   Admin Dashboard
                 </h1>
-                <p className="text-xs text-muted-foreground">Rwanda Smart Market</p>
+                <p className="text-xs text-muted-foreground">Smart Market</p>
               </div>
             </div>
           </div>

@@ -1,30 +1,82 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Package, Search, MoreVertical, Trash2, Edit, Eye, 
-  Plus, Image, Tag, DollarSign
+  Plus, Tag, DollarSign, RefreshCw, CheckCircle, X, Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useAdminProducts } from "@/hooks/useAdmin";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
 const ProductManagement = () => {
   const navigate = useNavigate();
-  const { products, loading, deleteProduct, updateProductStatus, refetch } = useAdminProducts();
   const { toast } = useToast();
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    price: '',
+    quantity: '1',
+    category: 'general',
+    is_negotiable: false,
+    location: '',
+    contact_call: '',
+    contact_whatsapp: '',
+    video_url: '',
+    images: [] as string[],
+  });
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('products')
+      .select(`
+        *,
+        seller:profiles!products_seller_id_fkey(id, full_name, email)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    setProducts(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-RW', {
@@ -42,22 +94,100 @@ const ProductManagement = () => {
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
-    const { error } = await deleteProduct(id);
+    
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    
     if (error) {
       toast({ title: "Failed to delete product", variant: "destructive" });
     } else {
       toast({ title: "Product deleted successfully" });
-      refetch();
+      fetchProducts();
     }
   };
 
   const handleApproveProduct = async (id: string) => {
-    const { error } = await updateProductStatus(id, 'active');
+    const { error } = await supabase.from('products').update({ status: 'active' }).eq('id', id);
+    
     if (error) {
       toast({ title: "Failed to approve product", variant: "destructive" });
     } else {
       toast({ title: "Product approved" });
-      refetch();
+      fetchProducts();
+    }
+  };
+
+  const openEditDialog = (product: any) => {
+    setSelectedProduct(product);
+    setFormData({
+      title: product.title || '',
+      description: product.description || '',
+      price: product.price?.toString() || '',
+      quantity: product.quantity?.toString() || '1',
+      category: product.category || 'general',
+      is_negotiable: product.is_negotiable || false,
+      location: product.location || '',
+      contact_call: product.contact_call || '',
+      contact_whatsapp: product.contact_whatsapp || '',
+      video_url: product.video_url || '',
+      images: product.images || [],
+    });
+    setShowEditDialog(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      price: '',
+      quantity: '1',
+      category: 'general',
+      is_negotiable: false,
+      location: '',
+      contact_call: '',
+      contact_whatsapp: '',
+      video_url: '',
+      images: [],
+    });
+    setSelectedProduct(null);
+  };
+
+  const handleSaveProduct = async () => {
+    if (!formData.title || !formData.price || !formData.description) {
+      toast({ title: "Title, price, and description are required", variant: "destructive" });
+      return;
+    }
+
+    const productData = {
+      title: formData.title,
+      description: formData.description,
+      price: parseFloat(formData.price),
+      quantity: parseInt(formData.quantity) || 1,
+      category: formData.category,
+      is_negotiable: formData.is_negotiable,
+      location: formData.location,
+      contact_call: formData.contact_call,
+      contact_whatsapp: formData.contact_whatsapp,
+      video_url: formData.video_url,
+      images: formData.images.length > 0 ? formData.images : ['/placeholder.svg'],
+    };
+
+    if (selectedProduct) {
+      // Update existing product
+      const { error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', selectedProduct.id);
+
+      if (error) {
+        toast({ title: "Failed to update product", variant: "destructive" });
+      } else {
+        toast({ title: "Product updated!" });
+        fetchProducts();
+        setShowEditDialog(false);
+        resetForm();
+      }
+    } else {
+      toast({ title: "Please use seller dashboard to add products", variant: "destructive" });
     }
   };
 
@@ -68,11 +198,13 @@ const ProductManagement = () => {
     { value: 'agriculture', label: 'Agriculture' },
     { value: 'rent', label: 'For Rent' },
     { value: 'electronics', label: 'Electronics' },
+    { value: 'food-drinks', label: 'Food' },
+    { value: 'health-care', label: 'Health' },
   ];
 
   return (
     <div className="space-y-4">
-      {/* Search and Add */}
+      {/* Search and Filters */}
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -83,9 +215,8 @@ const ProductManagement = () => {
             className="pl-10 h-12 rounded-xl bg-white"
           />
         </div>
-        <Button className="h-12 px-4 gap-2 bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4" />
-          Add Product
+        <Button variant="outline" size="icon" className="h-12 w-12" onClick={fetchProducts}>
+          <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
 
@@ -100,14 +231,14 @@ const ProductManagement = () => {
         </div>
         <div className="bg-white rounded-xl p-3 border">
           <div className="flex items-center gap-2 text-green-600 mb-1">
-            <Tag className="h-4 w-4" />
+            <CheckCircle className="h-4 w-4" />
             <span className="text-xs font-medium">Active</span>
           </div>
           <p className="text-xl font-bold">{products.filter(p => p.status === 'active').length}</p>
         </div>
         <div className="bg-white rounded-xl p-3 border">
           <div className="flex items-center gap-2 text-yellow-600 mb-1">
-            <Image className="h-4 w-4" />
+            <Tag className="h-4 w-4" />
             <span className="text-xs font-medium">Pending</span>
           </div>
           <p className="text-xl font-bold">{products.filter(p => p.status === 'pending').length}</p>
@@ -117,26 +248,29 @@ const ProductManagement = () => {
             <DollarSign className="h-4 w-4" />
             <span className="text-xs font-medium">Avg Price</span>
           </div>
-          <p className="text-xl font-bold">
+          <p className="text-lg font-bold">
             {products.length > 0 ? formatPrice(products.reduce((a, b) => a + (b.price || 0), 0) / products.length) : 'N/A'}
           </p>
         </div>
       </div>
 
       {/* Category Tabs */}
-      <Tabs value={categoryFilter} onValueChange={setCategoryFilter}>
-        <TabsList className="w-full grid grid-cols-6 h-10 bg-white rounded-xl p-1 border">
-          {categories.map(cat => (
-            <TabsTrigger 
-              key={cat.value}
-              value={cat.value}
-              className="rounded-lg text-xs data-[state=active]:bg-primary data-[state=active]:text-white"
-            >
-              {cat.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+        {categories.map(cat => (
+          <button
+            key={cat.value}
+            onClick={() => setCategoryFilter(cat.value)}
+            className={cn(
+              "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all",
+              categoryFilter === cat.value
+                ? "bg-primary text-white"
+                : "bg-white text-muted-foreground border hover:bg-gray-50"
+            )}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
 
       {/* Product List */}
       <div className="bg-white rounded-2xl border overflow-hidden">
@@ -198,13 +332,13 @@ const ProductManagement = () => {
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEditDialog(product)}>
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </DropdownMenuItem>
                     {product.status === 'pending' && (
                       <DropdownMenuItem onClick={() => handleApproveProduct(product.id)}>
-                        <Package className="h-4 w-4 mr-2 text-green-600" />
+                        <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
                         Approve
                       </DropdownMenuItem>
                     )}
@@ -222,6 +356,127 @@ const ProductManagement = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={(open) => {
+        setShowEditDialog(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="bg-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Title *</label>
+              <Input
+                placeholder="Product title..."
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Description *</label>
+              <Textarea
+                placeholder="Product description..."
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Price (RWF) *</label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Quantity</label>
+                <Input
+                  type="number"
+                  placeholder="1"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Category</label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="asset">Asset</SelectItem>
+                  <SelectItem value="agriculture">Agriculture</SelectItem>
+                  <SelectItem value="rent">Equipment for Rent</SelectItem>
+                  <SelectItem value="electronics">Electronics</SelectItem>
+                  <SelectItem value="food-drinks">Food & Drinks</SelectItem>
+                  <SelectItem value="health-care">Health & Care</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="negotiable"
+                checked={formData.is_negotiable}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_negotiable: !!checked })}
+              />
+              <label htmlFor="negotiable" className="text-sm">Price is negotiable</label>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Location</label>
+              <Input
+                placeholder="Product location..."
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Call Number</label>
+                <Input
+                  placeholder="+250..."
+                  value={formData.contact_call}
+                  onChange={(e) => setFormData({ ...formData, contact_call: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">WhatsApp</label>
+                <Input
+                  placeholder="+250..."
+                  value={formData.contact_whatsapp}
+                  onChange={(e) => setFormData({ ...formData, contact_whatsapp: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Video URL</label>
+              <Input
+                placeholder="https://..."
+                value={formData.video_url}
+                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProduct}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
