@@ -15,6 +15,8 @@ interface Profile {
   district_id: string | null;
   sector_id: string | null;
   profile_image: string | null;
+  status: string | null;
+  blocking_reason: string | null;
 }
 
 interface AuthContextType {

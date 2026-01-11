@@ -212,7 +212,7 @@ const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
           {/* Footer */}
           <div className="px-4 pb-6 pt-2">
             <p className="text-center text-2xs text-muted-foreground">
-              Rwanda Smart Market • developed by smart technology 
+              Smart Market • Developed by Smart Technology
             </p>
           </div>
         </div>

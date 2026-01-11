@@ -195,7 +195,7 @@ const Index = () => {
             🛍️ Your Market. Your Area. Your Power.
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Rwanda Smart Market — Buy Local, Think Smart.
+            Smart Market — Buy Smart, Live Smart.
           </p>
         </section>
       </main>
