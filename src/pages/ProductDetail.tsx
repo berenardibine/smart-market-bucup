@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
   ArrowLeft, Heart, MessageCircle, Phone, Bell, Share2, 
   MapPin, Store, ShieldCheck, ChevronLeft, ChevronRight,
-  Package, Tag, Home, Loader2
+  Package, Tag, Home, Loader2, Link2, Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useProduct, useFavorites } from "@/hooks/useProducts";
 import { useSendRequest } from "@/hooks/useProductRequests";
 import { useAuth } from "@/hooks/useAuth";
+import { useSellerConnections } from "@/hooks/useSellerConnections";
 import { cn } from "@/lib/utils";
 
 // Loading Component
@@ -52,6 +52,10 @@ const ProductDetail = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { sendRequest, sending } = useSendRequest();
   const [currentImage, setCurrentImage] = useState(0);
+  const [connectLoading, setConnectLoading] = useState(false);
+
+  const sellerId = product?.seller_id;
+  const { connectionCount, isConnected, toggleConnection } = useSellerConnections(sellerId);
 
   // Handle invalid ID early
   if (!id) {
@@ -105,6 +109,30 @@ const ProductDetail = () => {
     }
   };
 
+  const handleConnect = async () => {
+    if (!user) {
+      toast({ 
+        title: "Please sign in", 
+        description: "Sign in to connect with sellers",
+        variant: "destructive" 
+      });
+      navigate('/auth');
+      return;
+    }
+    if (user.id === sellerId) {
+      toast({ title: "You can't connect with yourself" });
+      return;
+    }
+    setConnectLoading(true);
+    const { error } = await toggleConnection();
+    if (error) {
+      toast({ title: "Failed to connect", variant: "destructive" });
+    } else {
+      toast({ title: isConnected ? "Disconnected" : "Connected with seller! 🎉" });
+    }
+    setConnectLoading(false);
+  };
+
   const handleShare = async () => {
     try {
       if (navigator.share) {
@@ -118,7 +146,6 @@ const ProductDetail = () => {
         toast({ title: "Link copied to clipboard!" });
       }
     } catch (err) {
-      // User cancelled share or clipboard failed
       console.log("Share cancelled");
     }
   };
@@ -347,8 +374,28 @@ const ProductDetail = () => {
                   {product.shop.trading_center}
                 </p>
               )}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                <Users className="h-3 w-3" />
+                <span>{connectionCount} connectors</span>
+              </div>
             </div>
           </div>
+
+          {/* Connect with Seller Button */}
+          <Button
+            onClick={handleConnect}
+            disabled={connectLoading}
+            variant={isConnected ? "outline" : "default"}
+            className={cn(
+              "w-full mt-4 gap-2",
+              isConnected 
+                ? "border-primary text-primary hover:bg-primary/5" 
+                : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
+            )}
+          >
+            <Link2 className="h-5 w-5" />
+            {connectLoading ? "..." : isConnected ? `Connected (${connectionCount})` : `Connect with Seller (${connectionCount})`}
+          </Button>
         </div>
       </div>
 
