@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface Profile {
   id: string;
@@ -29,6 +29,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
 }
 
 interface SignUpData {
@@ -60,20 +61,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .single();
     
     if (!error && data) {
-      setProfile(data as Profile);
+      const profileData = data as Profile;
+      setProfile(profileData);
+      
+      // Check if user is blocked/banned and redirect
+      if (profileData.status === 'blocked' || profileData.status === 'banned') {
+        // Sign out the user
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+        
+        // Store blocking info for blocked page
+        localStorage.setItem('blocked_reason', profileData.blocking_reason || 'Violation of terms');
+        localStorage.setItem('blocked_status', profileData.status);
+        
+        // Redirect will happen in the component
+        return { blocked: true };
+      }
+      return { blocked: false };
+    }
+    return { blocked: false };
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
     }
   };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
+          // Use setTimeout to avoid potential deadlock with Supabase client
+          setTimeout(async () => {
+            const result = await fetchProfile(session.user.id);
+            if (result?.blocked) {
+              // User was blocked, redirect to blocked page
+              window.location.href = '/blocked';
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -83,16 +114,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        const result = await fetchProfile(session.user.id);
+        if (result?.blocked) {
+          window.location.href = '/blocked';
+        }
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Set up realtime subscription to profile changes for blocking
+    let profileSubscription: any = null;
+    
+    const setupProfileSubscription = (userId: string) => {
+      profileSubscription = supabase
+        .channel('profile-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${userId}`
+          },
+          async (payload) => {
+            const updatedProfile = payload.new as Profile;
+            
+            // Check if user was just blocked
+            if (updatedProfile.status === 'blocked' || updatedProfile.status === 'banned') {
+              localStorage.setItem('blocked_reason', updatedProfile.blocking_reason || 'Violation of terms');
+              localStorage.setItem('blocked_status', updatedProfile.status);
+              
+              // Sign out and redirect
+              await supabase.auth.signOut();
+              setUser(null);
+              setSession(null);
+              setProfile(null);
+              window.location.href = '/blocked';
+            } else {
+              setProfile(updatedProfile);
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    // Subscribe to profile changes when user is authenticated
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setupProfileSubscription(session.user.id);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (profileSubscription) {
+        supabase.removeChannel(profileSubscription);
+      }
+    };
   }, []);
 
   const signUp = async (data: SignUpData) => {
@@ -119,10 +201,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    // Check if user is blocked after successful sign in
+    if (!error && data.user) {
+      const result = await fetchProfile(data.user.id);
+      if (result?.blocked) {
+        return { error: { message: 'Your account has been blocked. Please contact support.' } };
+      }
+    }
+    
     return { error };
   };
 
@@ -154,6 +245,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signOut,
       resetPassword,
       updatePassword,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>
