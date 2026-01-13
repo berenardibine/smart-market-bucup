@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, LayoutDashboard, Users, Package, Store, 
   MessageSquare, LogOut, Bell, BarChart3, Quote, Megaphone,
-  RefreshCw, Shield, Search
+  RefreshCw, Shield, Search, FolderTree, MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ import NotificationManagement from "@/components/admin/NotificationManagement";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import MessagesManagement from "@/components/admin/MessagesManagement";
 import AdsManagement from "@/components/admin/AdsManagement";
+import CategoriesManagement from "@/components/admin/CategoriesManagement";
+import LocationManagement from "@/components/admin/LocationManagement";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -67,6 +69,8 @@ const AdminDashboard = () => {
     { id: 'users', label: 'Users', icon: Users, color: 'text-green-600' },
     { id: 'products', label: 'Products', icon: Package, color: 'text-orange-600' },
     { id: 'shops', label: 'Shops', icon: Store, color: 'text-purple-600' },
+    { id: 'categories', label: 'Categories', icon: FolderTree, color: 'text-indigo-600' },
+    { id: 'locations', label: 'Locations', icon: MapPin, color: 'text-rose-600' },
     { id: 'motivations', label: 'Motivations', icon: Quote, color: 'text-pink-600' },
     { id: 'notifications', label: 'Notifications', icon: Bell, color: 'text-cyan-600' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, color: 'text-teal-600' },
@@ -79,6 +83,8 @@ const AdminDashboard = () => {
       case 'users': return <UserManagement />;
       case 'products': return <ProductManagement />;
       case 'shops': return <ShopManagement />;
+      case 'categories': return <CategoriesManagement />;
+      case 'locations': return <LocationManagement />;
       case 'motivations': return <MotivationManagement />;
       case 'notifications': return <NotificationManagement />;
       case 'messages': return <MessagesManagement />;

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Store, Package, Plus, MessageSquare, Bell,
   Eye, Heart, ShoppingBag, Settings, ChevronRight, Phone,
-  CheckCircle, Clock, BarChart3
+  CheckCircle, Clock, BarChart3, Users, DollarSign, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import { useMyShop } from "@/hooks/useShops";
 import { useMyProducts } from "@/hooks/useProducts";
 import { useProductRequests } from "@/hooks/useProductRequests";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import ShopForm from "@/components/seller/ShopForm";
 import ProductForm from "@/components/seller/ProductForm";
 import ProductList from "@/components/seller/ProductList";
@@ -21,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const { shop, loading: shopLoading, createShop, updateShop } = useMyShop();
   const { products, loading: productsLoading, refetch: refetchProducts } = useMyProducts();
@@ -31,10 +32,29 @@ const SellerDashboard = () => {
   const [showShopForm, setShowShopForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [connectorsCount, setConnectorsCount] = useState(0);
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
   const totalViews = products.reduce((sum, p) => sum + (p.views || 0), 0);
   const totalLikes = products.reduce((sum, p) => sum + (p.likes || 0), 0);
+
+  // Fetch connectors count
+  useEffect(() => {
+    if (user) {
+      fetchConnectorsCount();
+    }
+  }, [user]);
+
+  const fetchConnectorsCount = async () => {
+    if (!user) return;
+    
+    const { count } = await (supabase as any)
+      .from('seller_connections')
+      .select('*', { count: 'exact', head: true })
+      .eq('seller_id', user.id);
+    
+    setConnectorsCount(count || 0);
+  };
 
   const handleCreateShop = async (data: any) => {
     try {
@@ -132,7 +152,7 @@ const SellerDashboard = () => {
           <Store className="h-12 w-12 text-primary mb-4" />
           <h3 className="font-bold text-lg mb-2">Create Your Shop</h3>
           <p className="text-muted-foreground text-sm mb-4">
-            Set up your shop to start selling products on Rwanda Smart Market.
+            Set up your shop to start selling products on Smart Market.
           </p>
           <Button onClick={() => setShowShopForm(true)} className="w-full gap-2">
             <Plus className="h-4 w-4" />
@@ -144,7 +164,7 @@ const SellerDashboard = () => {
       {/* Stats Overview */}
       {shop && (
         <div className="p-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-2xl p-4 text-center border border-blue-500/20">
               <Eye className="h-6 w-6 text-blue-500 mx-auto mb-2" />
               <p className="text-2xl font-bold">{totalViews}</p>
@@ -159,6 +179,11 @@ const SellerDashboard = () => {
               <MessageSquare className="h-6 w-6 text-green-500 mx-auto mb-2" />
               <p className="text-2xl font-bold">{requests.length}</p>
               <p className="text-xs text-muted-foreground">Requests</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-2xl p-4 text-center border border-purple-500/20">
+              <Users className="h-6 w-6 text-purple-500 mx-auto mb-2" />
+              <p className="text-2xl font-bold">{connectorsCount}</p>
+              <p className="text-xs text-muted-foreground">Connectors</p>
             </div>
           </div>
         </div>
@@ -208,6 +233,31 @@ const SellerDashboard = () => {
               </div>
             </div>
           )}
+
+          {/* Monetization Card */}
+          <div 
+            onClick={() => navigate('/seller-monetization')}
+            className="bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-500/10 rounded-2xl p-5 border border-amber-500/20 cursor-pointer hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <DollarSign className="h-7 w-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-lg">Monetization</h3>
+                  <Badge variant="secondary" className="text-[10px] bg-amber-500/20 text-amber-700">
+                    <Sparkles className="h-2.5 w-2.5 mr-1" />
+                    Coming Soon
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Earn from your sales activity once monetization is live!
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+          </div>
 
           {/* Quick Actions */}
           <div className="bg-card rounded-2xl p-4 border">
@@ -320,6 +370,23 @@ const SellerDashboard = () => {
                     <span>{shop.trading_center}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Connectors Info */}
+              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-2xl p-4 border border-purple-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Your Connectors</h3>
+                    <p className="text-sm text-muted-foreground">People following your products</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-purple-600">{connectorsCount}</p>
+                    <p className="text-xs text-muted-foreground">followers</p>
+                  </div>
+                </div>
               </div>
 
               <Button onClick={() => setShowShopForm(true)} className="w-full gap-2">

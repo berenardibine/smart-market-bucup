@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, Store, ShoppingBag, Sparkles, Laptop, UtensilsCrossed, Heart, BookOpen, Settings } from "lucide-react";
+import { TrendingUp, Store, ShoppingBag, Sparkles, Laptop, UtensilsCrossed, Heart, BookOpen, Settings, Package } from "lucide-react";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import MenuDrawer from "@/components/layout/MenuDrawer";
@@ -16,12 +16,12 @@ import SmartChallenge from "@/components/home/SmartChallenge";
 import ProductCard from "@/components/products/ProductCard";
 import SectionHeader from "@/components/home/SectionHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { useProducts } from "@/hooks/useProducts";
+import { useAllProducts } from "@/hooks/useAllProducts";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-// General categories for home page (excluding asset, agriculture, rent)
+// General categories for home page
 const homeCategories = [
   { id: 'all', label: 'All', icon: <Sparkles className="h-4 w-4" />, color: 'from-primary to-orange-400' },
   { id: 'general', label: 'General', icon: <ShoppingBag className="h-4 w-4" />, color: 'from-pink-500 to-rose-400' },
@@ -46,9 +46,9 @@ const Index = () => {
     saveUserLocation, getLocationLabel 
   } = useUserLocation();
   
-  // Get products excluding asset, agriculture, and rent types
-  const { products: allProducts, loading: productsLoading } = useProducts(
-    selectedCategory === 'all' ? 'general' : selectedCategory
+  // Get ALL products from database (no category type filter)
+  const { products: allProducts, loading: productsLoading } = useAllProducts(
+    selectedCategory === 'all' ? undefined : selectedCategory
   );
 
   const isSeller = profile?.user_type === 'seller';
@@ -66,6 +66,7 @@ const Index = () => {
       <Skeleton className="aspect-square rounded-2xl" />
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-8 w-full rounded-lg" />
     </div>
   );
 
@@ -126,6 +127,18 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Products Count */}
+        {!productsLoading && allProducts.length > 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.22s" }}>
+            <div className="flex items-center gap-2 px-1">
+              <Package className="h-4 w-4 text-primary" />
+              <span className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{allProducts.length}</span> products available
+              </span>
+            </div>
+          </section>
+        )}
+
         {/* Trending Products */}
         <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
           <SectionHeader
@@ -134,11 +147,11 @@ const Index = () => {
             onViewAll={() => {}}
           />
           {productsLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => <ProductSkeleton key={i} />)}
             </div>
           ) : allProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {allProducts.slice(0, 8).map((product) => (
                 <ProductCard
                   key={product.id}
@@ -149,6 +162,7 @@ const Index = () => {
                   location={product.location}
                   is_negotiable={product.is_negotiable}
                   quantity={product.quantity}
+                  sellerId={product.seller_id}
                 />
               ))}
             </div>
@@ -168,7 +182,7 @@ const Index = () => {
               icon={<ShoppingBag className="h-4 w-4 text-primary" />}
               onViewAll={() => {}}
             />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {allProducts.slice(8).map((product) => (
                 <ProductCard
                   key={product.id}
@@ -179,6 +193,7 @@ const Index = () => {
                   location={product.location}
                   is_negotiable={product.is_negotiable}
                   quantity={product.quantity}
+                  sellerId={product.seller_id}
                 />
               ))}
             </div>
