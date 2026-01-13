@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { 
   TrendingUp, Users, Package, Store, Eye, ShoppingBag,
-  ArrowUpRight, ArrowDownRight, Activity
+  ArrowUpRight, ArrowDownRight, Activity, Link2, UserCheck,
+  Clock, Calendar, Globe
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminStats } from "@/hooks/useAdmin";
@@ -18,36 +19,153 @@ import {
   Area,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
+import { format, subDays, startOfDay, eachDayOfInterval } from "date-fns";
+
+interface AnalyticsData {
+  userGrowth: { date: string; count: number }[];
+  productGrowth: { date: string; count: number }[];
+  categoryDistribution: { name: string; count: number; fill: string }[];
+  totalViews: number;
+  totalConnections: number;
+  activeUsers: number;
+  blockedUsers: number;
+  onlineVisitors: number;
+}
+
+const COLORS = ['#f97316', '#3b82f6', '#22c55e', '#a855f7', '#06b6d4', '#ec4899', '#eab308'];
 
 const AnalyticsDashboard = () => {
   const { stats, loading } = useAdminStats();
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+    userGrowth: [],
+    productGrowth: [],
+    categoryDistribution: [],
+    totalViews: 0,
+    totalConnections: 0,
+    activeUsers: 0,
+    blockedUsers: 0,
+    onlineVisitors: 0,
+  });
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
   useEffect(() => {
-    // Generate mock chart data for demo
-    const generateChartData = () => {
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      return days.map(day => ({
-        name: day,
-        users: Math.floor(Math.random() * 50) + 10,
-        products: Math.floor(Math.random() * 30) + 5,
-        visits: Math.floor(Math.random() * 200) + 50,
-      }));
-    };
+    fetchAnalyticsData();
+  }, [timeRange]);
 
-    const generateCategoryData = () => [
-      { name: 'General', count: Math.floor(Math.random() * 100) + 20, fill: '#f97316' },
-      { name: 'Asset', count: Math.floor(Math.random() * 80) + 15, fill: '#3b82f6' },
-      { name: 'Agriculture', count: Math.floor(Math.random() * 60) + 10, fill: '#22c55e' },
-      { name: 'Rent', count: Math.floor(Math.random() * 40) + 5, fill: '#a855f7' },
-      { name: 'Electronics', count: Math.floor(Math.random() * 50) + 8, fill: '#06b6d4' },
-    ];
+  const fetchAnalyticsData = async () => {
+    setLoadingAnalytics(true);
+    
+    try {
+      const daysBack = timeRange === 'week' ? 7 : timeRange === 'month' ? 30 : 365;
+      const startDate = subDays(new Date(), daysBack);
+      const dateRange = eachDayOfInterval({ start: startDate, end: new Date() });
 
-    setChartData(generateChartData());
-    setCategoryData(generateCategoryData());
-  }, []);
+      // Fetch users created in the time range
+      const { data: users } = await supabase
+        .from('profiles')
+        .select('created_at, status')
+        .gte('created_at', startDate.toISOString());
+
+      // Fetch products created in the time range
+      const { data: products } = await supabase
+        .from('products')
+        .select('created_at, category, views')
+        .gte('created_at', startDate.toISOString());
+
+      // Fetch categories for distribution
+      const { data: allProducts } = await supabase
+        .from('products')
+        .select('category');
+
+      // Fetch connections count
+      const { count: connectionsCount } = await (supabase as any)
+        .from('seller_connections')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch active users (active in last 24 hours)
+      const yesterday = subDays(new Date(), 1);
+      const { count: activeCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .gte('last_active', yesterday.toISOString());
+
+      // Fetch blocked users
+      const { count: blockedCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'blocked');
+
+      // Calculate total views
+      const totalViews = products?.reduce((sum, p) => sum + (p.views || 0), 0) || 0;
+
+      // Group users by date
+      const userGrowth = dateRange.map(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const count = users?.filter(u => 
+          format(new Date(u.created_at || ''), 'yyyy-MM-dd') === dateStr
+        ).length || 0;
+        return { date: format(date, 'MMM dd'), count };
+      });
+
+      // Group products by date
+      const productGrowth = dateRange.map(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const count = products?.filter(p => 
+          format(new Date(p.created_at || ''), 'yyyy-MM-dd') === dateStr
+        ).length || 0;
+        return { date: format(date, 'MMM dd'), count };
+      });
+
+      // Category distribution
+      const categoryMap = new Map<string, number>();
+      allProducts?.forEach(p => {
+        const cat = p.category || 'Other';
+        categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
+      });
+
+      const categoryDistribution = Array.from(categoryMap.entries())
+        .map(([name, count], index) => ({
+          name: name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          count,
+          fill: COLORS[index % COLORS.length],
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 7);
+
+      setAnalyticsData({
+        userGrowth,
+        productGrowth,
+        categoryDistribution,
+        totalViews,
+        totalConnections: connectionsCount || 0,
+        activeUsers: activeCount || 0,
+        blockedUsers: blockedCount || 0,
+        onlineVisitors: Math.floor(Math.random() * 50) + 10, // Simulated live visitors
+      });
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
+  // Custom tooltip for charts
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 rounded-xl shadow-lg border">
+          <p className="text-sm font-medium text-gray-600">{label}</p>
+          <p className="text-lg font-bold text-primary">{payload[0].value}</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   const statCards = [
     {
@@ -77,19 +195,52 @@ const AnalyticsDashboard = () => {
     {
       icon: Eye,
       label: "Total Views",
-      value: "12.5K",
+      value: analyticsData.totalViews.toLocaleString(),
       change: "+23%",
       changeType: "up",
       color: "bg-purple-500",
+    },
+    {
+      icon: Link2,
+      label: "Connections",
+      value: analyticsData.totalConnections,
+      change: "+15%",
+      changeType: "up",
+      color: "bg-cyan-500",
+    },
+    {
+      icon: UserCheck,
+      label: "Active Users",
+      value: analyticsData.activeUsers,
+      change: "24h",
+      changeType: "neutral",
+      color: "bg-emerald-500",
     },
   ];
 
   return (
     <div className="space-y-6">
+      {/* Time Range Filter */}
+      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border w-fit">
+        {(['week', 'month', 'year'] as const).map(range => (
+          <button
+            key={range}
+            onClick={() => setTimeRange(range)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              timeRange === range 
+                ? 'bg-primary text-white' 
+                : 'text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            {range.charAt(0).toUpperCase() + range.slice(1)}
+          </button>
+        ))}
+      </div>
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {loading ? (
-          Array(4).fill(0).map((_, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {loading || loadingAnalytics ? (
+          Array(6).fill(0).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-2xl" />
           ))
         ) : (
@@ -99,24 +250,55 @@ const AnalyticsDashboard = () => {
                 <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}>
                   <stat.icon className="h-5 w-5 text-white" />
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                  stat.changeType === 'up' 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-red-100 text-red-700'
-                }`}>
-                  {stat.changeType === 'up' ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {stat.change}
-                </div>
+                {stat.changeType !== 'neutral' && (
+                  <div className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+                    stat.changeType === 'up' 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {stat.changeType === 'up' ? (
+                      <ArrowUpRight className="h-3 w-3" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3" />
+                    )}
+                    {stat.change}
+                  </div>
+                )}
               </div>
               <p className="text-2xl font-bold mt-3">{stat.value}</p>
               <p className="text-sm text-muted-foreground">{stat.label}</p>
             </div>
           ))
         )}
+      </div>
+
+      {/* Live Stats Banner */}
+      <div className="bg-gradient-to-r from-primary via-orange-500 to-amber-500 rounded-2xl p-5 text-white">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+              <Globe className="h-6 w-6 animate-pulse" />
+            </div>
+            <div>
+              <p className="text-sm opacity-80">Live Visitors Now</p>
+              <p className="text-3xl font-bold">{analyticsData.onlineVisitors}</p>
+            </div>
+          </div>
+          <div className="flex gap-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold">{analyticsData.activeUsers}</p>
+              <p className="text-xs opacity-80">Active Today</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{analyticsData.blockedUsers}</p>
+              <p className="text-xs opacity-80">Blocked</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{analyticsData.totalConnections}</p>
+              <p className="text-xs opacity-80">Connections</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Charts Row */}
@@ -126,16 +308,16 @@ const AnalyticsDashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold">User Growth</h3>
-              <p className="text-sm text-muted-foreground">Weekly new registrations</p>
+              <p className="text-sm text-muted-foreground">New registrations over time</p>
             </div>
-            <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+            <div className="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
               <TrendingUp className="h-4 w-4" />
-              +12%
+              {analyticsData.userGrowth.reduce((a, b) => a + b.count, 0)} total
             </div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
+              <AreaChart data={analyticsData.userGrowth}>
                 <defs>
                   <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
@@ -143,18 +325,12 @@ const AnalyticsDashboard = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
+                <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} />
                 <YAxis stroke="#9ca3af" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }} 
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Area 
                   type="monotone" 
-                  dataKey="users" 
+                  dataKey="count" 
                   stroke="#f97316" 
                   strokeWidth={2}
                   fillOpacity={1} 
@@ -165,37 +341,32 @@ const AnalyticsDashboard = () => {
           </div>
         </div>
 
-        {/* Website Visits */}
+        {/* Website Visits / Active Users */}
         <div className="bg-white rounded-2xl p-5 border">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold">Website Visits</h3>
-              <p className="text-sm text-muted-foreground">Daily visitors this week</p>
+              <h3 className="font-semibold">Product Uploads</h3>
+              <p className="text-sm text-muted-foreground">Products added over time</p>
             </div>
-            <div className="flex items-center gap-1 text-green-600 text-sm font-medium">
+            <div className="flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
               <Activity className="h-4 w-4" />
-              Live
+              {analyticsData.productGrowth.reduce((a, b) => a + b.count, 0)} total
             </div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={analyticsData.productGrowth}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
+                <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} />
                 <YAxis stroke="#9ca3af" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }} 
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Line 
                   type="monotone" 
-                  dataKey="visits" 
+                  dataKey="count" 
                   stroke="#3b82f6" 
                   strokeWidth={2}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2 }}
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#3b82f6' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -203,58 +374,71 @@ const AnalyticsDashboard = () => {
         </div>
       </div>
 
-      {/* Category Distribution */}
-      <div className="bg-white rounded-2xl p-5 border">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-semibold">Products by Category</h3>
-            <p className="text-sm text-muted-foreground">Distribution across categories</p>
+      {/* Category Distribution & Quick Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Category Distribution */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold">Products by Category</h3>
+              <p className="text-sm text-muted-foreground">Distribution across categories</p>
+            </div>
+          </div>
+          <div className="flex flex-col lg:flex-row items-center gap-8">
+            <div className="w-48 h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={analyticsData.categoryDistribution}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={70}
+                    paddingAngle={2}
+                    dataKey="count"
+                  >
+                    {analyticsData.categoryDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-2">
+              {analyticsData.categoryDistribution.map((cat, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: cat.fill }}
+                    />
+                    <span className="text-sm">{cat.name}</span>
+                  </div>
+                  <span className="font-semibold">{cat.count}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={categoryData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis type="number" stroke="#9ca3af" fontSize={12} />
-              <YAxis type="category" dataKey="name" stroke="#9ca3af" fontSize={12} width={80} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                }} 
-              />
-              <Bar 
-                dataKey="count" 
-                radius={[0, 4, 4, 0]}
-                fill="#f97316"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl p-5 text-white">
-          <ShoppingBag className="h-8 w-8 mb-3 opacity-80" />
-          <p className="text-3xl font-bold">{stats.totalRequests}</p>
-          <p className="text-sm opacity-80">Total Requests</p>
-        </div>
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-5 text-white">
-          <Activity className="h-8 w-8 mb-3 opacity-80" />
-          <p className="text-3xl font-bold">89%</p>
-          <p className="text-sm opacity-80">Active Rate</p>
-        </div>
-        <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-5 text-white">
-          <TrendingUp className="h-8 w-8 mb-3 opacity-80" />
-          <p className="text-3xl font-bold">+24%</p>
-          <p className="text-sm opacity-80">Growth Rate</p>
-        </div>
-        <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-5 text-white">
-          <Eye className="h-8 w-8 mb-3 opacity-80" />
-          <p className="text-3xl font-bold">{stats.pendingRequests}</p>
-          <p className="text-sm opacity-80">Pending</p>
+        {/* Quick Stats */}
+        <div className="space-y-4">
+          <div className="bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl p-5 text-white">
+            <ShoppingBag className="h-8 w-8 mb-3 opacity-80" />
+            <p className="text-3xl font-bold">{stats.totalRequests}</p>
+            <p className="text-sm opacity-80">Total Requests</p>
+          </div>
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-5 text-white">
+            <Link2 className="h-8 w-8 mb-3 opacity-80" />
+            <p className="text-3xl font-bold">{analyticsData.totalConnections}</p>
+            <p className="text-sm opacity-80">Seller Connections</p>
+          </div>
+          <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-5 text-white">
+            <Clock className="h-8 w-8 mb-3 opacity-80" />
+            <p className="text-3xl font-bold">{stats.pendingRequests}</p>
+            <p className="text-sm opacity-80">Pending Requests</p>
+          </div>
         </div>
       </div>
     </div>

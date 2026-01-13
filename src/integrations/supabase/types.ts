@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_message: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          is_read: string | null
-          message: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          is_read?: string | null
-          message?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          is_read?: string | null
-          message?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       admin_messages: {
         Row: {
           created_at: string | null
@@ -74,8 +50,10 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           link: string | null
+          location_id: string | null
           priority: number | null
           start_date: string
+          target_audience: string | null
           text_color: string | null
           title: string
           type: string
@@ -91,8 +69,10 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           link?: string | null
+          location_id?: string | null
           priority?: number | null
           start_date?: string
+          target_audience?: string | null
           text_color?: string | null
           title: string
           type: string
@@ -108,13 +88,23 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           link?: string | null
+          location_id?: string | null
           priority?: number | null
           start_date?: string
+          target_audience?: string | null
           text_color?: string | null
           title?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ads_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_manager_reports: {
         Row: {
@@ -217,85 +207,6 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
-      }
-      challenge_participants: {
-        Row: {
-          challenge_id: string
-          id: string
-          joined_at: string | null
-          submission_url: string | null
-          submitted_at: string | null
-          user_id: string
-        }
-        Insert: {
-          challenge_id: string
-          id?: string
-          joined_at?: string | null
-          submission_url?: string | null
-          submitted_at?: string | null
-          user_id: string
-        }
-        Update: {
-          challenge_id?: string
-          id?: string
-          joined_at?: string | null
-          submission_url?: string | null
-          submitted_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "challenge_participants_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "Innovation"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      challenge_submissions: {
-        Row: {
-          challenge_id: string
-          created_at: string
-          description: string | null
-          files: string[] | null
-          id: string
-          is_winner: boolean | null
-          score: number | null
-          title: string
-          user_id: string
-        }
-        Insert: {
-          challenge_id: string
-          created_at?: string
-          description?: string | null
-          files?: string[] | null
-          id?: string
-          is_winner?: boolean | null
-          score?: number | null
-          title: string
-          user_id: string
-        }
-        Update: {
-          challenge_id?: string
-          created_at?: string
-          description?: string | null
-          files?: string[] | null
-          id?: string
-          is_winner?: boolean | null
-          score?: number | null
-          title?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "challenge_submissions_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "innovation_challenges"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       comments: {
         Row: {
@@ -642,6 +553,33 @@ export type Database = {
           },
         ]
       }
+      countries: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          iso_code: string | null
+          level_names: Json | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          iso_code?: string | null
+          level_names?: Json | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          iso_code?: string | null
+          level_names?: Json | null
+          name?: string
+        }
+        Relationships: []
+      }
       daily_motivations: {
         Row: {
           author: string | null
@@ -697,71 +635,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      Edea: {
-        Row: {
-          content: string
-          created_at: string | null
-          id: string
-          idea_id: string
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          id?: string
-          idea_id: string
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          id?: string
-          idea_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "idea_comments_idea_id_fkey"
-            columns: ["idea_id"]
-            isOneToOne: false
-            referencedRelation: "ideas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      Hello: {
-        Row: {
-          amount: number
-          created_at: string | null
-          description: string | null
-          id: string
-          reference_id: string | null
-          reference_type: string | null
-          type: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          reference_id?: string | null
-          reference_type?: string | null
-          type: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          reference_id?: string | null
-          reference_type?: string | null
-          type?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       idea_collaborators: {
         Row: {
@@ -2389,21 +2262,32 @@ export type Database = {
       }
       provinces: {
         Row: {
+          country_id: string | null
           created_at: string | null
           id: string
           name: string
         }
         Insert: {
+          country_id?: string | null
           created_at?: string | null
           id?: string
           name: string
         }
         Update: {
+          country_id?: string | null
           created_at?: string | null
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "provinces_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -2731,6 +2615,56 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_connections: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          seller_id: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          seller_id: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_connections_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_connections_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_connections_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_connections_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shops: {
         Row: {
           contact_email: string | null
@@ -2863,30 +2797,6 @@ export type Database = {
           twitter_url?: string | null
           updated_at?: string | null
           updated_by?: string | null
-        }
-        Relationships: []
-      }
-      "Smart walle": {
-        Row: {
-          coins: number | null
-          id: string
-          points: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          coins?: number | null
-          id?: string
-          points?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          coins?: number | null
-          id?: string
-          points?: number | null
-          updated_at?: string | null
-          user_id?: string
         }
         Relationships: []
       }

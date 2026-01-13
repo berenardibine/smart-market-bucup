@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { 
   Megaphone, Plus, Image, Type, Link, Calendar, Users, 
-  Trash2, Edit, MoreVertical, Eye, Clock, Store, User
+  Trash2, Edit, MoreVertical, Eye, Clock, Store, User,
+  MapPin, Upload, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { 
   Select,
   SelectContent,
@@ -47,14 +49,25 @@ interface Ad {
   is_active: boolean | null;
   priority: number | null;
   created_at: string | null;
+  target_audience: string | null;
+  location_id: string | null;
+  font_size: string | null;
+}
+
+interface Location {
+  id: string;
+  name: string;
+  type: string;
 }
 
 const AdsManagement = () => {
   const { toast } = useToast();
   const [ads, setAds] = useState<Ad[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -65,6 +78,9 @@ const AdsManagement = () => {
     text_color: '#ffffff',
     start_date: '',
     end_date: '',
+    target_audience: 'all',
+    location_id: '',
+    font_size: 'medium',
   });
 
   const fetchAds = async () => {
@@ -78,9 +94,63 @@ const AdsManagement = () => {
     setLoading(false);
   };
 
+  const fetchLocations = async () => {
+    const { data } = await supabase
+      .from('locations')
+      .select('id, name, type')
+      .order('name');
+    if (data) setLocations(data);
+  };
+
   useEffect(() => {
     fetchAds();
+    fetchLocations();
   }, []);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `ad-${Date.now()}.${fileExt}`;
+      const filePath = `ads/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('ads')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        // Try to create bucket if it doesn't exist
+        const { error: createError } = await supabase.storage.createBucket('ads', { public: true });
+        if (createError && !createError.message.includes('already exists')) {
+          throw uploadError;
+        }
+        // Retry upload
+        const { error: retryError } = await supabase.storage
+          .from('ads')
+          .upload(filePath, file);
+        if (retryError) throw retryError;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('ads')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, image_url: urlData.publicUrl }));
+      toast({ title: "Image uploaded successfully!" });
+    } catch (err: any) {
+      toast({ 
+        title: "Upload failed", 
+        description: err.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
@@ -96,9 +166,12 @@ const AdsManagement = () => {
       link: formData.link || null,
       bg_color: formData.bg_color,
       text_color: formData.text_color,
+      font_size: formData.font_size,
       start_date: formData.start_date || new Date().toISOString(),
       end_date: formData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       is_active: true,
+      target_audience: formData.target_audience,
+      location_id: formData.location_id || null,
     };
 
     if (editingAd) {
@@ -140,6 +213,9 @@ const AdsManagement = () => {
       text_color: '#ffffff',
       start_date: '',
       end_date: '',
+      target_audience: 'all',
+      location_id: '',
+      font_size: 'medium',
     });
     setEditingAd(null);
     setShowAddDialog(false);
@@ -182,11 +258,18 @@ const AdsManagement = () => {
       text_color: ad.text_color || '#ffffff',
       start_date: ad.start_date,
       end_date: ad.end_date,
+      target_audience: ad.target_audience || 'all',
+      location_id: ad.location_id || '',
+      font_size: ad.font_size || 'medium',
     });
     setShowAddDialog(true);
   };
 
   const activeAds = ads.filter(a => a.is_active);
+  const getLocationName = (id: string | null) => {
+    if (!id) return 'All Locations';
+    return locations.find(l => l.id === id)?.name || 'Unknown';
+  };
 
   return (
     <div className="space-y-4">
@@ -195,7 +278,7 @@ const AdsManagement = () => {
         <div>
           <h3 className="font-semibold text-lg">Smart Ads</h3>
           <p className="text-sm text-muted-foreground">
-            Create and manage promotional ads
+            Create and manage promotional ads with location targeting
           </p>
         </div>
         <Dialog open={showAddDialog} onOpenChange={(open) => {
@@ -214,7 +297,7 @@ const AdsManagement = () => {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Title *</label>
+                <Label className="text-sm font-medium mb-2 block">Title *</Label>
                 <Input
                   placeholder="Ad title..."
                   value={formData.title}
@@ -222,7 +305,7 @@ const AdsManagement = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-2 block">Description</label>
+                <Label className="text-sm font-medium mb-2 block">Description</Label>
                 <Textarea
                   placeholder="Ad description..."
                   value={formData.description}
@@ -232,7 +315,7 @@ const AdsManagement = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Type</label>
+                  <Label className="text-sm font-medium mb-2 block">Type</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value) => setFormData({ ...formData, type: value })}
@@ -248,27 +331,107 @@ const AdsManagement = () => {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Link URL</label>
-                  <Input
-                    placeholder="https://..."
-                    value={formData.link}
-                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-                  />
+                  <Label className="text-sm font-medium mb-2 block">Target Audience</Label>
+                  <Select
+                    value={formData.target_audience}
+                    onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="all">All Users</SelectItem>
+                      <SelectItem value="seller">Sellers Only</SelectItem>
+                      <SelectItem value="buyer">Buyers Only</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
+
+              {/* Location Targeting */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Target Location (Optional)</Label>
+                <Select
+                  value={formData.location_id}
+                  onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All locations" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white max-h-60">
+                    <SelectItem value="">All Locations</SelectItem>
+                    {locations.map(loc => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.name} ({loc.type})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Link URL</Label>
+                <Input
+                  placeholder="https://..."
+                  value={formData.link}
+                  onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                />
+              </div>
+              
+              {/* Image Upload */}
               {formData.type !== 'text' && (
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Image URL</label>
-                  <Input
-                    placeholder="https://..."
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  />
+                  <Label className="text-sm font-medium mb-2 block">Ad Image</Label>
+                  <div className="space-y-3">
+                    {formData.image_url && (
+                      <div className="relative">
+                        <img 
+                          src={formData.image_url} 
+                          alt="Ad preview" 
+                          className="w-full h-40 object-cover rounded-xl"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute top-2 right-2 h-8 w-8"
+                          onClick={() => setFormData({ ...formData, image_url: '' })}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <label className="flex-1">
+                        <div className={cn(
+                          "flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer transition-colors",
+                          uploading ? "bg-muted" : "hover:border-primary hover:bg-primary/5"
+                        )}>
+                          <Upload className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {uploading ? 'Uploading...' : 'Upload Image'}
+                          </span>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                          disabled={uploading}
+                        />
+                      </label>
+                    </div>
+                    <Input
+                      placeholder="Or paste image URL..."
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                    />
+                  </div>
                 </div>
               )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Background Color</label>
+                  <Label className="text-sm font-medium mb-2 block">Background Color</Label>
                   <div className="flex gap-2">
                     <Input
                       type="color"
@@ -284,7 +447,7 @@ const AdsManagement = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Text Color</label>
+                  <Label className="text-sm font-medium mb-2 block">Text Color</Label>
                   <div className="flex gap-2">
                     <Input
                       type="color"
@@ -300,9 +463,27 @@ const AdsManagement = () => {
                   </div>
                 </div>
               </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Font Size</Label>
+                <Select
+                  value={formData.font_size}
+                  onValueChange={(value) => setFormData({ ...formData, font_size: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="small">Small</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="large">Large</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Start Date</label>
+                  <Label className="text-sm font-medium mb-2 block">Start Date</Label>
                   <Input
                     type="date"
                     value={formData.start_date ? formData.start_date.split('T')[0] : ''}
@@ -310,7 +491,7 @@ const AdsManagement = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">End Date</label>
+                  <Label className="text-sm font-medium mb-2 block">End Date</Label>
                   <Input
                     type="date"
                     value={formData.end_date ? formData.end_date.split('T')[0] : ''}
@@ -321,19 +502,33 @@ const AdsManagement = () => {
 
               {/* Preview */}
               <div>
-                <label className="text-sm font-medium mb-2 block">Preview</label>
+                <Label className="text-sm font-medium mb-2 block">Preview</Label>
                 <div 
-                  className="rounded-xl p-4 text-center"
+                  className="rounded-xl p-4 text-center overflow-hidden"
                   style={{ backgroundColor: formData.bg_color, color: formData.text_color }}
                 >
-                  <p className="font-semibold">{formData.title || 'Your Ad Title'}</p>
+                  {formData.image_url && formData.type !== 'text' && (
+                    <img 
+                      src={formData.image_url} 
+                      alt="Preview" 
+                      className="w-full h-32 object-cover rounded-lg mb-3"
+                    />
+                  )}
+                  <p className={cn(
+                    "font-semibold",
+                    formData.font_size === 'small' && 'text-sm',
+                    formData.font_size === 'medium' && 'text-base',
+                    formData.font_size === 'large' && 'text-xl'
+                  )}>
+                    {formData.title || 'Your Ad Title'}
+                  </p>
                   {formData.description && (
                     <p className="text-sm opacity-80 mt-1">{formData.description}</p>
                   )}
                 </div>
               </div>
 
-              <Button onClick={handleSubmit} className="w-full">
+              <Button onClick={handleSubmit} className="w-full" disabled={uploading}>
                 {editingAd ? 'Update Ad' : 'Create Ad'}
               </Button>
             </div>
@@ -359,10 +554,10 @@ const AdsManagement = () => {
         </div>
         <div className="bg-white rounded-xl p-4 border">
           <div className="flex items-center gap-2 text-blue-600 mb-1">
-            <Clock className="h-4 w-4" />
-            <span className="text-xs font-medium">Scheduled</span>
+            <MapPin className="h-4 w-4" />
+            <span className="text-xs font-medium">Targeted</span>
           </div>
-          <p className="text-2xl font-bold">0</p>
+          <p className="text-2xl font-bold">{ads.filter(a => a.location_id).length}</p>
         </div>
       </div>
 
@@ -388,17 +583,17 @@ const AdsManagement = () => {
               <div key={ad.id} className="p-4 hover:bg-gray-50 transition-colors">
                 <div className="flex items-start gap-4">
                   <div 
-                    className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
+                    className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
                     style={{ backgroundColor: ad.bg_color || '#f97316' }}
                   >
-                    {ad.type === 'image' && ad.image_url ? (
-                      <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover rounded-xl" />
+                    {ad.type !== 'text' && ad.image_url ? (
+                      <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
                     ) : (
                       <Type className="h-6 w-6" style={{ color: ad.text_color || '#fff' }} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <p className="font-semibold">{ad.title}</p>
                       <Badge className={cn(
                         "text-xs",
@@ -406,11 +601,17 @@ const AdsManagement = () => {
                       )}>
                         {ad.is_active ? 'Active' : 'Inactive'}
                       </Badge>
+                      {ad.target_audience !== 'all' && (
+                        <Badge variant="outline" className="text-xs capitalize">
+                          <User className="h-3 w-3 mr-1" />
+                          {ad.target_audience}s
+                        </Badge>
+                      )}
                     </div>
                     {ad.description && (
                       <p className="text-sm text-muted-foreground line-clamp-1">{ad.description}</p>
                     )}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2 flex-wrap">
                       <span className="flex items-center gap-1 capitalize">
                         {ad.type === 'image' ? <Image className="h-3 w-3" /> : <Type className="h-3 w-3" />}
                         {ad.type}
@@ -419,6 +620,12 @@ const AdsManagement = () => {
                         <Calendar className="h-3 w-3" />
                         {format(new Date(ad.end_date), 'MMM d')}
                       </span>
+                      {ad.location_id && (
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {getLocationName(ad.location_id)}
+                        </span>
+                      )}
                       {ad.link && (
                         <span className="flex items-center gap-1">
                           <Link className="h-3 w-3" />
