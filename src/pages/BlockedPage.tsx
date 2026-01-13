@@ -1,22 +1,46 @@
-import { useState } from "react";
-import { ShieldX, Mail, Phone, User, Send, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShieldX, Mail, Phone, User, Send, MessageSquare, Home, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 
 const BlockedPage = () => {
   const { profile, signOut } = useAuth();
   const { toast } = useToast();
+  const [blockReason, setBlockReason] = useState<string>('');
   const [formData, setFormData] = useState({
-    name: profile?.full_name || '',
-    email: profile?.email || '',
-    phone: profile?.phone_number || '',
+    name: '',
+    email: '',
+    phone: '',
     message: '',
   });
   const [sending, setSending] = useState(false);
+
+  // Get blocking reason from localStorage (set when user is blocked in real-time) or from profile
+  useEffect(() => {
+    const storedReason = localStorage.getItem('blocked_reason');
+    if (storedReason) {
+      setBlockReason(storedReason);
+    } else if (profile?.blocking_reason) {
+      setBlockReason(profile.blocking_reason);
+    } else {
+      setBlockReason('Violation of platform terms');
+    }
+    
+    // Pre-fill form with profile data if available
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        name: profile.full_name || '',
+        email: profile.email || '',
+        phone: profile.phone_number || '',
+      }));
+    }
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,10 +90,15 @@ const BlockedPage = () => {
             Your account has been blocked by the administrator.
           </p>
 
-          {profile?.blocking_reason && (
-            <div className="bg-red-50 rounded-xl p-4 mb-6 text-left">
-              <p className="text-xs font-medium text-red-600 mb-1">Reason:</p>
-              <p className="text-sm text-red-700">{profile.blocking_reason}</p>
+          {blockReason && (
+            <div className="bg-red-50 rounded-xl p-4 mb-6 text-left border border-red-100">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-red-600 mb-1">Reason:</p>
+                  <p className="text-sm text-red-700">{blockReason}</p>
+                </div>
+              </div>
             </div>
           )}
 
