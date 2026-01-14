@@ -2,13 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Bell, ArrowLeft, Check, CheckCheck, Trash2, 
-  Megaphone, MessageCircle, ShoppingBag, AlertCircle
+  Megaphone, MessageCircle, ShoppingBag, AlertCircle,
+  Shield, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +28,8 @@ interface Notification {
 const NotificationsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,8 +102,19 @@ const NotificationsPage = () => {
   };
 
   const deleteNotification = async (id: string) => {
+    // Only admin can delete notifications
+    if (!isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can delete notifications.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     await supabase.from('notifications').delete().eq('id', id);
     setNotifications(prev => prev.filter(n => n.id !== id));
+    toast({ title: "Notification deleted" });
   };
 
   const getIcon = (type: string | null) => {
@@ -111,6 +127,8 @@ const NotificationsPage = () => {
         return ShoppingBag;
       case 'alert':
         return AlertCircle;
+      case 'admin':
+        return Shield;
       default:
         return Bell;
     }
@@ -126,6 +144,8 @@ const NotificationsPage = () => {
         return 'bg-green-100 text-green-600';
       case 'alert':
         return 'bg-red-100 text-red-600';
+      case 'admin':
+        return 'bg-orange-100 text-orange-600';
       default:
         return 'bg-orange-100 text-orange-600';
     }
@@ -164,19 +184,37 @@ const NotificationsPage = () => {
               )}
             </div>
           </div>
-          {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={markAllAsRead}
-              className="gap-2"
-            >
-              <CheckCheck className="h-4 w-4" />
-              Mark all read
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={markAllAsRead}
+                className="gap-2"
+              >
+                <CheckCheck className="h-4 w-4" />
+                Mark all read
+              </Button>
+            )}
+            {isAdmin && (
+              <Badge className="bg-primary/10 text-primary">
+                <Shield className="h-3 w-3 mr-1" />
+                Admin
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Admin Notice */}
+      {!isAdmin && (
+        <div className="mx-4 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+          <Lock className="h-5 w-5 text-amber-600 shrink-0" />
+          <p className="text-sm text-amber-700">
+            Only administrators can delete notifications. You can read and mark them as read.
+          </p>
+        </div>
+      )}
 
       {/* Notifications List */}
       <div className="p-4">
@@ -233,13 +271,16 @@ const NotificationsPage = () => {
                               <Check className="h-4 w-4" />
                             </button>
                           )}
-                          <button
-                            onClick={() => deleteNotification(notification.id)}
-                            className="p-1.5 rounded-full hover:bg-gray-100 text-muted-foreground hover:text-destructive"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {/* Only show delete button for admins */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => deleteNotification(notification.id)}
+                              className="p-1.5 rounded-full hover:bg-gray-100 text-muted-foreground hover:text-destructive"
+                              title="Delete (Admin only)"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-2">

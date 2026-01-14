@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { 
-  Users, Package, Store, MessageSquare, Eye,
-  Trash2, Ban, CheckCircle, MoreVertical, Search, Edit, Mail, 
-  Send, Phone, MapPin, Calendar, UserX, RefreshCw
+  Users, Store, Eye, Trash2, Ban, CheckCircle, MoreVertical, Search, Edit, Mail, 
+  Send, Phone, MapPin, Calendar, UserX, RefreshCw, User, AtSign, Building,
+  IdCard, MessageSquare, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -21,6 +22,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,12 +48,21 @@ const UserManagement = () => {
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [notificationMessage, setNotificationMessage] = useState({ title: '', message: '' });
+  
+  // Full edit form data matching signup form
   const [editData, setEditData] = useState({
     full_name: '',
     email: '',
     phone_number: '',
+    whatsapp_number: '',
+    call_number: '',
     user_type: '',
     location: '',
+    bio: '',
+    business_name: '',
+    status: '',
+    identity_verified: false,
+    referral_code: '',
   });
 
   const fetchUsers = async () => {
@@ -64,7 +82,8 @@ const UserManagement = () => {
 
   const filteredUsers = users.filter(u => 
     u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.phone_number?.includes(searchQuery)
   );
 
   const handleBlockUser = async (withReason: boolean = false) => {
@@ -139,7 +158,20 @@ const UserManagement = () => {
 
     const { error } = await supabase
       .from('profiles')
-      .update(editData)
+      .update({
+        full_name: editData.full_name,
+        email: editData.email,
+        phone_number: editData.phone_number,
+        whatsapp_number: editData.whatsapp_number,
+        call_number: editData.call_number,
+        user_type: editData.user_type,
+        location: editData.location,
+        bio: editData.bio,
+        business_name: editData.business_name,
+        status: editData.status,
+        identity_verified: editData.identity_verified,
+        referral_code: editData.referral_code,
+      })
       .eq('id', selectedUser.id);
 
     if (error) {
@@ -178,8 +210,15 @@ const UserManagement = () => {
       full_name: user.full_name || '',
       email: user.email || '',
       phone_number: user.phone_number || '',
+      whatsapp_number: user.whatsapp_number || '',
+      call_number: user.call_number || '',
       user_type: user.user_type || 'buyer',
       location: user.location || '',
+      bio: user.bio || '',
+      business_name: user.business_name || '',
+      status: user.status || 'active',
+      identity_verified: user.identity_verified || false,
+      referral_code: user.referral_code || '',
     });
     setShowEditDialog(true);
   };
@@ -191,7 +230,7 @@ const UserManagement = () => {
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search users by name or email..."
+            placeholder="Search by name, email or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-12 rounded-xl bg-white"
@@ -284,6 +323,12 @@ const UserManagement = () => {
                     >
                       {user.status || 'active'}
                     </Badge>
+                    {user.identity_verified && (
+                      <Badge className="bg-blue-100 text-blue-700 text-xs">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Verified
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <Button 
@@ -306,7 +351,7 @@ const UserManagement = () => {
                   <DropdownMenuContent align="end" className="bg-white">
                     <DropdownMenuItem onClick={() => openEditDialog(user)}>
                       <Edit className="h-4 w-4 mr-2" />
-                      Edit
+                      Edit User
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => {
                       setSelectedUser(user);
@@ -406,15 +451,24 @@ const UserManagement = () => {
                     {selectedUser.created_at ? format(new Date(selectedUser.created_at), 'PP') : 'N/A'}
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3 col-span-2">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Calendar className="h-3 w-3" />
-                    <span className="text-xs">Last Active</span>
+                {selectedUser.business_name && (
+                  <div className="bg-gray-50 rounded-xl p-3 col-span-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <Building className="h-3 w-3" />
+                      <span className="text-xs">Business Name</span>
+                    </div>
+                    <p className="font-medium text-sm">{selectedUser.business_name}</p>
                   </div>
-                  <p className="font-medium text-sm">
-                    {selectedUser.last_active ? format(new Date(selectedUser.last_active), 'PPp') : 'N/A'}
-                  </p>
-                </div>
+                )}
+                {selectedUser.bio && (
+                  <div className="bg-gray-50 rounded-xl p-3 col-span-2">
+                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                      <MessageSquare className="h-3 w-3" />
+                      <span className="text-xs">Bio</span>
+                    </div>
+                    <p className="font-medium text-sm">{selectedUser.bio}</p>
+                  </div>
+                )}
               </div>
 
               {selectedUser.blocking_reason && (
@@ -428,7 +482,10 @@ const UserManagement = () => {
                 <Button 
                   className="flex-1 gap-2" 
                   variant="outline"
-                  onClick={() => openEditDialog(selectedUser)}
+                  onClick={() => {
+                    setShowUserDetail(false);
+                    openEditDialog(selectedUser);
+                  }}
                 >
                   <Edit className="h-4 w-4" />
                   Edit
@@ -467,29 +524,234 @@ const UserManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Block User Dialog */}
-      <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
-        <DialogContent className="bg-white">
+      {/* Enhanced Edit User Dialog - Full Form */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-lg bg-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Ban className="h-5 w-5 text-red-500" />
-              Block User
+              <Edit className="h-5 w-5 text-primary" />
+              Edit User Profile
             </DialogTitle>
+          </DialogHeader>
+          
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="contact">Contact</TabsTrigger>
+              <TabsTrigger value="account">Account</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="basic" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name" className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  Full Name *
+                </Label>
+                <Input
+                  id="full_name"
+                  value={editData.full_name}
+                  onChange={(e) => setEditData({ ...editData, full_name: e.target.value })}
+                  placeholder="Enter full name"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  <AtSign className="h-4 w-4 text-muted-foreground" />
+                  Email *
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editData.email}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                  placeholder="Enter email"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="bio" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  Bio
+                </Label>
+                <Textarea
+                  id="bio"
+                  value={editData.bio}
+                  onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                  placeholder="User bio..."
+                  rows={3}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="location" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  Location
+                </Label>
+                <Input
+                  id="location"
+                  value={editData.location}
+                  onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                  placeholder="Enter location"
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="contact" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone_number" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone_number"
+                  value={editData.phone_number}
+                  onChange={(e) => setEditData({ ...editData, phone_number: e.target.value })}
+                  placeholder="+250..."
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp_number" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-green-600" />
+                  WhatsApp Number
+                </Label>
+                <Input
+                  id="whatsapp_number"
+                  value={editData.whatsapp_number}
+                  onChange={(e) => setEditData({ ...editData, whatsapp_number: e.target.value })}
+                  placeholder="+250..."
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="call_number" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-blue-600" />
+                  Call Number
+                </Label>
+                <Input
+                  id="call_number"
+                  value={editData.call_number}
+                  onChange={(e) => setEditData({ ...editData, call_number: e.target.value })}
+                  placeholder="+250..."
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="business_name" className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  Business Name
+                </Label>
+                <Input
+                  id="business_name"
+                  value={editData.business_name}
+                  onChange={(e) => setEditData({ ...editData, business_name: e.target.value })}
+                  placeholder="Business name (for sellers)"
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="account" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Store className="h-4 w-4 text-muted-foreground" />
+                  User Type
+                </Label>
+                <Select
+                  value={editData.user_type}
+                  onValueChange={(value) => setEditData({ ...editData, user_type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="buyer">Buyer</SelectItem>
+                    <SelectItem value="seller">Seller</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-muted-foreground" />
+                  Account Status
+                </Label>
+                <Select
+                  value={editData.status}
+                  onValueChange={(value) => setEditData({ ...editData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="blocked">Blocked</SelectItem>
+                    <SelectItem value="banned">Banned</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="identity_verified"
+                  checked={editData.identity_verified}
+                  onChange={(e) => setEditData({ ...editData, identity_verified: e.target.checked })}
+                  className="h-4 w-4 accent-primary"
+                />
+                <div>
+                  <Label htmlFor="identity_verified" className="flex items-center gap-2 cursor-pointer">
+                    <IdCard className="h-4 w-4 text-blue-600" />
+                    Identity Verified
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Mark if user's identity has been verified</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="referral_code" className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  Referral Code
+                </Label>
+                <Input
+                  id="referral_code"
+                  value={editData.referral_code}
+                  onChange={(e) => setEditData({ ...editData, referral_code: e.target.value })}
+                  placeholder="User's referral code"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUser} className="gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Block Dialog */}
+      <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <DialogContent className="max-w-sm bg-white">
+          <DialogHeader>
+            <DialogTitle>Block User</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              You are about to block <strong>{selectedUser?.full_name}</strong>. 
-              They will be logged out and see the blocked page.
+              Provide a reason for blocking this user:
             </p>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Reason for blocking</label>
-              <Textarea
-                placeholder="Enter the reason for blocking this user..."
-                value={blockReason}
-                onChange={(e) => setBlockReason(e.target.value)}
-                rows={3}
-              />
-            </div>
+            <Textarea
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder="Enter blocking reason..."
+              rows={3}
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBlockDialog(false)}>
@@ -502,81 +764,31 @@ const UserManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-white">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Full Name</label>
-              <Input
-                value={editData.full_name}
-                onChange={(e) => setEditData({ ...editData, full_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Email</label>
-              <Input
-                value={editData.email}
-                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Phone Number</label>
-              <Input
-                value={editData.phone_number}
-                onChange={(e) => setEditData({ ...editData, phone_number: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Location</label>
-              <Input
-                value={editData.location}
-                onChange={(e) => setEditData({ ...editData, location: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleEditUser}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Send Notification Dialog */}
+      {/* Notification Dialog */}
       <Dialog open={showNotificationDialog} onOpenChange={setShowNotificationDialog}>
-        <DialogContent className="bg-white">
+        <DialogContent className="max-w-sm bg-white">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5 text-primary" />
+              <Send className="h-5 w-5 text-blue-600" />
               Send Notification
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Send a notification to <strong>{selectedUser?.full_name}</strong>
-            </p>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Title</label>
+            <div className="space-y-2">
+              <Label>Title</Label>
               <Input
-                placeholder="Notification title..."
                 value={notificationMessage.title}
                 onChange={(e) => setNotificationMessage({ ...notificationMessage, title: e.target.value })}
+                placeholder="Notification title..."
               />
             </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Message</label>
+            <div className="space-y-2">
+              <Label>Message</Label>
               <Textarea
-                placeholder="Write your message..."
                 value={notificationMessage.message}
                 onChange={(e) => setNotificationMessage({ ...notificationMessage, message: e.target.value })}
-                rows={3}
+                placeholder="Enter your message..."
+                rows={4}
               />
             </div>
           </div>
@@ -584,8 +796,8 @@ const UserManagement = () => {
             <Button variant="outline" onClick={() => setShowNotificationDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSendNotification}>
-              <Send className="h-4 w-4 mr-2" />
+            <Button onClick={handleSendNotification} className="gap-2">
+              <Send className="h-4 w-4" />
               Send
             </Button>
           </DialogFooter>

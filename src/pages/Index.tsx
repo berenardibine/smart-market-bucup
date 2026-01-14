@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, Store, ShoppingBag, Sparkles, Laptop, UtensilsCrossed, Heart, BookOpen, Settings, Package } from "lucide-react";
+import { TrendingUp, ShoppingBag, Sparkles, Package } from "lucide-react";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import MenuDrawer from "@/components/layout/MenuDrawer";
@@ -13,24 +13,14 @@ import LocationModal from "@/components/location/LocationModal";
 import AIGreeting from "@/components/home/AIGreeting";
 import DailyMotivation from "@/components/home/DailyMotivation";
 import SmartChallenge from "@/components/home/SmartChallenge";
-import ProductCard from "@/components/products/ProductCard";
+import FloatingProductCard from "@/components/home/FloatingProductCard";
 import SectionHeader from "@/components/home/SectionHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { useAllProducts } from "@/hooks/useAllProducts";
+import { useRandomizedProducts } from "@/hooks/useRandomizedProducts";
+import { useCategories } from "@/hooks/useCategories";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-
-// General categories for home page
-const homeCategories = [
-  { id: 'all', label: 'All', icon: <Sparkles className="h-4 w-4" />, color: 'from-primary to-orange-400' },
-  { id: 'general', label: 'General', icon: <ShoppingBag className="h-4 w-4" />, color: 'from-pink-500 to-rose-400' },
-  { id: 'electronics', label: 'Electronics', icon: <Laptop className="h-4 w-4" />, color: 'from-blue-500 to-cyan-400' },
-  { id: 'food-drinks', label: 'Food', icon: <UtensilsCrossed className="h-4 w-4" />, color: 'from-amber-500 to-yellow-400' },
-  { id: 'health-care', label: 'Health', icon: <Heart className="h-4 w-4" />, color: 'from-red-500 to-pink-400' },
-  { id: 'education', label: 'Education', icon: <BookOpen className="h-4 w-4" />, color: 'from-indigo-500 to-violet-400' },
-  { id: 'services', label: 'Services', icon: <Settings className="h-4 w-4" />, color: 'from-gray-600 to-slate-500' },
-];
 
 const Index = () => {
   const navigate = useNavigate();
@@ -46,12 +36,45 @@ const Index = () => {
     saveUserLocation, getLocationLabel 
   } = useUserLocation();
   
-  // Get ALL products from database (no category type filter)
-  const { products: allProducts, loading: productsLoading } = useAllProducts(
+  // Get categories from database for general type
+  const { categories: dbCategories, loading: categoriesLoading } = useCategories('general');
+  
+  // Get randomized products
+  const { products: allProducts, loading: productsLoading } = useRandomizedProducts(
     selectedCategory === 'all' ? undefined : selectedCategory
   );
 
   const isSeller = profile?.user_type === 'seller';
+
+  // Build categories list with "All" option
+  const homeCategories = useMemo(() => {
+    const allOption = { 
+      id: 'all', 
+      name: 'All', 
+      slug: 'all', 
+      icon: '✨', 
+      type: 'general',
+      color: 'from-primary to-orange-400' 
+    };
+    
+    const colors = [
+      'from-pink-500 to-rose-400',
+      'from-blue-500 to-cyan-400',
+      'from-amber-500 to-yellow-400',
+      'from-red-500 to-pink-400',
+      'from-indigo-500 to-violet-400',
+      'from-gray-600 to-slate-500',
+      'from-green-500 to-emerald-400',
+      'from-purple-500 to-violet-400',
+    ];
+    
+    const processedCategories = dbCategories.map((cat, index) => ({
+      ...cat,
+      color: colors[index % colors.length]
+    }));
+    
+    return [allOption, ...processedCategories];
+  }, [dbCategories]);
 
   // Handle tab navigation
   const handleTabChange = (tab: string) => {
@@ -62,11 +85,11 @@ const Index = () => {
   };
 
   const ProductSkeleton = () => (
-    <div className="space-y-3">
-      <Skeleton className="aspect-square rounded-2xl" />
+    <div className="bg-white rounded-2xl p-3 space-y-3 shadow-[0_6px_12px_rgba(0,0,0,0.08)]">
+      <Skeleton className="aspect-square rounded-xl" />
       <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-4 w-1/2" />
-      <Skeleton className="h-8 w-full rounded-lg" />
+      <Skeleton className="h-5 w-1/2" />
+      <Skeleton className="h-3 w-2/3" />
     </div>
   );
 
@@ -106,24 +129,30 @@ const Index = () => {
           <SmartChallenge />
         </section>
 
-        {/* Category Filter */}
+        {/* Category Filter - Database driven */}
         <section className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
-            {homeCategories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shrink-0",
-                  selectedCategory === cat.id
-                    ? `bg-gradient-to-r ${cat.color} text-white shadow-lg shadow-primary/20`
-                    : "bg-muted hover:bg-muted/80 text-muted-foreground"
-                )}
-              >
-                {cat.icon}
-                {cat.label}
-              </button>
-            ))}
+            {categoriesLoading ? (
+              Array(5).fill(0).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-24 rounded-full shrink-0" />
+              ))
+            ) : (
+              homeCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.slug)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shrink-0",
+                    selectedCategory === cat.slug
+                      ? `bg-gradient-to-r ${cat.color} text-white shadow-lg shadow-primary/20`
+                      : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                  )}
+                >
+                  <span>{cat.icon}</span>
+                  {cat.name}
+                </button>
+              ))
+            )}
           </div>
         </section>
 
@@ -139,7 +168,7 @@ const Index = () => {
           </section>
         )}
 
-        {/* Trending Products */}
+        {/* Trending Products - Modern Floating Cards */}
         <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
           <SectionHeader
             title="Trending Now"
@@ -147,22 +176,19 @@ const Index = () => {
             onViewAll={() => {}}
           />
           {productsLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
               {[1, 2, 3, 4, 5, 6].map(i => <ProductSkeleton key={i} />)}
             </div>
           ) : allProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allProducts.slice(0, 8).map((product) => (
-                <ProductCard
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+              {allProducts.slice(0, 12).map((product) => (
+                <FloatingProductCard
                   key={product.id}
                   id={product.id}
                   title={product.title}
                   price={product.price}
                   images={product.images}
-                  location={product.location}
-                  is_negotiable={product.is_negotiable}
-                  quantity={product.quantity}
-                  sellerId={product.seller_id}
+                  rating={0}
                 />
               ))}
             </div>
@@ -175,25 +201,22 @@ const Index = () => {
         </section>
 
         {/* More Products */}
-        {allProducts.length > 8 && (
+        {allProducts.length > 12 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
             <SectionHeader
               title="More for You"
               icon={<ShoppingBag className="h-4 w-4 text-primary" />}
               onViewAll={() => {}}
             />
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {allProducts.slice(8).map((product) => (
-                <ProductCard
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+              {allProducts.slice(12).map((product) => (
+                <FloatingProductCard
                   key={product.id}
                   id={product.id}
                   title={product.title}
                   price={product.price}
                   images={product.images}
-                  location={product.location}
-                  is_negotiable={product.is_negotiable}
-                  quantity={product.quantity}
-                  sellerId={product.seller_id}
+                  rating={0}
                 />
               ))}
             </div>
