@@ -167,7 +167,7 @@ const LinkAnalytics = () => {
                         <span>{sourceEmojis[source] || '🔗'}</span>
                         {source}
                       </span>
-                      <span className="font-medium">{count} ({percentage}%)</span>
+                      <span className="font-medium">{String(count)} ({percentage}%)</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <div 

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 // Loading Component
 const ProductLoader = () => (
-  <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
+  <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
     <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
     <p className="text-muted-foreground">Loading product details...</p>
   </div>
@@ -27,7 +27,7 @@ const ProductLoader = () => (
 
 // Not Found Component
 const ProductNotFound = () => (
-  <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
+  <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
     <div className="text-center max-w-md">
       <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
         <Package className="h-10 w-10 text-primary/60" />
@@ -199,265 +199,317 @@ const ProductDetail = () => {
         url={productUrl}
         price={product.price}
       />
-    <div className="min-h-screen bg-background pb-32">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="flex items-center justify-between p-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="font-semibold text-lg line-clamp-1 flex-1 mx-4">Product Details</h1>
-          <div className="flex gap-2">
+      
+      <div className="min-h-screen bg-background pb-32">
+        {/* Header */}
+        <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
+          <div className="flex items-center justify-between p-4">
             <button 
-              onClick={handleShare}
+              onClick={() => navigate(-1)}
               className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
             >
-              <Share2 className="h-5 w-5" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
-            <button 
-              onClick={() => toggleFavorite(product.id)}
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-                favorite 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-muted hover:bg-muted/80"
-              )}
-            >
-              <Heart className={cn("h-5 w-5", favorite && "fill-current")} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Image Carousel */}
-      <div className="relative bg-gradient-to-br from-muted to-muted/50">
-        <div className="aspect-square relative overflow-hidden">
-          <img 
-            src={images[currentImage]} 
-            alt={product.title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.src = '/placeholder.svg';
-            }}
-          />
-          
-          {/* Image Navigation */}
-          {images.length > 1 && (
-            <>
-              <button
-                onClick={() => setCurrentImage(prev => prev > 0 ? prev - 1 : images.length - 1)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+            <h1 className="font-semibold text-lg line-clamp-1 flex-1 mx-4">Product Details</h1>
+            <div className="flex gap-2">
+              <button 
+                onClick={handleShare}
+                className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
               >
-                <ChevronLeft className="h-6 w-6" />
+                <Share2 className="h-5 w-5" />
               </button>
-              <button
-                onClick={() => setCurrentImage(prev => prev < images.length - 1 ? prev + 1 : 0)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-              >
-                <ChevronRight className="h-6 w-6" />
-              </button>
-              
-              {/* Dots */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {images.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentImage(idx)}
-                    className={cn(
-                      "w-2 h-2 rounded-full transition-all",
-                      idx === currentImage 
-                        ? "bg-primary w-6" 
-                        : "bg-white/60 hover:bg-white"
-                    )}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Thumbnail Strip */}
-        {images.length > 1 && (
-          <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide">
-            {images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentImage(idx)}
+              <button 
+                onClick={() => toggleFavorite(product.id)}
                 className={cn(
-                  "w-16 h-16 rounded-lg overflow-hidden shrink-0 border-2 transition-all",
-                  idx === currentImage 
-                    ? "border-primary shadow-lg shadow-primary/30" 
-                    : "border-transparent opacity-60 hover:opacity-100"
+                  "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+                  favorite 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted hover:bg-muted/80"
                 )}
               >
-                <img 
-                  src={img} 
-                  alt="" 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = '/placeholder.svg';
-                  }}
-                />
+                <Heart className={cn("h-5 w-5", favorite && "fill-current")} />
               </button>
-            ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Image Carousel */}
+        <div className="relative bg-gradient-to-br from-muted to-muted/50">
+          <div className="aspect-square relative overflow-hidden">
+            <img 
+              src={images[currentImage]} 
+              alt={product.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = '/placeholder.svg';
+              }}
+            />
+            
+            {/* Image Navigation */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setCurrentImage(prev => prev > 0 ? prev - 1 : images.length - 1)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  onClick={() => setCurrentImage(prev => prev < images.length - 1 ? prev + 1 : 0)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+                
+                {/* Dots */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImage(idx)}
+                      className={cn(
+                        "w-2 h-2 rounded-full transition-all",
+                        idx === currentImage 
+                          ? "bg-primary w-6" 
+                          : "bg-white/60 hover:bg-white"
+                      )}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Thumbnail Strip */}
+          {images.length > 1 && (
+            <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImage(idx)}
+                  className={cn(
+                    "w-16 h-16 rounded-lg overflow-hidden shrink-0 border-2 transition-all",
+                    idx === currentImage 
+                      ? "border-primary shadow-lg shadow-primary/30" 
+                      : "border-transparent opacity-60 hover:opacity-100"
+                  )}
+                >
+                  <img 
+                    src={img} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Video Player */}
+        {product.video_url && (
+          <div className="p-4">
+            <video 
+              src={product.video_url} 
+              controls 
+              className="w-full rounded-xl"
+              poster={images[0]}
+            />
           </div>
         )}
-      </div>
 
-      {/* Video Player */}
-      {product.video_url && (
-        <div className="p-4">
-          <video 
-            src={product.video_url} 
-            controls 
-            className="w-full rounded-xl"
-            poster={images[0]}
-          />
-        </div>
-      )}
-
-      {/* Product Info */}
-      <div className="p-4 space-y-4">
-        {/* Title & Price */}
-        <div>
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-bold text-foreground">{product.title}</h1>
-            {product.is_negotiable && (
-              <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0">
-                <Tag className="h-3 w-3 mr-1" />
-                Negotiable
-              </Badge>
-            )}
-          </div>
-          <p className="text-3xl font-bold text-primary mt-2">
-            {formatPrice(product.price)}
-          </p>
-        </div>
-
-        {/* Quick Info */}
-        <div className="flex flex-wrap gap-3">
-          {product.quantity && product.quantity > 0 && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
-              <Package className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">{product.quantity} available</span>
-            </div>
-          )}
-          {product.location && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span className="text-sm">{product.location}</span>
-            </div>
-          )}
-          {product.product_type && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
-              <span className="text-sm capitalize">{product.product_type}</span>
-            </div>
-          )}
-          {product.category && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-secondary/10 text-secondary">
-              <span className="text-sm capitalize">{product.category.replace(/-/g, ' ')}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Description */}
-        <div className="bg-muted/50 rounded-2xl p-4">
-          <h3 className="font-semibold mb-2">Description</h3>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {product.description}
-          </p>
-        </div>
-
-        {/* Seller Info */}
-        <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl p-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <Store className="h-5 w-5 text-primary" />
-            Seller Information
-          </h3>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center overflow-hidden">
-              {product.shop?.logo_url || product.seller?.profile_image ? (
-                <img 
-                  src={product.shop?.logo_url || product.seller?.profile_image || ''} 
-                  alt="" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Store className="h-6 w-6 text-primary-foreground" />
+        {/* Product Info */}
+        <div className="p-4 space-y-4">
+          {/* Title & Price */}
+          <div>
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-2xl font-bold text-foreground">{product.title}</h1>
+              {product.is_negotiable && (
+                <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0">
+                  <Tag className="h-3 w-3 mr-1" />
+                  Negotiable
+                </Badge>
               )}
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h4 className="font-semibold">
-                  {product.shop?.name || product.seller?.full_name || 'Seller'}
-                </h4>
-                <ShieldCheck className="h-4 w-4 text-green-500" />
-              </div>
-              {product.shop?.trading_center && (
-                <p className="text-sm text-muted-foreground">
-                  {product.shop.trading_center}
-                </p>
-              )}
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                <Users className="h-3 w-3" />
-                <span>{connectionCount} connectors</span>
-              </div>
-            </div>
+            <p className="text-3xl font-bold text-primary mt-2">
+              {formatPrice(product.price)}
+            </p>
           </div>
 
-          {/* Connect with Seller Button */}
-          <Button
-            onClick={handleConnect}
-            disabled={connectLoading}
-            variant={isConnected ? "outline" : "default"}
-            className={cn(
-              "w-full mt-4 gap-2",
-              isConnected 
-                ? "border-primary text-primary hover:bg-primary/5" 
-                : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
+          {/* Quick Info */}
+          <div className="flex flex-wrap gap-3">
+            {product.quantity && product.quantity > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
+                <Package className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">{product.quantity} available</span>
+              </div>
             )}
-          >
-            <Link2 className="h-5 w-5" />
-            {connectLoading ? "..." : isConnected ? `Connected (${connectionCount})` : `Connect with Seller (${connectionCount})`}
-          </Button>
-        </div>
-      </div>
+            {product.location && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="text-sm">{product.location}</span>
+              </div>
+            )}
+            {product.product_type && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted">
+                <span className="text-sm capitalize">{product.product_type}</span>
+              </div>
+            )}
+            {product.category && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-secondary/10 text-secondary">
+                <span className="text-sm capitalize">{product.category.replace(/-/g, ' ')}</span>
+              </div>
+            )}
+          </div>
 
-      {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border/50 p-4 safe-bottom">
-        <div className="flex gap-3 max-w-lg mx-auto">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleCall}
-            className="flex-1 gap-2 border-2 hover:border-primary hover:text-primary"
-          >
-            <Phone className="h-5 w-5" />
-            Call
-          </Button>
-          <Button
-            size="lg"
-            onClick={handleWhatsApp}
-            className="flex-1 gap-2 bg-green-500 hover:bg-green-600 text-white"
-          >
-            <MessageCircle className="h-5 w-5" />
-            WhatsApp
-          </Button>
-          <Button
-            size="lg"
-            onClick={handleRequest}
-            disabled={sending}
-            className="flex-1 gap-2 bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90"
-          >
-            <Bell className="h-5 w-5" />
-            {sending ? "..." : "I Need This"}
-          </Button>
+          {/* Description */}
+          <div className="bg-muted/50 rounded-2xl p-4">
+            <h3 className="font-semibold mb-2">Description</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {product.description}
+            </p>
+          </div>
+
+          {/* Seller Info */}
+          <div className="bg-gradient-to-r from-primary/5 to-secondary/5 rounded-2xl p-4">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Store className="h-5 w-5 text-primary" />
+              Seller Information
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center overflow-hidden">
+                {product.shop?.logo_url || product.seller?.profile_image ? (
+                  <img 
+                    src={product.shop?.logo_url || product.seller?.profile_image || ''} 
+                    alt="" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Store className="h-6 w-6 text-primary-foreground" />
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold">
+                    {product.shop?.name || product.seller?.full_name || 'Seller'}
+                  </h4>
+                  <ShieldCheck className="h-4 w-4 text-green-500" />
+                </div>
+                {product.shop?.trading_center && (
+                  <p className="text-sm text-muted-foreground">
+                    {product.shop.trading_center}
+                  </p>
+                )}
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <Users className="h-3 w-3" />
+                  <span>{connectionCount} connectors</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Connect with Seller Button */}
+            <Button
+              onClick={handleConnect}
+              disabled={connectLoading}
+              variant={isConnected ? "outline" : "default"}
+              className={cn(
+                "w-full mt-4 gap-2",
+                isConnected 
+                  ? "border-primary text-primary hover:bg-primary/5" 
+                  : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
+              )}
+            >
+              <Link2 className="h-5 w-5" />
+              {connectLoading ? "..." : isConnected ? `Connected (${connectionCount})` : `Connect with Seller (${connectionCount})`}
+            </Button>
+          </div>
+
+          {/* Vertical Contact Buttons Section */}
+          <div className="bg-background rounded-2xl p-4 space-y-3">
+            <h3 className="font-semibold mb-3 text-foreground">Contact Seller</h3>
+            
+            {/* Call Seller Button */}
+            <Button
+              onClick={handleCall}
+              variant="outline"
+              size="lg"
+              className="w-full gap-3 h-14 rounded-xl border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-soft"
+            >
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Phone className="h-5 w-5 text-primary" />
+              </div>
+              <span className="flex-1 text-left font-semibold text-foreground">Call Seller</span>
+            </Button>
+
+            {/* WhatsApp Button */}
+            <Button
+              onClick={handleWhatsApp}
+              size="lg"
+              className="w-full gap-3 h-14 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white transition-all duration-300 shadow-soft hover:shadow-elevated"
+            >
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                <MessageCircle className="h-5 w-5 text-white" />
+              </div>
+              <span className="flex-1 text-left font-semibold">Contact Seller on WhatsApp</span>
+            </Button>
+
+            {/* I Need This Product Button */}
+            <Button
+              onClick={handleRequest}
+              disabled={sending}
+              size="lg"
+              className="w-full gap-3 h-14 rounded-xl bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90 text-white transition-all duration-300 shadow-soft hover:shadow-elevated"
+            >
+              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                <span className="text-lg">❤️</span>
+              </div>
+              <span className="flex-1 text-left font-semibold">
+                {sending ? "Sending..." : "I Need This Product"}
+              </span>
+            </Button>
+
+            {/* Secure contact label */}
+            <p className="text-center text-xs text-muted-foreground pt-2">
+              🔒 Secure contact powered by Smart Market
+            </p>
+          </div>
+        </div>
+
+        {/* Fixed Bottom Actions */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border/50 p-4 safe-bottom">
+          <div className="flex gap-3 max-w-lg mx-auto">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleCall}
+              className="flex-1 gap-2 border-2 hover:border-primary hover:text-primary"
+            >
+              <Phone className="h-5 w-5" />
+              Call
+            </Button>
+            <Button
+              size="lg"
+              onClick={handleWhatsApp}
+              className="flex-1 gap-2 bg-green-500 hover:bg-green-600 text-white"
+            >
+              <MessageCircle className="h-5 w-5" />
+              WhatsApp
+            </Button>
+            <Button
+              size="lg"
+              onClick={handleRequest}
+              disabled={sending}
+              className="flex-1 gap-2 bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90"
+            >
+              <Bell className="h-5 w-5" />
+              {sending ? "..." : "I Need This"}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

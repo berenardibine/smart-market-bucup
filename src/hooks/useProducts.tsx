@@ -23,6 +23,7 @@ export interface Product {
   contact_whatsapp: string | null;
   contact_call: string | null;
   created_at: string | null;
+  slug: string | null;
   seller?: {
     id: string;
     full_name: string;
