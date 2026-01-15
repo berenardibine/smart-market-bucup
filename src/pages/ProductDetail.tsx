@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
   ArrowLeft, Heart, MessageCircle, Phone, Bell, Share2, 
@@ -8,15 +8,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useProduct, useFavorites } from "@/hooks/useProducts";
+import { useFavorites } from "@/hooks/useProducts";
 import { useSendRequest } from "@/hooks/useProductRequests";
 import { useAuth } from "@/hooks/useAuth";
 import { useSellerConnections } from "@/hooks/useSellerConnections";
+import { useProductBySlug } from "@/hooks/useProductBySlug";
+import { useLinkAnalytics } from "@/hooks/useLinkAnalytics";
+import ProductMetaTags from "@/components/seo/ProductMetaTags";
 import { cn } from "@/lib/utils";
 
 // Loading Component
 const ProductLoader = () => (
-  <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+  <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
     <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
     <p className="text-muted-foreground">Loading product details...</p>
   </div>
@@ -24,7 +27,7 @@ const ProductLoader = () => (
 
 // Not Found Component
 const ProductNotFound = () => (
-  <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 flex flex-col items-center justify-center p-8">
+  <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
     <div className="text-center max-w-md">
       <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
         <Package className="h-10 w-10 text-primary/60" />
@@ -44,28 +47,43 @@ const ProductNotFound = () => (
 );
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { slugOrId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const { product, loading, error } = useProduct(id);
+  const { product, loading, error, isSlugBased } = useProductBySlug(slugOrId);
   const { isFavorite, toggleFavorite } = useFavorites();
   const { sendRequest, sending } = useSendRequest();
   const [currentImage, setCurrentImage] = useState(0);
   const [connectLoading, setConnectLoading] = useState(false);
 
+  // Track link analytics
+  useLinkAnalytics(product?.id);
+
   const sellerId = product?.seller_id;
   const { connectionCount, isConnected, toggleConnection } = useSellerConnections(sellerId);
 
+  // Redirect old ID-based URLs to slug-based URLs
+  useEffect(() => {
+    if (product?.slug && !isSlugBased && slugOrId !== product.slug) {
+      navigate(`/product/${product.slug}`, { replace: true });
+    }
+  }, [product?.slug, isSlugBased, slugOrId, navigate]);
+
   // Handle invalid ID early
-  if (!id) {
+  if (!slugOrId) {
     return <ProductNotFound />;
   }
+
+  // Generate product URL for sharing
+  const productUrl = product?.slug 
+    ? `https://smart-market-online.vercel.app/product/${product.slug}`
+    : window.location.href;
 
   const handleWhatsApp = () => {
     const phone = product?.contact_whatsapp || product?.seller?.whatsapp_number;
     if (phone) {
-      const message = encodeURIComponent(`Hi! I'm interested in your product: ${product?.title}`);
+      const message = encodeURIComponent(`Hello! I'm interested in your product on Smart Market: ${productUrl}`);
       window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
     } else {
       toast({ title: "WhatsApp not available", variant: "destructive" });
@@ -139,10 +157,10 @@ const ProductDetail = () => {
         await navigator.share({
           title: product?.title,
           text: `Check out this product: ${product?.title}`,
-          url: window.location.href,
+          url: productUrl,
         });
       } else {
-        await navigator.clipboard.writeText(window.location.href);
+        await navigator.clipboard.writeText(productUrl);
         toast({ title: "Link copied to clipboard!" });
       }
     } catch (err) {
@@ -172,6 +190,15 @@ const ProductDetail = () => {
   const favorite = isFavorite(product.id);
 
   return (
+    <>
+      {/* SEO Meta Tags */}
+      <ProductMetaTags
+        title={product.title}
+        description={product.description}
+        image={images[0]}
+        url={productUrl}
+        price={product.price}
+      />
     <div className="min-h-screen bg-background pb-32">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
