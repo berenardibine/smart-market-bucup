@@ -23,11 +23,11 @@ const SellerMonetization = () => {
   const requirements = [
     {
       icon: Users,
-      title: "Have more connectors (followers)",
+      title: "number of connectors (followers)",
       description: "Build your audience to qualify",
       current: connectorsCount,
-      target: 50,
-      completed: connectorsCount >= 50,
+      target: 500,
+      completed: connectorsCount >= 500,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
@@ -43,11 +43,11 @@ const SellerMonetization = () => {
     },
     {
       icon: Eye,
-      title: "High total product views",
-      description: "Get more views on your products",
+      title: "Number of total product views",
+      description: "Get more views on your products by share your product on social media and envites people to visit your product",
       current: totalViews,
-      target: 1000,
-      completed: totalViews >= 1000,
+      target: 50000,
+      completed: totalViews >= 50000,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
     },
@@ -79,7 +79,7 @@ const SellerMonetization = () => {
           </button>
           <div className="flex-1">
             <h1 className="font-bold text-lg">Seller Monetization</h1>
-            <p className="text-white/80 text-sm">Coming Soon</p>
+            <p className="text-white/80 text-sm">earn from your trading</p>
           </div>
           <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center animate-pulse">
             <Coins className="h-6 w-6" />
@@ -117,7 +117,7 @@ const SellerMonetization = () => {
               <span className="font-semibold">Status: Under Construction</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              🚧 Monetization for sellers is currently under construction. 
+               Monetization for sellers is currently under construction. 
               Once the system is live, qualified sellers will receive payments 
               directly from Smart Market based on their performance.
             </p>
