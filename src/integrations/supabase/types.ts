@@ -1115,6 +1115,54 @@ export type Database = {
         }
         Relationships: []
       }
+      invalid_clicks: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          link_analytics_id: string | null
+          product_id: string
+          reason: string
+          risk_score: number | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          link_analytics_id?: string | null
+          product_id: string
+          reason: string
+          risk_score?: number | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          link_analytics_id?: string | null
+          product_id?: string
+          reason?: string
+          risk_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invalid_clicks_link_analytics_id_fkey"
+            columns: ["link_analytics_id"]
+            isOneToOne: false
+            referencedRelation: "link_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invalid_clicks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_posts: {
         Row: {
           author_id: string
@@ -1168,34 +1216,52 @@ export type Database = {
       }
       link_analytics: {
         Row: {
+          browser: string | null
+          country: string | null
           created_at: string
+          device_type: string | null
           event: string
           id: string
+          ip_address: string | null
+          is_valid: boolean | null
           product_id: string
           referrer: string | null
           source: string | null
           user_agent: string | null
           user_id: string | null
+          validation_score: number | null
         }
         Insert: {
+          browser?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           event?: string
           id?: string
+          ip_address?: string | null
+          is_valid?: boolean | null
           product_id: string
           referrer?: string | null
           source?: string | null
           user_agent?: string | null
           user_id?: string | null
+          validation_score?: number | null
         }
         Update: {
+          browser?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           event?: string
           id?: string
+          ip_address?: string | null
+          is_valid?: boolean | null
           product_id?: string
           referrer?: string | null
           source?: string | null
           user_agent?: string | null
           user_id?: string | null
+          validation_score?: number | null
         }
         Relationships: [
           {
@@ -1854,66 +1920,6 @@ export type Database = {
           },
         ]
       }
-      "product-": {
-        Row: {
-          category: string | null
-          created_at: string | null
-          description: string | null
-          id: string | null
-          images: Json | null
-          impressions: string | null
-          likes: string | null
-          location: string | null
-          price: number | null
-          quantity: number | null
-          seller_id: string | null
-          share_count: string | null
-          status: string | null
-          title: string | null
-          updated_at: string | null
-          video_url: string | null
-          views: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          images?: Json | null
-          impressions?: string | null
-          likes?: string | null
-          location?: string | null
-          price?: number | null
-          quantity?: number | null
-          seller_id?: string | null
-          share_count?: string | null
-          status?: string | null
-          title?: string | null
-          updated_at?: string | null
-          video_url?: string | null
-          views?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          images?: Json | null
-          impressions?: string | null
-          likes?: string | null
-          location?: string | null
-          price?: number | null
-          quantity?: number | null
-          seller_id?: string | null
-          share_count?: string | null
-          status?: string | null
-          title?: string | null
-          updated_at?: string | null
-          video_url?: string | null
-          views?: string | null
-        }
-        Relationships: []
-      }
       products: {
         Row: {
           category: string | null
@@ -1937,6 +1943,7 @@ export type Database = {
           seller_id: string
           share_count: number | null
           shop_id: string | null
+          slug: string | null
           status: string | null
           title: string
           updated_at: string | null
@@ -1965,6 +1972,7 @@ export type Database = {
           seller_id: string
           share_count?: number | null
           shop_id?: string | null
+          slug?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
@@ -1993,6 +2001,7 @@ export type Database = {
           seller_id?: string
           share_count?: number | null
           shop_id?: string | null
+          slug?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null
@@ -3294,6 +3303,10 @@ export type Database = {
         }[]
       }
       expire_marketing_posts: { Args: never; Returns: undefined }
+      generate_product_slug: {
+        Args: { product_title: string; shop_name?: string }
+        Returns: string
+      }
       get_child_locations: {
         Args: { location_uuid: string }
         Returns: {
