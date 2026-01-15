@@ -4,7 +4,7 @@ import {
   ArrowLeft, Store, Package, Plus, MessageSquare, Bell,
   Eye, Heart, Settings, ChevronRight, Phone,
   Users, DollarSign, Sparkles, Menu, X, Home,
-  ShoppingBag, TrendingUp, BarChart3, Zap, Star
+  ShoppingBag, TrendingUp, BarChart3, Zap, Star, Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import ShopForm from "@/components/seller/ShopForm";
 import ProductForm from "@/components/seller/ProductForm";
 import ProductList from "@/components/seller/ProductList";
 import RequestList from "@/components/seller/RequestList";
+import LinkAnalytics from "@/components/seller/LinkAnalytics";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -230,34 +231,41 @@ const SellerDashboard = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4">
-        <TabsList className="w-full grid grid-cols-4 h-12 bg-white rounded-xl border shadow-soft p-1">
+        <TabsList className="w-full grid grid-cols-5 h-12 bg-white rounded-xl border shadow-soft p-1">
           <TabsTrigger 
             value="overview" 
             className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg"
           >
             <BarChart3 className="h-4 w-4 mr-1" />
-            Overview
+            <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
           <TabsTrigger 
             value="shop" 
             className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg"
           >
             <Store className="h-4 w-4 mr-1" />
-            Shop
+            <span className="hidden sm:inline">Shop</span>
           </TabsTrigger>
           <TabsTrigger 
             value="products" 
             className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg"
           >
             <Package className="h-4 w-4 mr-1" />
-            Products
+            <span className="hidden sm:inline">Products</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="analytics" 
+            className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg"
+          >
+            <Link2 className="h-4 w-4 mr-1" />
+            <span className="hidden sm:inline">Analytics</span>
           </TabsTrigger>
           <TabsTrigger 
             value="requests" 
             className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg relative"
           >
             <MessageSquare className="h-4 w-4 mr-1" />
-            Requests
+            <span className="hidden sm:inline">Requests</span>
             {pendingRequests.length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
                 {pendingRequests.length}
@@ -495,6 +503,11 @@ const SellerDashboard = () => {
             onEdit={(product) => setEditingProduct(product)}
             onRefresh={refetchProducts}
           />
+        </TabsContent>
+
+        {/* Link Analytics Tab */}
+        <TabsContent value="analytics" className="mt-4">
+          <LinkAnalytics />
         </TabsContent>
 
         {/* Requests Tab */}

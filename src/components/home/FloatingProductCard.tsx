@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface FloatingProductCardProps {
   id: string;
+  slug?: string;
   title: string;
   price: number;
   images: string[];
@@ -13,6 +14,7 @@ interface FloatingProductCardProps {
 
 const FloatingProductCard = ({
   id,
+  slug,
   title,
   price,
   images,
@@ -29,7 +31,8 @@ const FloatingProductCard = ({
   };
 
   const handleClick = () => {
-    navigate(`/product/${id}`);
+    // Use slug if available, otherwise fall back to id
+    navigate(`/product/${slug || id}`);
   };
 
   const productImage = images?.[0] || '/placeholder.svg';
@@ -38,20 +41,15 @@ const FloatingProductCard = ({
     <div
       onClick={handleClick}
       className={cn(
-        "group relative bg-white rounded-2xl overflow-hidden cursor-pointer",
+        "group relative bg-background rounded-2xl overflow-hidden cursor-pointer",
         "border-none p-3 md:p-4",
         "transition-all duration-300 ease-out",
-        "hover:-translate-y-1",
-        // Soft drop shadow
-        "shadow-[0_6px_12px_rgba(0,0,0,0.08)]",
-        "hover:shadow-[0_10px_20px_rgba(0,0,0,0.1)]"
+        "hover:-translate-y-1"
+        // No shadow - borderless floating design
       )}
     >
       {/* Product Image */}
-      <div className="relative aspect-square w-full mb-3 overflow-hidden rounded-xl bg-white">
-        {/* Subtle shadow below image for floating feel */}
-        <div className="absolute inset-x-4 bottom-0 h-4 bg-gradient-to-t from-black/5 to-transparent rounded-b-xl z-10" />
-        
+      <div className="relative aspect-square w-full mb-3 overflow-hidden rounded-xl bg-background">
         {!imageLoaded && (
           <div className="absolute inset-0 bg-muted animate-pulse rounded-xl" />
         )}
@@ -85,8 +83,7 @@ const FloatingProductCard = ({
 
         {/* Product Price */}
         <p 
-          className="font-bold text-base"
-          style={{ color: '#FF7B00' }}
+          className="font-bold text-base text-primary"
         >
           Fr {formatPrice(price)}
         </p>
