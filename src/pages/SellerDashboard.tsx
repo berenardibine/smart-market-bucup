@@ -311,11 +311,11 @@ const SellerDashboard = () => {
                   <h3 className="font-bold text-lg text-slate-800">Monetization</h3>
                   <Badge variant="secondary" className="text-[10px] bg-amber-500/20 text-amber-700 border-amber-200">
                     <Sparkles className="h-2.5 w-2.5 mr-1" />
-                    Coming Soon
+                    
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Earn from your sales activity once monetization is live!
+                  Earn from your sales activity 
                 </p>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
