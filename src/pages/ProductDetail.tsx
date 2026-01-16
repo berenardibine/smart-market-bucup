@@ -208,7 +208,7 @@ const ProductDetail = () => {
         price={product.price}
       />
       
-      <div className="min-h-screen bg-background pb-32">
+      <div className="min-h-screen bg-background pb-8">
         {/* Header */}
         <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
           <div className="flex items-center justify-between p-4">
@@ -485,37 +485,6 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Fixed Bottom Actions */}
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-lg border-t border-border/50 p-4 safe-bottom">
-          <div className="flex gap-3 max-w-lg mx-auto">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleCall}
-              className="flex-1 gap-2 border-2 hover:border-primary hover:text-primary"
-            >
-              <Phone className="h-5 w-5" />
-              Call
-            </Button>
-            <Button
-              size="lg"
-              onClick={handleWhatsApp}
-              className="flex-1 gap-2 bg-green-500 hover:bg-green-600 text-white"
-            >
-              <MessageCircle className="h-5 w-5" />
-              WhatsApp
-            </Button>
-            <Button
-              size="lg"
-              onClick={handleRequest}
-              disabled={sending}
-              className="flex-1 gap-2 bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90"
-            >
-              <Bell className="h-5 w-5" />
-              {sending ? "..." : "I Need This"}
-            </Button>
-          </div>
-        </div>
       </div>
     </>
   );
