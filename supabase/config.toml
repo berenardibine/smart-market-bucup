@@ -1,1 +1,4 @@
 project_id = "tbykrulfzhhkmtgjhvjh"
+
+[functions.og-preview]
+verify_jwt = false

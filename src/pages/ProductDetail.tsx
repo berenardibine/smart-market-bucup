@@ -75,7 +75,13 @@ const ProductDetail = () => {
     return <ProductNotFound />;
   }
 
-  // Generate product URL for sharing
+  // Generate product URLs for sharing
+  // Use /p/ path for social media sharing (goes through edge function for OG tags)
+  const productSlugOrId = product?.slug || product?.id;
+  const shareableUrl = productSlugOrId 
+    ? `https://smart-market-online.vercel.app/p/${productSlugOrId}`
+    : window.location.href;
+  // Regular URL for direct navigation
   const productUrl = product?.slug 
     ? `https://smart-market-online.vercel.app/product/${product.slug}`
     : window.location.href;
@@ -83,7 +89,8 @@ const ProductDetail = () => {
   const handleWhatsApp = () => {
     const phone = product?.contact_whatsapp || product?.seller?.whatsapp_number;
     if (phone) {
-      const message = encodeURIComponent(`Hello! I'm interested in your product on Smart Market: ${productUrl}`);
+      // Use shareableUrl for better social media preview
+      const message = encodeURIComponent(`Hello! I'm interested in your product on Smart Market: ${shareableUrl}`);
       window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
     } else {
       toast({ title: "WhatsApp not available", variant: "destructive" });
@@ -153,15 +160,16 @@ const ProductDetail = () => {
 
   const handleShare = async () => {
     try {
+      // Use shareableUrl for social media sharing (includes OG meta tags)
       if (navigator.share) {
         await navigator.share({
           title: product?.title,
           text: `Check out this product: ${product?.title}`,
-          url: productUrl,
+          url: shareableUrl,
         });
       } else {
-        await navigator.clipboard.writeText(productUrl);
-        toast({ title: "Link copied to clipboard!" });
+        await navigator.clipboard.writeText(shareableUrl);
+        toast({ title: "Link copied to clipboard! 🔗" });
       }
     } catch (err) {
       console.log("Share cancelled");
