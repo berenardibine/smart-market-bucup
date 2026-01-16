@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface FloatingProductCardProps {
@@ -9,7 +8,6 @@ interface FloatingProductCardProps {
   title: string;
   price: number;
   images: string[];
-  rating?: number;
 }
 
 const FloatingProductCard = ({
@@ -18,7 +16,6 @@ const FloatingProductCard = ({
   title,
   price,
   images,
-  rating = 0,
 }: FloatingProductCardProps) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -45,7 +42,6 @@ const FloatingProductCard = ({
         "border-none p-3 md:p-4",
         "transition-all duration-300 ease-out",
         "hover:-translate-y-1"
-        // No shadow - borderless floating design
       )}
     >
       {/* Product Image */}
@@ -65,7 +61,7 @@ const FloatingProductCard = ({
             !imageLoaded && "opacity-0"
           )}
           style={{ 
-            mixBlendMode: 'multiply', // Blend with white background
+            mixBlendMode: 'multiply',
             backgroundColor: 'white'
           }}
         />
@@ -82,31 +78,9 @@ const FloatingProductCard = ({
         </h3>
 
         {/* Product Price */}
-        <p 
-          className="font-bold text-base text-primary"
-        >
+        <p className="font-bold text-base text-primary">
           Fr {formatPrice(price)}
         </p>
-
-        {/* Rating Stars (subtle) */}
-        <div className="flex items-center gap-0.5">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <Star
-              key={star}
-              className={cn(
-                "h-3 w-3 transition-colors",
-                star <= rating
-                  ? "fill-amber-400 text-amber-400"
-                  : "fill-none text-gray-300 stroke-1"
-              )}
-            />
-          ))}
-          {rating > 0 && (
-            <span className="text-xs text-muted-foreground ml-1">
-              ({rating.toFixed(1)})
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );

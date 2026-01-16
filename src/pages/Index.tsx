@@ -188,7 +188,6 @@ const Index = () => {
                   title={product.title}
                   price={product.price}
                   images={product.images}
-                  rating={0}
                 />
               ))}
             </div>
@@ -216,7 +215,6 @@ const Index = () => {
                   title={product.title}
                   price={product.price}
                   images={product.images}
-                  rating={0}
                 />
               ))}
             </div>
