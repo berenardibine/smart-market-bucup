@@ -209,20 +209,32 @@ Deno.serve(async (req) => {
     
     // Get base URL for the frontend app
     const baseUrl = "https://smart-market-online.vercel.app";
-    const productPageUrl = slug ? `${baseUrl}/product/${slug}` : baseUrl;
 
     console.log(`[og-preview] Request for slug: ${slug}, User-Agent: ${userAgent?.substring(0, 50)}...`);
-    console.log(`[og-preview] Is crawler: ${isCrawler(userAgent)}`);
+    
+    const crawlerDetected = isCrawler(userAgent);
+    console.log(`[og-preview] Is crawler: ${crawlerDetected}`);
 
     // If no slug provided, redirect to home
     if (!slug) {
       console.log("[og-preview] No slug provided, redirecting to home");
-      return new Response(generateNotFoundHtml(baseUrl), {
-        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, "Location": baseUrl },
       });
     }
 
-    // Initialize Supabase client
+    // For non-crawler browsers, immediately redirect to product page
+    if (!crawlerDetected) {
+      const redirectUrl = `${baseUrl}/product/${slug}`;
+      console.log(`[og-preview] Non-crawler detected, redirecting to: ${redirectUrl}`);
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, "Location": redirectUrl },
+      });
+    }
+
+    // Initialize Supabase client (only for crawlers)
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -245,15 +257,17 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("[og-preview] Database error:", error);
-      return new Response(generateNotFoundHtml(baseUrl), {
-        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, "Location": baseUrl },
       });
     }
 
     if (!product) {
       console.log("[og-preview] Product not found");
-      return new Response(generateNotFoundHtml(baseUrl), {
-        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, "Location": baseUrl },
       });
     }
 
@@ -262,26 +276,24 @@ Deno.serve(async (req) => {
       ? `${baseUrl}/product/${product.slug}`
       : `${baseUrl}/product/${product.id}`;
 
-    console.log(`[og-preview] Found product: ${product.title}, generating preview HTML`);
+    console.log(`[og-preview] Crawler detected, serving OG meta for: ${product.title}`);
 
-    // Generate HTML with meta tags
+    // Generate HTML with meta tags for crawlers
     const html = generateHtml(product, finalProductUrl, baseUrl);
 
     return new Response(html, {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+        "Cache-Control": "public, max-age=3600",
       },
     });
   } catch (error) {
     console.error("[og-preview] Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
-    );
+    const baseUrl = "https://smart-market-online.vercel.app";
+    return new Response(null, {
+      status: 302,
+      headers: { ...corsHeaders, "Location": baseUrl },
+    });
   }
 });
