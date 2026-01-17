@@ -50,6 +50,7 @@ const Header = ({ onMenuClick, onSearchClick, notificationCount = 0 }: HeaderPro
               <Button 
                 variant="ghost" 
                 size="icon"
+                onClick={() => navigate('/notifications')}
                 className="relative h-9 w-9 text-white hover:bg-white/20"
               >
                 <Bell className="h-5 w-5" />
