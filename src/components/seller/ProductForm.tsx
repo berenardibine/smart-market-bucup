@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, Upload, X, Plus, Video } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, X, Plus, Video, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +24,7 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
   const { categories } = useCategories();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>(product?.images || []);
+  const [processingImages, setProcessingImages] = useState<Set<number>>(new Set());
   const [videoUrl, setVideoUrl] = useState(product?.video_url || '');
   const [formData, setFormData] = useState({
     title: product?.title || '',
@@ -35,6 +36,29 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
     is_negotiable: product?.is_negotiable || false,
   });
 
+  // AI Background removal function
+  const removeBackground = async (imageUrl: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('remove-background', {
+        body: { imageUrl, userId: user?.id }
+      });
+
+      if (error) {
+        console.error('Background removal error:', error);
+        return imageUrl; // Return original on error
+      }
+
+      if (data?.processedUrl) {
+        return data.processedUrl;
+      }
+      
+      return imageUrl;
+    } catch (err) {
+      console.error('Background removal failed:', err);
+      return imageUrl;
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -43,6 +67,11 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
       toast({ title: "Maximum 8 images allowed", variant: "destructive" });
       return;
     }
+
+    toast({ 
+      title: "🪄 AI Processing", 
+      description: "Uploading and removing background..."
+    });
 
     for (const file of Array.from(files)) {
       const fileExt = file.name.split('.').pop();
@@ -58,7 +87,30 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
           .from('product-images')
           .getPublicUrl(filePath);
         
+        // Add original image first with processing indicator
+        const currentIndex = images.length;
         setImages(prev => [...prev, publicUrl]);
+        setProcessingImages(prev => new Set(prev).add(currentIndex));
+        
+        // Process background removal
+        const processedUrl = await removeBackground(publicUrl);
+        
+        // Update with processed image
+        setImages(prev => prev.map((img, idx) => 
+          idx === currentIndex ? processedUrl : img
+        ));
+        setProcessingImages(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(currentIndex);
+          return newSet;
+        });
+
+        if (processedUrl !== publicUrl) {
+          toast({ 
+            title: "✨ Background Removed", 
+            description: "Image processed with white background"
+          });
+        }
       }
     }
   };
@@ -170,10 +222,20 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
             {images.map((img, idx) => (
               <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                 <img src={img} alt="" className="w-full h-full object-cover" />
+                {processingImages.has(idx) && (
+                  <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mb-1" />
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      AI Processing
+                    </span>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
                   className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
+                  disabled={processingImages.has(idx)}
                 >
                   <X className="h-4 w-4" />
                 </button>
