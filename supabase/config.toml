@@ -2,3 +2,6 @@ project_id = "tbykrulfzhhkmtgjhvjh"
 
 [functions.og-preview]
 verify_jwt = false
+
+[functions.remove-background]
+verify_jwt = false
