@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, ShoppingBag, Sparkles, Package } from "lucide-react";
+import { TrendingUp, ShoppingBag, Sparkles, Package, Clock, Zap, Star } from "lucide-react";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import MenuDrawer from "@/components/layout/MenuDrawer";
@@ -16,7 +16,7 @@ import SmartChallenge from "@/components/home/SmartChallenge";
 import FloatingProductCard from "@/components/home/FloatingProductCard";
 import SectionHeader from "@/components/home/SectionHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { useRandomizedProducts } from "@/hooks/useRandomizedProducts";
+import { useHomeSections } from "@/hooks/useHomeSections";
 import { useCategories } from "@/hooks/useCategories";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,10 +39,16 @@ const Index = () => {
   // Get categories from database for general type
   const { categories: dbCategories, loading: categoriesLoading } = useCategories('general');
   
-  // Get randomized products
-  const { products: allProducts, loading: productsLoading } = useRandomizedProducts(
-    selectedCategory === 'all' ? undefined : selectedCategory
-  );
+  // Get dynamic sections
+  const { 
+    trending, 
+    newArrivals, 
+    justForYou, 
+    bestDeals,
+    allProducts, 
+    ads,
+    loading: productsLoading 
+  } = useHomeSections(selectedCategory === 'all' ? undefined : selectedCategory);
 
   const isSeller = profile?.user_type === 'seller';
 
@@ -168,47 +174,44 @@ const Index = () => {
           </section>
         )}
 
-        {/* Trending Products - Modern Floating Cards */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
-          <SectionHeader
-            title="Trending Now"
-            icon={<TrendingUp className="h-4 w-4 text-primary" />}
-            onViewAll={() => {}}
-          />
-          {productsLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-              {[1, 2, 3, 4, 5, 6].map(i => <ProductSkeleton key={i} />)}
-            </div>
-          ) : allProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-              {allProducts.slice(0, 12).map((product) => (
-                <FloatingProductCard
-                  key={product.id}
-                  id={product.id}
-                  title={product.title}
-                  price={product.price}
-                  images={product.images}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-muted/30 rounded-2xl">
-              <Sparkles className="h-12 w-12 text-primary/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No products yet. Be the first to sell!</p>
-            </div>
-          )}
-        </section>
+        {/* Trending Products */}
+        {trending.length > 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
+            <SectionHeader
+              title="🔥 Trending Now"
+              icon={<TrendingUp className="h-4 w-4 text-primary" />}
+              onViewAll={() => {}}
+            />
+            {productsLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+                {[1, 2, 3, 4, 5, 6].map(i => <ProductSkeleton key={i} />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+                {trending.slice(0, 6).map((product) => (
+                  <FloatingProductCard
+                    key={product.id}
+                    id={product.id}
+                    title={product.title}
+                    price={product.price}
+                    images={product.images}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-        {/* More Products */}
-        {allProducts.length > 12 && (
+        {/* New Arrivals */}
+        {newArrivals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
             <SectionHeader
-              title="More for You"
-              icon={<ShoppingBag className="h-4 w-4 text-primary" />}
+              title="✨ New Arrivals"
+              icon={<Clock className="h-4 w-4 text-blue-500" />}
               onViewAll={() => {}}
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-              {allProducts.slice(12).map((product) => (
+              {newArrivals.slice(0, 6).map((product) => (
                 <FloatingProductCard
                   key={product.id}
                   id={product.id}
@@ -217,6 +220,60 @@ const Index = () => {
                   images={product.images}
                 />
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Best Deals */}
+        {bestDeals.length > 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.35s" }}>
+            <SectionHeader
+              title="💰 Best Deals"
+              icon={<Zap className="h-4 w-4 text-amber-500" />}
+              onViewAll={() => {}}
+            />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+              {bestDeals.slice(0, 6).map((product) => (
+                <FloatingProductCard
+                  key={product.id}
+                  id={product.id}
+                  title={product.title}
+                  price={product.price}
+                  images={product.images}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Just For You */}
+        {justForYou.length > 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.4s" }}>
+            <SectionHeader
+              title="🎯 Just For You"
+              icon={<Star className="h-4 w-4 text-purple-500" />}
+              onViewAll={() => {}}
+            />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+              {justForYou.map((product) => (
+                <FloatingProductCard
+                  key={product.id}
+                  id={product.id}
+                  title={product.title}
+                  price={product.price}
+                  images={product.images}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Empty State */}
+        {!productsLoading && allProducts.length === 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
+            <div className="text-center py-12 bg-muted/30 rounded-2xl">
+              <Sparkles className="h-12 w-12 text-primary/50 mx-auto mb-3" />
+              <p className="text-muted-foreground">No products yet. Be the first to sell!</p>
             </div>
           </section>
         )}
