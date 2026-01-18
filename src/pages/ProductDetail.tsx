@@ -213,7 +213,14 @@ const ProductDetail = () => {
         <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
           <div className="flex items-center justify-between p-4">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                // Check if there's browser history to go back to, otherwise go home
+                if (window.history.length > 2) {
+                  navigate(-1);
+                } else {
+                  navigate('/');
+                }
+              }}
               className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
