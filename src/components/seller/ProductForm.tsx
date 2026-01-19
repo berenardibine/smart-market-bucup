@@ -36,26 +36,26 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
     is_negotiable: product?.is_negotiable || false,
   });
 
-  // AI Background removal function
-  const removeBackground = async (imageUrl: string): Promise<string> => {
+  // Smart AI Background processing function
+  const processBackground = async (imageUrl: string): Promise<{ url: string; decision: string; message: string }> => {
     try {
       const { data, error } = await supabase.functions.invoke('remove-background', {
         body: { imageUrl, userId: user?.id }
       });
 
       if (error) {
-        console.error('Background removal error:', error);
-        return imageUrl; // Return original on error
+        console.error('Background processing error:', error);
+        return { url: imageUrl, decision: 'error', message: 'Processing failed' };
       }
 
-      if (data?.processedUrl) {
-        return data.processedUrl;
-      }
-      
-      return imageUrl;
+      return {
+        url: data?.processedUrl || imageUrl,
+        decision: data?.analysis?.decision || 'unknown',
+        message: data?.message || data?.analysis?.reason || ''
+      };
     } catch (err) {
-      console.error('Background removal failed:', err);
-      return imageUrl;
+      console.error('Background processing failed:', err);
+      return { url: imageUrl, decision: 'error', message: 'Processing failed' };
     }
   };
 
@@ -69,8 +69,8 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
     }
 
     toast({ 
-      title: "🪄 AI Processing", 
-      description: "Uploading and removing background..."
+      title: "🧠 AI Analyzing Image", 
+      description: "Smart background detection in progress..."
     });
 
     for (const file of Array.from(files)) {
@@ -92,12 +92,12 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
         setImages(prev => [...prev, publicUrl]);
         setProcessingImages(prev => new Set(prev).add(currentIndex));
         
-        // Process background removal
-        const processedUrl = await removeBackground(publicUrl);
+        // Smart AI background processing
+        const result = await processBackground(publicUrl);
         
-        // Update with processed image
+        // Update with processed or original image based on AI decision
         setImages(prev => prev.map((img, idx) => 
-          idx === currentIndex ? processedUrl : img
+          idx === currentIndex ? result.url : img
         ));
         setProcessingImages(prev => {
           const newSet = new Set(prev);
@@ -105,10 +105,21 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
           return newSet;
         });
 
-        if (processedUrl !== publicUrl) {
+        // Show appropriate toast based on AI decision
+        if (result.decision === 'removed') {
           toast({ 
-            title: "✨ Background Removed", 
-            description: "Image processed with white background"
+            title: "✨ Background Cleaned", 
+            description: "Product photo optimized with white background"
+          });
+        } else if (result.decision === 'keep') {
+          toast({ 
+            title: "🌈 Background Preserved", 
+            description: result.message || "Background kept to preserve visual context"
+          });
+        } else if (result.decision === 'remove_failed') {
+          toast({ 
+            title: "📷 Original Saved", 
+            description: "Image saved without background processing"
           });
         }
       }
