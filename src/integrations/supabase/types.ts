@@ -636,6 +636,30 @@ export type Database = {
           },
         ]
       }
+      filter_analytics: {
+        Row: {
+          created_at: string | null
+          filter_type: string
+          filter_value: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          filter_type: string
+          filter_value?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          filter_type?: string
+          filter_value?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       idea_collaborators: {
         Row: {
           id: string
@@ -1922,6 +1946,9 @@ export type Database = {
       }
       products: {
         Row: {
+          admin_location: string | null
+          admin_phone: string | null
+          admin_posted: boolean | null
           category: string | null
           contact_call: string | null
           contact_whatsapp: string | null
@@ -1933,17 +1960,23 @@ export type Database = {
           images: string[]
           impressions: number | null
           is_negotiable: boolean | null
+          last_edited_by: string | null
           likes: number | null
           location: string | null
           location_id: string | null
           price: number
           product_type: string | null
           quantity: number
+          rental_fee: number | null
           rental_rate_type: string | null
+          rental_status: string | null
+          rental_unit: string | null
           seller_id: string
           share_count: number | null
           shop_id: string | null
+          show_connect_button: boolean | null
           slug: string | null
+          sponsored: boolean | null
           status: string | null
           title: string
           updated_at: string | null
@@ -1951,6 +1984,9 @@ export type Database = {
           views: number | null
         }
         Insert: {
+          admin_location?: string | null
+          admin_phone?: string | null
+          admin_posted?: boolean | null
           category?: string | null
           contact_call?: string | null
           contact_whatsapp?: string | null
@@ -1962,17 +1998,23 @@ export type Database = {
           images: string[]
           impressions?: number | null
           is_negotiable?: boolean | null
+          last_edited_by?: string | null
           likes?: number | null
           location?: string | null
           location_id?: string | null
           price: number
           product_type?: string | null
           quantity: number
+          rental_fee?: number | null
           rental_rate_type?: string | null
+          rental_status?: string | null
+          rental_unit?: string | null
           seller_id: string
           share_count?: number | null
           shop_id?: string | null
+          show_connect_button?: boolean | null
           slug?: string | null
+          sponsored?: boolean | null
           status?: string | null
           title: string
           updated_at?: string | null
@@ -1980,6 +2022,9 @@ export type Database = {
           views?: number | null
         }
         Update: {
+          admin_location?: string | null
+          admin_phone?: string | null
+          admin_posted?: boolean | null
           category?: string | null
           contact_call?: string | null
           contact_whatsapp?: string | null
@@ -1991,17 +2036,23 @@ export type Database = {
           images?: string[]
           impressions?: number | null
           is_negotiable?: boolean | null
+          last_edited_by?: string | null
           likes?: number | null
           location?: string | null
           location_id?: string | null
           price?: number
           product_type?: string | null
           quantity?: number
+          rental_fee?: number | null
           rental_rate_type?: string | null
+          rental_status?: string | null
+          rental_unit?: string | null
           seller_id?: string
           share_count?: number | null
           shop_id?: string | null
+          show_connect_button?: boolean | null
           slug?: string | null
+          sponsored?: boolean | null
           status?: string | null
           title?: string
           updated_at?: string | null

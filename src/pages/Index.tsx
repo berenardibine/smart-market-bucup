@@ -7,16 +7,15 @@ import MenuDrawer from "@/components/layout/MenuDrawer";
 import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
 import AdminFAB from "@/components/layout/AdminFAB";
-import SmartLocationHeader from "@/components/location/SmartLocationHeader";
-import LocationLevelFilter from "@/components/location/LocationLevelFilter";
 import LocationModal from "@/components/location/LocationModal";
+import ProductFilterBar, { ProductFilters } from "@/components/filters/ProductFilterBar";
 import AIGreeting from "@/components/home/AIGreeting";
 import DailyMotivation from "@/components/home/DailyMotivation";
 import SmartChallenge from "@/components/home/SmartChallenge";
 import FloatingProductCard from "@/components/home/FloatingProductCard";
 import SectionHeader from "@/components/home/SectionHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { useHomeSections } from "@/hooks/useHomeSections";
+import { useFilteredProducts } from "@/hooks/useFilteredProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,24 +30,20 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   
   const { 
-    level, setLevel, 
     showLocationModal, setShowLocationModal, 
-    saveUserLocation, getLocationLabel 
+    saveUserLocation
   } = useUserLocation();
   
   // Get categories from database for general type
   const { categories: dbCategories, loading: categoriesLoading } = useCategories('general');
   
-  // Get dynamic sections
+  // Get filtered products using new hook
   const { 
-    trending, 
-    newArrivals, 
-    justForYou, 
-    bestDeals,
-    allProducts, 
-    ads,
-    loading: productsLoading 
-  } = useHomeSections(selectedCategory === 'all' ? undefined : selectedCategory);
+    products,
+    loading: productsLoading,
+    filters,
+    setFilters
+  } = useFilteredProducts(selectedCategory === 'all' ? undefined : selectedCategory);
 
   const isSeller = profile?.user_type === 'seller';
 
@@ -82,6 +77,29 @@ const Index = () => {
     return [allOption, ...processedCategories];
   }, [dbCategories]);
 
+  // Compute dynamic sections from filtered products
+  const sections = useMemo(() => {
+    // Trending: Products with most views/likes
+    const trending = [...products]
+      .sort((a, b) => ((b.views || 0) + (b.likes || 0) * 3) - ((a.views || 0) + (a.likes || 0) * 3))
+      .slice(0, 12);
+
+    // New Arrivals: Most recently added
+    const newArrivals = [...products]
+      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+      .slice(0, 12);
+
+    // Just For You: Already randomized/filtered by hook
+    const justForYou = products.slice(0, 12);
+
+    // Best Deals: Lower priced items
+    const bestDeals = [...products]
+      .sort((a, b) => a.price - b.price)
+      .slice(0, 8);
+
+    return { trending, newArrivals, justForYou, bestDeals };
+  }, [products]);
+
   // Handle tab navigation
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -91,7 +109,7 @@ const Index = () => {
   };
 
   const ProductSkeleton = () => (
-    <div className="bg-white rounded-2xl p-3 space-y-3 shadow-[0_6px_12px_rgba(0,0,0,0.08)]">
+    <div className="bg-card rounded-2xl p-3 space-y-3 shadow-[0_6px_12px_rgba(0,0,0,0.08)]">
       <Skeleton className="aspect-square rounded-xl" />
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-5 w-1/2" />
@@ -107,17 +125,12 @@ const Index = () => {
       />
       
       <main className="container px-4 py-4 space-y-5">
-        {/* Smart Location Header */}
+        {/* Smart Filter Bar - Replaces Location Selection */}
         <section className="animate-fade-up">
-          <SmartLocationHeader 
-            locationLabel={getLocationLabel()} 
-            onChangeLocation={() => setShowLocationModal(true)} 
+          <ProductFilterBar 
+            filters={filters}
+            onFiltersChange={setFilters}
           />
-        </section>
-
-        {/* Location Level Filter */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.03s" }}>
-          <LocationLevelFilter level={level} onLevelChange={setLevel} />
         </section>
 
         {/* AI Greeting */}
@@ -163,19 +176,19 @@ const Index = () => {
         </section>
 
         {/* Products Count */}
-        {!productsLoading && allProducts.length > 0 && (
+        {!productsLoading && products.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.22s" }}>
             <div className="flex items-center gap-2 px-1">
               <Package className="h-4 w-4 text-primary" />
               <span className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{allProducts.length}</span> products available
+                <span className="font-semibold text-foreground">{products.length}</span> products available
               </span>
             </div>
           </section>
         )}
 
         {/* Trending Products */}
-        {trending.length > 0 && (
+        {sections.trending.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
             <SectionHeader
               title="🔥 Trending Now"
@@ -188,13 +201,15 @@ const Index = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-                {trending.slice(0, 6).map((product) => (
+                {sections.trending.slice(0, 6).map((product) => (
                   <FloatingProductCard
                     key={product.id}
                     id={product.id}
                     title={product.title}
                     price={product.price}
                     images={product.images}
+                    rentalUnit={product.rental_unit}
+                    isSponsored={product.sponsored}
                   />
                 ))}
               </div>
@@ -203,7 +218,7 @@ const Index = () => {
         )}
 
         {/* New Arrivals */}
-        {newArrivals.length > 0 && (
+        {sections.newArrivals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
             <SectionHeader
               title="✨ New Arrivals"
@@ -211,13 +226,15 @@ const Index = () => {
               onViewAll={() => {}}
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-              {newArrivals.slice(0, 6).map((product) => (
+              {sections.newArrivals.slice(0, 6).map((product) => (
                 <FloatingProductCard
                   key={product.id}
                   id={product.id}
                   title={product.title}
                   price={product.price}
                   images={product.images}
+                  rentalUnit={product.rental_unit}
+                  isSponsored={product.sponsored}
                 />
               ))}
             </div>
@@ -225,7 +242,7 @@ const Index = () => {
         )}
 
         {/* Best Deals */}
-        {bestDeals.length > 0 && (
+        {sections.bestDeals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.35s" }}>
             <SectionHeader
               title="💰 Best Deals"
@@ -233,13 +250,15 @@ const Index = () => {
               onViewAll={() => {}}
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-              {bestDeals.slice(0, 6).map((product) => (
+              {sections.bestDeals.slice(0, 6).map((product) => (
                 <FloatingProductCard
                   key={product.id}
                   id={product.id}
                   title={product.title}
                   price={product.price}
                   images={product.images}
+                  rentalUnit={product.rental_unit}
+                  isSponsored={product.sponsored}
                 />
               ))}
             </div>
@@ -247,7 +266,7 @@ const Index = () => {
         )}
 
         {/* Just For You */}
-        {justForYou.length > 0 && (
+        {sections.justForYou.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.4s" }}>
             <SectionHeader
               title="🎯 Just For You"
@@ -255,13 +274,15 @@ const Index = () => {
               onViewAll={() => {}}
             />
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-              {justForYou.map((product) => (
+              {sections.justForYou.map((product) => (
                 <FloatingProductCard
                   key={product.id}
                   id={product.id}
                   title={product.title}
                   price={product.price}
                   images={product.images}
+                  rentalUnit={product.rental_unit}
+                  isSponsored={product.sponsored}
                 />
               ))}
             </div>
@@ -269,11 +290,11 @@ const Index = () => {
         )}
 
         {/* Empty State */}
-        {!productsLoading && allProducts.length === 0 && (
+        {!productsLoading && products.length === 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
             <div className="text-center py-12 bg-muted/30 rounded-2xl">
               <Sparkles className="h-12 w-12 text-primary/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No products yet. Be the first to sell!</p>
+              <p className="text-muted-foreground">No products match your filters. Try adjusting!</p>
             </div>
           </section>
         )}

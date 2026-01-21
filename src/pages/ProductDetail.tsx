@@ -350,7 +350,15 @@ const ProductDetail = () => {
             </div>
             <p className="text-3xl font-bold text-primary mt-2">
               {formatPrice(product.price)}
+              {product.rental_unit && (
+                <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
+              )}
             </p>
+            {product.admin_posted && (
+              <Badge className="mt-2 bg-amber-500/10 text-amber-700 border-amber-500/20">
+                ✓ Official Smart Market Listing
+              </Badge>
+            )}
           </div>
 
           {/* Quick Info */}
@@ -424,21 +432,23 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Connect with Seller Button */}
-            <Button
-              onClick={handleConnect}
-              disabled={connectLoading}
-              variant={isConnected ? "outline" : "default"}
-              className={cn(
-                "w-full mt-4 gap-2",
-                isConnected 
-                  ? "border-primary text-primary hover:bg-primary/5" 
-                  : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
-              )}
-            >
-              <Link2 className="h-5 w-5" />
-              {connectLoading ? "..." : isConnected ? `Connected (${connectionCount})` : `Connect with Seller (${connectionCount})`}
-            </Button>
+            {/* Connect with Seller Button - Hidden for admin products */}
+            {!product.admin_posted && (
+              <Button
+                onClick={handleConnect}
+                disabled={connectLoading}
+                variant={isConnected ? "outline" : "default"}
+                className={cn(
+                  "w-full mt-4 gap-2",
+                  isConnected 
+                    ? "border-primary text-primary hover:bg-primary/5" 
+                    : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
+                )}
+              >
+                <Link2 className="h-5 w-5" />
+                {connectLoading ? "..." : isConnected ? `Connected (${connectionCount})` : `Connect with Seller (${connectionCount})`}
+              </Button>
+            )}
           </div>
 
           {/* Vertical Contact Buttons Section */}
@@ -470,20 +480,22 @@ const ProductDetail = () => {
               <span className="flex-1 text-left font-semibold">Contact Seller on WhatsApp</span>
             </Button>
 
-            {/* I Need This Product Button */}
-            <Button
-              onClick={handleRequest}
-              disabled={sending}
-              size="lg"
-              className="w-full gap-3 h-14 rounded-xl bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90 text-white transition-all duration-300 shadow-soft hover:shadow-elevated"
-            >
-              <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                <span className="text-lg">❤️</span>
-              </div>
-              <span className="flex-1 text-left font-semibold">
-                {sending ? "Sending..." : "I Need This Product"}
-              </span>
-            </Button>
+            {/* I Need This Product Button - Hidden for admin products */}
+            {!product.admin_posted && (
+              <Button
+                onClick={handleRequest}
+                disabled={sending}
+                size="lg"
+                className="w-full gap-3 h-14 rounded-xl bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90 text-white transition-all duration-300 shadow-soft hover:shadow-elevated"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <span className="text-lg">❤️</span>
+                </div>
+                <span className="flex-1 text-left font-semibold">
+                  {sending ? "Sending..." : "I Need This Product"}
+                </span>
+              </Button>
+            )}
 
             {/* Secure contact label */}
             <p className="text-center text-xs text-muted-foreground pt-2">
