@@ -58,14 +58,21 @@ const loadSavedFilters = (): ProductFilters => {
 
 export const useFilteredProducts = (
   category?: string,
-  initialFilters?: ProductFilters
+  filtersOrInitial?: ProductFilters
 ) => {
   const [products, setProducts] = useState<FilteredProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<ProductFilters>(
-    initialFilters || loadSavedFilters()
+    filtersOrInitial || loadSavedFilters()
   );
+
+  // Sync filters when passed from parent
+  useEffect(() => {
+    if (filtersOrInitial) {
+      setFilters(filtersOrInitial);
+    }
+  }, [filtersOrInitial]);
 
   useEffect(() => {
     fetchProducts();
