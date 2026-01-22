@@ -25,7 +25,7 @@ import AdsManagement from "@/components/admin/AdsManagement";
 import CategoriesManagement from "@/components/admin/CategoriesManagement";
 import LocationManagement from "@/components/admin/LocationManagement";
 import LinkAnalyticsDashboard from "@/components/admin/LinkAnalyticsDashboard";
-
+import FilterAnalyticsDashboard from "@/components/admin/FilterAnalyticsDashboard";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -81,6 +81,7 @@ const AdminDashboard = () => {
   const modules = [
     { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'from-blue-500 to-cyan-400' },
     { id: 'link-analytics', label: 'Link Analytics', icon: Shield, color: 'from-violet-500 to-purple-400' },
+    { id: 'filter-analytics', label: 'Filter Analytics', icon: LayoutDashboard, color: 'from-teal-500 to-cyan-400' },
     { id: 'users', label: 'Users', icon: Users, color: 'from-emerald-500 to-green-400' },
     { id: 'products', label: 'Products', icon: Package, color: 'from-orange-500 to-amber-400' },
     { id: 'shops', label: 'Shops', icon: Store, color: 'from-purple-500 to-violet-400' },
@@ -96,6 +97,7 @@ const AdminDashboard = () => {
     switch (activeModule) {
       case 'analytics': return <AnalyticsDashboard />;
       case 'link-analytics': return <LinkAnalyticsDashboard />;
+      case 'filter-analytics': return <FilterAnalyticsDashboard />;
       case 'users': return <UserManagement />;
       case 'products': return <ProductManagement />;
       case 'shops': return <ShopManagement />;

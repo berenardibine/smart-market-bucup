@@ -24,6 +24,16 @@ export interface Product {
   contact_call: string | null;
   created_at: string | null;
   slug: string | null;
+  // Admin & Rental fields
+  admin_posted: boolean | null;
+  admin_phone: string | null;
+  admin_location: string | null;
+  show_connect_button: boolean | null;
+  sponsored: boolean | null;
+  last_edited_by: string | null;
+  rental_fee: number | null;
+  rental_unit: string | null;
+  rental_status: string | null;
   seller?: {
     id: string;
     full_name: string;

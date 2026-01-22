@@ -7,11 +7,10 @@ import SearchModal from '@/components/layout/SearchModal';
 import SellerFAB from '@/components/layout/SellerFAB';
 import AdminFAB from '@/components/layout/AdminFAB';
 import FloatingProductCard from '@/components/home/FloatingProductCard';
-import SmartLocationHeader from '@/components/location/SmartLocationHeader';
-import LocationLevelFilter from '@/components/location/LocationLevelFilter';
+import ProductFilterBar, { ProductFilters } from '@/components/filters/ProductFilterBar';
 import LocationModal from '@/components/location/LocationModal';
 import { useAuth } from '@/hooks/useAuth';
-import { useProducts } from '@/hooks/useProducts';
+import { useFilteredProducts } from '@/hooks/useFilteredProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,16 +21,21 @@ const RentPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedSub, setSelectedSub] = useState('all');
+  const [filters, setFilters] = useState<ProductFilters>({ sortBy: 'random' });
   
   const { 
-    level, setLevel, 
     showLocationModal, setShowLocationModal, 
-    saveUserLocation, getLocationLabel 
+    saveUserLocation
   } = useUserLocation();
   
   // Load categories from database
   const { categories: dbCategories, loading: categoriesLoading } = useCategories('rent');
-  const { products, loading } = useProducts('rent');
+  
+  // Use filtered products hook with rent type filter
+  const { products, loading } = useFilteredProducts(
+    selectedSub === 'all' ? undefined : selectedSub,
+    filters
+  );
   
   const isSeller = profile?.user_type === 'seller';
 
@@ -40,11 +44,6 @@ const RentPage = () => {
     const allOption = { id: 'all', name: 'All Rentals', slug: 'all', icon: '✨', type: 'rent' };
     return [allOption, ...dbCategories];
   }, [dbCategories]);
-
-  // Filter by subcategory
-  const filteredProducts = selectedSub === 'all' 
-    ? products 
-    : products.filter(p => p.category === selectedSub);
 
   const ProductSkeleton = () => (
     <div className="bg-white rounded-2xl p-3 space-y-3 shadow-[0_6px_12px_rgba(0,0,0,0.08)]">
@@ -62,14 +61,11 @@ const RentPage = () => {
       />
       
       <main className="container px-4 py-4 space-y-4">
-        {/* Location Header */}
-        <SmartLocationHeader 
-          locationLabel={getLocationLabel()} 
-          onChangeLocation={() => setShowLocationModal(true)} 
+        {/* Smart Filter Bar */}
+        <ProductFilterBar 
+          filters={filters}
+          onFiltersChange={setFilters}
         />
-
-        {/* Level Filter */}
-        <LocationLevelFilter level={level} onLevelChange={setLevel} />
 
         {/* Page Title */}
         <div className="flex items-center gap-3">
@@ -78,7 +74,7 @@ const RentPage = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold">Equipment for Rent</h1>
-            <p className="text-sm text-muted-foreground">Rent Tools & Equipment</p>
+            <p className="text-sm text-muted-foreground">Rent Tools & Equipment by day, week, or month</p>
           </div>
         </div>
 
@@ -107,20 +103,22 @@ const RentPage = () => {
           )}
         </div>
 
-        {/* Products Grid - Floating Cards */}
+        {/* Products Grid - Floating Cards with Rental Unit */}
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {[1, 2, 3, 4, 5, 6].map(i => <ProductSkeleton key={i} />)}
           </div>
-        ) : filteredProducts.length > 0 ? (
+        ) : products.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-            {filteredProducts.map((product) => (
+            {products.map((product) => (
               <FloatingProductCard
                 key={product.id}
                 id={product.id}
                 title={product.title}
                 price={product.price}
                 images={product.images}
+                rentalUnit={product.rental_unit}
+                isSponsored={product.sponsored}
               />
             ))}
           </div>
