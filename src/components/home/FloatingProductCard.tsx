@@ -11,6 +11,7 @@ interface FloatingProductCardProps {
   images: string[];
   rentalUnit?: string | null;
   isSponsored?: boolean | null;
+  hideSponsored?: boolean | null;
 }
 
 const FloatingProductCard = ({
@@ -21,6 +22,7 @@ const FloatingProductCard = ({
   images,
   rentalUnit,
   isSponsored,
+  hideSponsored,
 }: FloatingProductCardProps) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -38,6 +40,9 @@ const FloatingProductCard = ({
 
   const productImage = images?.[0] || '/placeholder.svg';
 
+  // Don't show sponsored badge if hideSponsored is true (admin products)
+  const showSponsoredBadge = isSponsored && !hideSponsored;
+
   return (
     <div
       onClick={handleClick}
@@ -46,11 +51,11 @@ const FloatingProductCard = ({
         "border-none p-3 md:p-4",
         "transition-all duration-300 ease-out",
         "hover:-translate-y-1",
-        isSponsored && "ring-2 ring-primary/30"
+        showSponsoredBadge && "ring-2 ring-primary/30"
       )}
     >
-      {/* Sponsored Badge */}
-      {isSponsored && (
+      {/* Sponsored Badge - Only show if not hidden */}
+      {showSponsoredBadge && (
         <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
           <Crown className="h-3 w-3" />
           Featured

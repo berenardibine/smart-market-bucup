@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useCategories } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
 import { useLocations } from '@/hooks/useLocations';
 import { useToast } from '@/hooks/use-toast';
 
@@ -66,7 +66,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
     product_type: product?.product_type || 'retail',
     is_negotiable: product?.is_negotiable || false,
     admin_posted: product?.admin_posted ?? true,
-    admin_phone: product?.admin_phone || '',
+    admin_phone: product?.admin_phone || product?.contact_whatsapp || '',
     sponsored: product?.sponsored || false,
     // Rental fields
     rental_fee: product?.rental_fee?.toString() || '',
@@ -74,15 +74,52 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
   });
 
   // Check if category is rental
-  const isRentalCategory = formData.category === 'rent' || 
-    formData.category?.includes('rent') ||
+  const isRentalCategory = formData.category?.toLowerCase().includes('rent') || 
+    formData.category?.toLowerCase().includes('lent') ||
     formData.product_type === 'rental';
 
   // Pre-fill location from product
   useEffect(() => {
     if (product?.location_id) {
-      // We'd need to reverse-lookup the location hierarchy
-      // For now, just show admin_location if available
+      // Load location hierarchy from product
+      const loadProductLocation = async () => {
+        try {
+          const { data: sector } = await supabase
+            .from('locations')
+            .select('id, parent_id, name')
+            .eq('id', product.location_id)
+            .single();
+          
+          if (sector) {
+            const { data: district } = await supabase
+              .from('locations')
+              .select('id, parent_id, name')
+              .eq('id', sector.parent_id)
+              .single();
+            
+            if (district) {
+              const { data: province } = await supabase
+                .from('locations')
+                .select('id, name')
+                .eq('id', district.parent_id)
+                .single();
+              
+              if (province) {
+                setSelectedProvince(province.id);
+                setTimeout(() => {
+                  setSelectedDistrict(district.id);
+                  setTimeout(() => {
+                    setSelectedSector(sector.id);
+                  }, 100);
+                }, 100);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error loading product location:', err);
+        }
+      };
+      loadProductLocation();
     }
   }, [product]);
 
@@ -200,7 +237,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
 
       // Add rental fields if applicable
       if (isRentalCategory) {
-        productData.rental_fee = formData.rental_fee ? parseFloat(formData.rental_fee) : null;
+        productData.rental_fee = formData.rental_fee ? parseFloat(formData.rental_fee) : parseFloat(formData.price);
         productData.rental_unit = formData.rental_unit;
         productData.rental_status = 'available';
       }
@@ -250,7 +287,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
               {product ? 'Edit Product' : 'Admin: New Product'}
             </h1>
             <p className="text-xs text-muted-foreground">
-              Post as Smart Market official
+              {product ? 'Editing product as admin' : 'Post as Smart Market official'}
             </p>
           </div>
           <Badge className="bg-primary/10 text-primary border-primary/20">
@@ -272,7 +309,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
             <div>
               <Label htmlFor="admin_posted">Admin Posted</Label>
               <p className="text-xs text-muted-foreground">
-                Mark as official Smart Market product
+                Mark as official Smart Market product (hides badges)
               </p>
             </div>
             <Switch
@@ -411,7 +448,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           </div>
         </div>
 
-        {/* Category */}
+        {/* Category - Load from Database */}
         <div className="space-y-2">
           <Label>Category *</Label>
           <Select
@@ -421,29 +458,31 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
             <SelectTrigger className="rounded-xl">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
-            <SelectContent className="bg-card">
+            <SelectContent className="bg-card max-h-[300px]">
               {categories.map(cat => (
                 <SelectItem key={cat.id} value={cat.slug}>
-                  {cat.name}
+                  {cat.icon} {cat.name}
                 </SelectItem>
               ))}
-              <SelectItem value="rent">Equipment for Rent</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Rental Fields - Show only for rental categories */}
         {isRentalCategory && (
-          <div className="bg-purple-500/10 rounded-2xl p-4 space-y-4">
-            <h3 className="font-semibold flex items-center gap-2 text-purple-700">
-              🔧 Rental Details
+          <div className="bg-primary/5 rounded-2xl p-4 space-y-4 border border-primary/20">
+            <h3 className="font-semibold flex items-center gap-2 text-primary">
+              🔧 Rental Fee Details
             </h3>
+            <p className="text-sm text-muted-foreground">
+              This category requires rental pricing. Set the fee rate below.
+            </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rental Fee (RWF)</Label>
                 <Input
                   type="number"
-                  value={formData.rental_fee}
+                  value={formData.rental_fee || formData.price}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
                     rental_fee: e.target.value,
@@ -474,9 +513,28 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
                 </Select>
               </div>
             </div>
-            <p className="text-sm text-purple-600">
-              Display: Fr {formData.rental_fee || '0'}{formData.rental_unit ? `/${formData.rental_unit}` : '/day'}
+            <p className="text-sm text-primary font-medium">
+              Display: Fr {formData.rental_fee || formData.price || '0'}/{formData.rental_unit}
             </p>
+          </div>
+        )}
+
+        {/* Product Type - Hide for rental categories */}
+        {!isRentalCategory && (
+          <div className="space-y-2">
+            <Label>Product Type</Label>
+            <Select
+              value={formData.product_type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
+            >
+              <SelectTrigger className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card">
+                <SelectItem value="retail">Retail</SelectItem>
+                <SelectItem value="wholesale">Wholesale</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
 
@@ -507,7 +565,11 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           
           <Select
             value={selectedProvince}
-            onValueChange={setSelectedProvince}
+            onValueChange={(value) => {
+              setSelectedProvince(value);
+              setSelectedDistrict('');
+              setSelectedSector('');
+            }}
           >
             <SelectTrigger className="rounded-xl">
               <SelectValue placeholder="Select Province" />
@@ -522,7 +584,10 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           {selectedProvince && (
             <Select
               value={selectedDistrict}
-              onValueChange={setSelectedDistrict}
+              onValueChange={(value) => {
+                setSelectedDistrict(value);
+                setSelectedSector('');
+              }}
             >
               <SelectTrigger className="rounded-xl">
                 <SelectValue placeholder="Select District" />
@@ -588,6 +653,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
             <ul className="text-sm text-amber-600 space-y-1">
               <li>• "Connect with Seller" button will be hidden</li>
               <li>• "I Need This Product" button will be hidden</li>
+              <li>• No badges will be shown on this product</li>
               <li>• Product marked as official Smart Market listing</li>
             </ul>
           </div>

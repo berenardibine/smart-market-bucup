@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, X, Plus, Video, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCategories } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProductFormProps {
@@ -17,6 +17,14 @@ interface ProductFormProps {
   onSuccess: () => void;
   onCancel: () => void;
 }
+
+const RENTAL_UNITS = [
+  { value: 'day', label: '/day' },
+  { value: 'week', label: '/week' },
+  { value: 'month', label: '/month' },
+  { value: 'year', label: '/year' },
+  { value: 'custom', label: '/custom' },
+];
 
 const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps) => {
   const { user, profile } = useAuth();
@@ -34,7 +42,15 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
     category: product?.category || '',
     product_type: product?.product_type || 'retail',
     is_negotiable: product?.is_negotiable || false,
+    // Rental fields
+    rental_fee: product?.rental_fee?.toString() || '',
+    rental_unit: product?.rental_unit || 'day',
   });
+
+  // Check if selected category is a rental category
+  const isRentalCategory = formData.category?.toLowerCase().includes('rent') || 
+    formData.category?.toLowerCase().includes('lent') ||
+    formData.product_type === 'rental';
 
   // Smart AI Background processing function
   const processBackground = async (imageUrl: string): Promise<{ url: string; decision: string; message: string }> => {
@@ -166,13 +182,13 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
 
     setLoading(true);
     try {
-      const productData = {
+      const productData: any = {
         title: formData.title,
         description: formData.description,
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
         category: formData.category || null,
-        product_type: formData.product_type,
+        product_type: isRentalCategory ? 'rental' : formData.product_type,
         is_negotiable: formData.is_negotiable,
         images: images,
         video_url: videoUrl || null,
@@ -184,6 +200,13 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
         contact_call: profile.call_number,
         status: 'active',
       };
+
+      // Add rental fields if applicable
+      if (isRentalCategory) {
+        productData.rental_fee = formData.rental_fee ? parseFloat(formData.rental_fee) : parseFloat(formData.price);
+        productData.rental_unit = formData.rental_unit;
+        productData.rental_status = 'available';
+      }
 
       if (product?.id) {
         const { error } = await supabase
@@ -245,7 +268,7 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
+                  className="absolute top-1 right-1 w-6 h-6 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground"
                   disabled={processingImages.has(idx)}
                 >
                   <X className="h-4 w-4" />
@@ -277,7 +300,7 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
               <button
                 type="button"
                 onClick={() => setVideoUrl('')}
-                className="absolute top-2 right-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white"
+                className="absolute top-2 right-2 w-8 h-8 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -345,35 +368,88 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
             value={formData.category}
             onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
           >
-            <SelectTrigger>
+            <SelectTrigger className="rounded-xl">
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-card">
               {categories.map(cat => (
                 <SelectItem key={cat.id} value={cat.slug}>
-                  {cat.name}
+                  {cat.icon} {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Product Type */}
-        <div className="space-y-2">
-          <Label>Product Type</Label>
-          <Select
-            value={formData.product_type}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="retail">Retail</SelectItem>
-              <SelectItem value="wholesale">Wholesale</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Rental Fields - Show automatically for rental categories */}
+        {isRentalCategory && (
+          <div className="bg-primary/5 rounded-2xl p-4 space-y-4 border border-primary/20">
+            <h3 className="font-semibold flex items-center gap-2 text-primary">
+              🔧 Rental Fee Details
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              This category requires rental pricing. Set the fee rate below.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Rental Fee (RWF)</Label>
+                <Input
+                  type="number"
+                  value={formData.rental_fee || formData.price}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    rental_fee: e.target.value,
+                    price: e.target.value // Sync with main price
+                  }))}
+                  placeholder="50000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Rate Unit</Label>
+                <Select
+                  value={formData.rental_unit}
+                  onValueChange={(value) => setFormData(prev => ({ 
+                    ...prev, 
+                    rental_unit: value 
+                  }))}
+                >
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card">
+                    {RENTAL_UNITS.map(unit => (
+                      <SelectItem key={unit.value} value={unit.value}>
+                        {unit.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-sm text-primary font-medium">
+              Display: Fr {formData.rental_fee || formData.price || '0'}/{formData.rental_unit}
+            </p>
+          </div>
+        )}
+
+        {/* Product Type - Hide for rental categories */}
+        {!isRentalCategory && (
+          <div className="space-y-2">
+            <Label>Product Type</Label>
+            <Select
+              value={formData.product_type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
+            >
+              <SelectTrigger className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card">
+                <SelectItem value="retail">Retail</SelectItem>
+                <SelectItem value="wholesale">Wholesale</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Negotiable */}
         <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">

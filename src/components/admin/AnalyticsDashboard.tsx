@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   TrendingUp, Users, Package, Store, Eye, ShoppingBag,
   ArrowUpRight, ArrowDownRight, Activity, Link2, UserCheck,
-  Clock, Calendar, Globe
+  Clock, Globe
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminStats } from "@/hooks/useAdmin";
@@ -17,13 +17,18 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
-import { format, subDays, startOfDay, eachDayOfInterval } from "date-fns";
+import { format, subDays, eachDayOfInterval } from "date-fns";
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+}
 
 interface AnalyticsData {
   userGrowth: { date: string; count: number }[];
@@ -36,10 +41,11 @@ interface AnalyticsData {
   onlineVisitors: number;
 }
 
-const COLORS = ['#f97316', '#3b82f6', '#22c55e', '#a855f7', '#06b6d4', '#ec4899', '#eab308'];
+const COLORS = ['#f97316', '#3b82f6', '#22c55e', '#a855f7', '#06b6d4', '#ec4899', '#eab308', '#14b8a6', '#8b5cf6', '#f43f5e'];
 
 const AnalyticsDashboard = () => {
   const { stats, loading } = useAdminStats();
+  const [categories, setCategories] = useState<Category[]>([]);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     userGrowth: [],
     productGrowth: [],
@@ -53,9 +59,24 @@ const AnalyticsDashboard = () => {
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
+  // Fetch categories from database
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data } = await supabase
+        .from('categories')
+        .select('id, name, slug, icon')
+        .order('name');
+      
+      if (data) {
+        setCategories(data);
+      }
+    };
+    fetchCategories();
+  }, []);
+
   useEffect(() => {
     fetchAnalyticsData();
-  }, [timeRange]);
+  }, [timeRange, categories]);
 
   const fetchAnalyticsData = async () => {
     setLoadingAnalytics(true);
@@ -77,10 +98,11 @@ const AnalyticsDashboard = () => {
         .select('created_at, category, views')
         .gte('created_at', startDate.toISOString());
 
-      // Fetch categories for distribution
+      // Fetch ALL products for category distribution (from database)
       const { data: allProducts } = await supabase
         .from('products')
-        .select('category');
+        .select('category')
+        .eq('status', 'active');
 
       // Fetch connections count
       const { count: connectionsCount } = await (supabase as any)
@@ -121,21 +143,28 @@ const AnalyticsDashboard = () => {
         return { date: format(date, 'MMM dd'), count };
       });
 
-      // Category distribution
+      // Category distribution - Use categories from database
       const categoryMap = new Map<string, number>();
       allProducts?.forEach(p => {
-        const cat = p.category || 'Other';
+        const cat = p.category || 'other';
         categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
       });
 
+      // Map category slugs to names from database
       const categoryDistribution = Array.from(categoryMap.entries())
-        .map(([name, count], index) => ({
-          name: name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          count,
-          fill: COLORS[index % COLORS.length],
-        }))
+        .map(([slug, count], index) => {
+          // Find category name from database
+          const dbCategory = categories.find(c => c.slug === slug);
+          const displayName = dbCategory?.name || slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          
+          return {
+            name: displayName,
+            count,
+            fill: COLORS[index % COLORS.length],
+          };
+        })
         .sort((a, b) => b.count - a.count)
-        .slice(0, 7);
+        .slice(0, 10); // Show top 10 categories
 
       setAnalyticsData({
         userGrowth,
@@ -158,8 +187,8 @@ const AnalyticsDashboard = () => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 rounded-xl shadow-lg border">
-          <p className="text-sm font-medium text-gray-600">{label}</p>
+        <div className="bg-card p-3 rounded-xl shadow-lg border">
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
           <p className="text-lg font-bold text-primary">{payload[0].value}</p>
         </div>
       );
@@ -221,14 +250,14 @@ const AnalyticsDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Time Range Filter */}
-      <div className="flex items-center gap-2 bg-white rounded-xl p-2 border w-fit">
+      <div className="flex items-center gap-2 bg-card rounded-xl p-2 border w-fit">
         {(['week', 'month', 'year'] as const).map(range => (
           <button
             key={range}
             onClick={() => setTimeRange(range)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               timeRange === range 
-                ? 'bg-primary text-white' 
+                ? 'bg-primary text-primary-foreground' 
                 : 'text-muted-foreground hover:bg-muted'
             }`}
           >
@@ -245,7 +274,7 @@ const AnalyticsDashboard = () => {
           ))
         ) : (
           statCards.map((stat, i) => (
-            <div key={i} className="bg-white rounded-2xl p-4 border shadow-sm hover:shadow-md transition-shadow">
+            <div key={i} className="bg-card rounded-2xl p-4 border shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}>
                   <stat.icon className="h-5 w-5 text-white" />
@@ -304,7 +333,7 @@ const AnalyticsDashboard = () => {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth Chart */}
-        <div className="bg-white rounded-2xl p-5 border">
+        <div className="bg-card rounded-2xl p-5 border">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold">User Growth</h3>
@@ -342,7 +371,7 @@ const AnalyticsDashboard = () => {
         </div>
 
         {/* Website Visits / Active Users */}
-        <div className="bg-white rounded-2xl p-5 border">
+        <div className="bg-card rounded-2xl p-5 border">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold">Product Uploads</h3>
@@ -376,12 +405,14 @@ const AnalyticsDashboard = () => {
 
       {/* Category Distribution & Quick Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Category Distribution */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border">
+        {/* Category Distribution - Dynamic from Database */}
+        <div className="lg:col-span-2 bg-card rounded-2xl p-5 border">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-semibold">Products by Category</h3>
-              <p className="text-sm text-muted-foreground">Distribution across categories</p>
+              <p className="text-sm text-muted-foreground">
+                Distribution across {categories.length} categories from database
+              </p>
             </div>
           </div>
           <div className="flex flex-col lg:flex-row items-center gap-8">
@@ -405,19 +436,22 @@ const AnalyticsDashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-2 max-h-48 overflow-y-auto">
               {analyticsData.categoryDistribution.map((cat, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div 
-                      className="w-3 h-3 rounded-full" 
+                      className="w-3 h-3 rounded-full shrink-0" 
                       style={{ backgroundColor: cat.fill }}
                     />
-                    <span className="text-sm">{cat.name}</span>
+                    <span className="text-sm truncate max-w-[150px]">{cat.name}</span>
                   </div>
                   <span className="font-semibold">{cat.count}</span>
                 </div>
               ))}
+              {analyticsData.categoryDistribution.length === 0 && (
+                <p className="text-sm text-muted-foreground">No products yet</p>
+              )}
             </div>
           </div>
         </div>
