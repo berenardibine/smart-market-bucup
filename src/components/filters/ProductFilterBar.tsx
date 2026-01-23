@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   SlidersHorizontal, MapPin, DollarSign, Calendar, 
-  ChevronDown, X, Search, Filter
+  ChevronDown, X, Filter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +56,7 @@ const ProductFilterBar = ({
     sectors,
     selectedProvince,
     selectedDistrict,
+    selectedSector,
     setSelectedProvince,
     setSelectedDistrict,
     setSelectedSector,
@@ -91,6 +92,7 @@ const ProductFilterBar = ({
       ...localFilters,
       provinceId: selectedProvince || undefined,
       districtId: selectedDistrict || undefined,
+      sectorId: selectedSector || undefined,
     };
     
     // Track filter usage
@@ -115,6 +117,7 @@ const ProductFilterBar = ({
     setSelectedDistrict('');
     setSelectedSector('');
     onFiltersChange(defaultFilters);
+    setIsOpen(false);
     localStorage.removeItem('smartmarket_filters');
   };
 
@@ -135,16 +138,6 @@ const ProductFilterBar = ({
     return 'All Rwanda';
   };
 
-  const getSortLabel = () => {
-    switch (filters.sortBy) {
-      case 'newest': return 'Newest';
-      case 'oldest': return 'Oldest';
-      case 'price_low': return 'Price: Low to High';
-      case 'price_high': return 'Price: High to Low';
-      default: return 'Random';
-    }
-  };
-
   return (
     <div className="space-y-3">
       {/* Quick Filter Pills - Desktop */}
@@ -155,8 +148,9 @@ const ProductFilterBar = ({
           <Select
             value={filters.provinceId || 'all'}
             onValueChange={(value) => {
+              const newProvinceId = value === 'all' ? undefined : value;
               setSelectedProvince(value === 'all' ? '' : value);
-              onFiltersChange({ ...filters, provinceId: value === 'all' ? undefined : value, districtId: undefined });
+              onFiltersChange({ ...filters, provinceId: newProvinceId, districtId: undefined, sectorId: undefined });
             }}
           >
             <SelectTrigger className="border-0 p-0 h-auto bg-transparent focus:ring-0 min-w-[100px]">
@@ -240,7 +234,7 @@ const ProductFilterBar = ({
           <SheetTrigger asChild>
             <Button 
               variant="outline" 
-              className="w-full justify-between rounded-xl h-12 bg-card"
+              className="w-full justify-between rounded-xl h-12 bg-card border"
             >
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 text-primary" />
@@ -255,7 +249,7 @@ const ProductFilterBar = ({
             </Button>
           </SheetTrigger>
           
-          <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl">
+          <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl bg-background">
             <SheetHeader className="pb-4">
               <SheetTitle className="flex items-center gap-2">
                 <Filter className="h-5 w-5 text-primary" />
@@ -272,32 +266,56 @@ const ProductFilterBar = ({
                 </Label>
                 
                 <Select
-                  value={selectedProvince}
-                  onValueChange={setSelectedProvince}
+                  value={selectedProvince || "all"}
+                  onValueChange={(value) => {
+                    setSelectedProvince(value === "all" ? "" : value);
+                    setSelectedDistrict("");
+                    setSelectedSector("");
+                  }}
                 >
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-xl bg-card">
                     <SelectValue placeholder="Select Province" />
                   </SelectTrigger>
                   <SelectContent className="bg-card">
-                    <SelectItem value="">All Provinces</SelectItem>
+                    <SelectItem value="all">All Provinces</SelectItem>
                     {provinces.map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
-                {selectedProvince && (
+                {selectedProvince && selectedProvince !== "all" && (
                   <Select
-                    value={selectedDistrict}
-                    onValueChange={setSelectedDistrict}
+                    value={selectedDistrict || "all"}
+                    onValueChange={(value) => {
+                      setSelectedDistrict(value === "all" ? "" : value);
+                      setSelectedSector("");
+                    }}
                   >
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="rounded-xl bg-card">
                       <SelectValue placeholder="Select District" />
                     </SelectTrigger>
                     <SelectContent className="bg-card">
-                      <SelectItem value="">All Districts</SelectItem>
+                      <SelectItem value="all">All Districts</SelectItem>
                       {districts.map(d => (
                         <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {selectedDistrict && selectedDistrict !== "all" && (
+                  <Select
+                    value={selectedSector || "all"}
+                    onValueChange={(value) => setSelectedSector(value === "all" ? "" : value)}
+                  >
+                    <SelectTrigger className="rounded-xl bg-card">
+                      <SelectValue placeholder="Select Sector" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card">
+                      <SelectItem value="all">All Sectors</SelectItem>
+                      {sectors.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -320,7 +338,7 @@ const ProductFilterBar = ({
                         ...localFilters,
                         minPrice: e.target.value ? parseInt(e.target.value) : undefined
                       })}
-                      className="rounded-xl"
+                      className="rounded-xl bg-card"
                     />
                   </div>
                   <div>
@@ -332,7 +350,7 @@ const ProductFilterBar = ({
                         ...localFilters,
                         maxPrice: e.target.value ? parseInt(e.target.value) : undefined
                       })}
-                      className="rounded-xl"
+                      className="rounded-xl bg-card"
                     />
                   </div>
                 </div>
@@ -354,6 +372,7 @@ const ProductFilterBar = ({
                   ].map(option => (
                     <button
                       key={option.value}
+                      type="button"
                       onClick={() => setLocalFilters({ ...localFilters, sortBy: option.value as ProductFilters['sortBy'] })}
                       className={cn(
                         "px-4 py-3 rounded-xl text-sm font-medium transition-all",
@@ -379,7 +398,7 @@ const ProductFilterBar = ({
                       category: value === 'all' ? undefined : value
                     })}
                   >
-                    <SelectTrigger className="rounded-xl">
+                    <SelectTrigger className="rounded-xl bg-card">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent className="bg-card">
@@ -394,8 +413,9 @@ const ProductFilterBar = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t bg-background">
               <Button
+                type="button"
                 variant="outline"
                 onClick={handleClearFilters}
                 className="flex-1 rounded-xl"
@@ -403,6 +423,7 @@ const ProductFilterBar = ({
                 Clear All
               </Button>
               <Button
+                type="button"
                 onClick={handleApplyFilters}
                 className="flex-1 rounded-xl bg-primary"
               >

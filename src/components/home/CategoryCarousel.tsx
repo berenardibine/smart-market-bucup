@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ interface Product {
   images: string[];
   rental_unit?: string | null;
   sponsored?: boolean | null;
+  admin_posted?: boolean | null;
 }
 
 interface CategoryCarouselProps {
@@ -29,14 +30,13 @@ const CategoryCarousel = ({
   categoryIcon,
   categoryColor,
   products,
-  autoScrollInterval = 5000,
+  autoScrollInterval = 4000, // Changed to 4 seconds
 }: CategoryCarouselProps) => {
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [scrollPosition, setScrollPosition] = useState(0);
 
-  // Auto-scroll logic
+  // Auto-scroll logic - every 4 seconds
   useEffect(() => {
     if (products.length <= 2 || isPaused) return;
 
@@ -48,12 +48,10 @@ const CategoryCarousel = ({
         if (scrollLeft >= maxScroll - 10) {
           // Reset to start
           scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-          setScrollPosition(0);
         } else {
-          // Scroll by one card width (roughly 200px)
-          const newPosition = scrollLeft + 200;
+          // Scroll by one card width (roughly 180px)
+          const newPosition = scrollLeft + 180;
           scrollRef.current.scrollTo({ left: newPosition, behavior: 'smooth' });
-          setScrollPosition(newPosition);
         }
       }
     }, autoScrollInterval);
@@ -79,6 +77,8 @@ const CategoryCarousel = ({
       className="py-5 animate-fade-up"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
     >
       {/* Header with gradient */}
       <div className={cn(
@@ -123,7 +123,8 @@ const CategoryCarousel = ({
                 price={product.price}
                 images={product.images}
                 rentalUnit={product.rental_unit}
-                isSponsored={product.sponsored}
+                isSponsored={product.admin_posted ? false : product.sponsored}
+                hideSponsored={product.admin_posted}
               />
             </div>
           ))}
