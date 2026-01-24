@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, X, Plus, Video, Loader2, 
-  Phone, MapPin, Save, Image as ImageIcon
+  Phone, MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,25 +21,20 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCategories } from '@/hooks/useCategories';
 import { useLocations } from '@/hooks/useLocations';
 import { useToast } from '@/hooks/use-toast';
-
-interface AdminProductEditorProps {
-  product: any;
-  onSuccess: () => void;
-  onCancel: () => void;
-}
+import { useAdmin } from '@/hooks/useAdmin';
 
 const RENTAL_UNITS = [
-  { value: '', label: 'Not for rent' },
   { value: 'day', label: '/day' },
   { value: 'week', label: '/week' },
   { value: 'month', label: '/month' },
   { value: 'year', label: '/year' },
-  { value: 'custom', label: '/custom' },
 ];
 
-const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditorProps) => {
+const AdminProductAdd = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const { categories } = useCategories();
   const {
     provinces,
@@ -53,76 +49,26 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
   } = useLocations();
 
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<string[]>(product?.images || []);
-  const [videoUrl, setVideoUrl] = useState(product?.video_url || '');
+  const [images, setImages] = useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = useState('');
   
   const [formData, setFormData] = useState({
-    title: product?.title || '',
-    description: product?.description || '',
-    price: product?.price?.toString() || '',
-    quantity: product?.quantity?.toString() || '1',
-    category: product?.category || '',
-    product_type: product?.product_type || 'retail',
-    is_negotiable: product?.is_negotiable || false,
-    admin_posted: product?.admin_posted || false,
-    sponsored: product?.sponsored || false,
-    admin_phone: product?.admin_phone || product?.contact_whatsapp || '',
-    admin_location: product?.admin_location || product?.location || '',
-    contact_call: product?.contact_call || '',
-    contact_whatsapp: product?.contact_whatsapp || '',
-    show_connect_button: product?.show_connect_button ?? true,
-    rental_fee: product?.rental_fee?.toString() || '',
-    rental_unit: product?.rental_unit || '',
+    title: '',
+    description: '',
+    price: '',
+    quantity: '1',
+    category: '',
+    product_type: 'retail',
+    is_negotiable: false,
+    admin_phone: '',
+    rental_fee: '',
+    rental_unit: 'day',
   });
 
   // Check if category is rental
   const isRentalCategory = formData.category?.toLowerCase().includes('rent') || 
     formData.category?.toLowerCase().includes('lent') ||
     formData.product_type === 'rental';
-
-  // Pre-fill location from product
-  useEffect(() => {
-    if (product?.location_id) {
-      const loadProductLocation = async () => {
-        try {
-          const { data: sector } = await supabase
-            .from('locations')
-            .select('id, parent_id, name')
-            .eq('id', product.location_id)
-            .single();
-          
-          if (sector) {
-            const { data: district } = await supabase
-              .from('locations')
-              .select('id, parent_id, name')
-              .eq('id', sector.parent_id)
-              .single();
-            
-            if (district) {
-              const { data: province } = await supabase
-                .from('locations')
-                .select('id, name')
-                .eq('id', district.parent_id)
-                .single();
-              
-              if (province) {
-                setSelectedProvince(province.id);
-                setTimeout(() => {
-                  setSelectedDistrict(district.id);
-                  setTimeout(() => {
-                    setSelectedSector(sector.id);
-                  }, 100);
-                }, 100);
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error loading product location:', err);
-        }
-      };
-      loadProductLocation();
-    }
-  }, [product]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -148,7 +94,6 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
           .getPublicUrl(filePath);
         
         setImages(prev => [...prev, publicUrl]);
-        toast({ title: "Image uploaded successfully" });
       }
     }
   };
@@ -171,7 +116,6 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
         .getPublicUrl(filePath);
       
       setVideoUrl(publicUrl);
-      toast({ title: "Video uploaded successfully" });
     }
   };
 
@@ -189,7 +133,7 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
     if (district) parts.push(district.name);
     if (province) parts.push(province.name);
     
-    return parts.join(', ') || formData.admin_location || null;
+    return parts.join(', ') || null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -224,20 +168,21 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
         is_negotiable: formData.is_negotiable,
         images: images,
         video_url: videoUrl || null,
+        seller_id: user.id,
         location: locationString,
-        location_id: selectedSector || product?.location_id || null,
-        admin_posted: formData.admin_posted,
+        location_id: selectedSector || null,
+        admin_posted: true,
         admin_phone: formData.admin_phone || null,
         admin_location: locationString,
-        show_connect_button: !formData.admin_posted,
-        sponsored: formData.sponsored,
+        show_connect_button: false,
+        sponsored: false,
         last_edited_by: user.id,
-        contact_whatsapp: formData.contact_whatsapp || formData.admin_phone || null,
-        contact_call: formData.contact_call || formData.admin_phone || null,
+        contact_whatsapp: formData.admin_phone || null,
+        contact_call: formData.admin_phone || null,
+        status: 'active',
       };
 
-      // Add rental fields if applicable
-      if (isRentalCategory || formData.rental_unit) {
+      if (isRentalCategory) {
         productData.rental_fee = formData.rental_fee ? parseFloat(formData.rental_fee) : parseFloat(formData.price);
         productData.rental_unit = formData.rental_unit;
         productData.rental_status = 'available';
@@ -245,12 +190,11 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
 
       const { error } = await supabase
         .from('products')
-        .update(productData)
-        .eq('id', product.id);
+        .insert(productData);
       
       if (error) throw error;
-      toast({ title: "Product updated successfully! ✨" });
-      onSuccess();
+      toast({ title: "Product posted successfully! 🎉" });
+      navigate('/admin/products');
     } catch (err: any) {
       toast({ 
         title: "Failed to save product", 
@@ -262,18 +206,31 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
     }
   };
 
+  if (adminLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    navigate('/');
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background border-b">
         <div className="flex items-center gap-3 p-4">
           <button 
-            onClick={onCancel}
+            onClick={() => navigate('/admin/products')}
             className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="font-semibold text-lg">Edit Product</h1>
+          <h1 className="font-semibold text-lg">Add New Product</h1>
         </div>
       </div>
 
@@ -383,7 +340,7 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
           </div>
         </div>
 
-        {/* Category - Load from Database */}
+        {/* Category */}
         <div className="space-y-2">
           <Label>Category</Label>
           <Select
@@ -403,26 +360,8 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
           </Select>
         </div>
 
-        {/* Product Type */}
-        <div className="space-y-2">
-          <Label>Product Type</Label>
-          <Select
-            value={formData.product_type}
-            onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
-          >
-            <SelectTrigger className="rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card">
-              <SelectItem value="retail">Retail</SelectItem>
-              <SelectItem value="wholesale">Wholesale</SelectItem>
-              <SelectItem value="rental">Equipment for Rent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         {/* Rental Fields */}
-        {(isRentalCategory || formData.product_type === 'rental') && (
+        {isRentalCategory && (
           <div className="bg-primary/5 rounded-2xl p-4 space-y-4 border border-primary/20">
             <h3 className="font-semibold flex items-center gap-2 text-primary">
               🔧 Rental Fee Details
@@ -436,6 +375,7 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
                     rental_fee: e.target.value,
+                    price: e.target.value
                   }))}
                   placeholder="50000"
                   className="rounded-xl"
@@ -451,7 +391,7 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
                   }))}
                 >
                   <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="Select rate" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-card">
                     {RENTAL_UNITS.map(unit => (
@@ -466,47 +406,36 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
           </div>
         )}
 
-        {/* Toggles */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
-            <div>
-              <Label htmlFor="negotiable">Price is Negotiable</Label>
-              <p className="text-sm text-muted-foreground">Allow buyers to negotiate the price</p>
-            </div>
-            <Switch
-              id="negotiable"
-              checked={formData.is_negotiable}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_negotiable: checked }))}
-            />
+        {/* Product Type */}
+        {!isRentalCategory && (
+          <div className="space-y-2">
+            <Label>Product Type</Label>
+            <Select
+              value={formData.product_type}
+              onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
+            >
+              <SelectTrigger className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card">
+                <SelectItem value="retail">Retail</SelectItem>
+                <SelectItem value="wholesale">Wholesale</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        )}
 
-          <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
-            <div>
-              <Label htmlFor="admin_posted" className="text-amber-800">Admin Posted</Label>
-              <p className="text-sm text-amber-600">Mark as official Smart Market product</p>
-            </div>
-            <Switch
-              id="admin_posted"
-              checked={formData.admin_posted}
-              onCheckedChange={(checked) => setFormData(prev => ({ 
-                ...prev, 
-                admin_posted: checked,
-                show_connect_button: !checked
-              }))}
-            />
+        {/* Negotiable */}
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+          <div>
+            <Label htmlFor="negotiable">Price is Negotiable</Label>
+            <p className="text-sm text-muted-foreground">Allow buyers to negotiate the price</p>
           </div>
-
-          <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-200">
-            <div>
-              <Label htmlFor="sponsored" className="text-purple-800">Featured / Sponsored</Label>
-              <p className="text-sm text-purple-600">Highlight at top of listings</p>
-            </div>
-            <Switch
-              id="sponsored"
-              checked={formData.sponsored}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, sponsored: checked }))}
-            />
-          </div>
+          <Switch
+            id="negotiable"
+            checked={formData.is_negotiable}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_negotiable: checked }))}
+          />
         </div>
 
         {/* Description */}
@@ -567,47 +496,33 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
           )}
         </div>
 
-        {/* Contact Numbers */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Call Number
-            </Label>
-            <Input
-              value={formData.contact_call}
-              onChange={(e) => setFormData(prev => ({ ...prev, contact_call: e.target.value }))}
-              placeholder="+250..."
-              className="rounded-xl"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>WhatsApp</Label>
-            <Input
-              value={formData.contact_whatsapp}
-              onChange={(e) => setFormData(prev => ({ ...prev, contact_whatsapp: e.target.value }))}
-              placeholder="+250..."
-              className="rounded-xl"
-            />
-          </div>
+        {/* Phone Number */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            Phone Number
+          </Label>
+          <Input
+            value={formData.admin_phone}
+            onChange={(e) => setFormData(prev => ({ ...prev, admin_phone: e.target.value }))}
+            placeholder="+250..."
+            className="rounded-xl"
+          />
         </div>
 
         {/* Submit Button */}
         <Button 
           type="submit" 
           disabled={loading}
-          className="w-full h-12 rounded-xl bg-primary text-primary-foreground gap-2"
+          className="w-full h-12 rounded-xl bg-primary text-primary-foreground"
         >
           {loading ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Saving...
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              Adding...
             </>
           ) : (
-            <>
-              <Save className="h-5 w-5" />
-              Save Changes
-            </>
+            'Add Product'
           )}
         </Button>
       </form>
@@ -615,4 +530,4 @@ const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditor
   );
 };
 
-export default AdminProductEditor;
+export default AdminProductAdd;
