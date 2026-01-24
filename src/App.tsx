@@ -20,6 +20,15 @@ import BlockedPage from "./pages/BlockedPage";
 import SellerMonetization from "./pages/SellerMonetization";
 import NotFound from "./pages/NotFound";
 
+// Admin Pages
+import { 
+  AdminProducts, 
+  AdminProductAdd, 
+  AdminProductEdit,
+  AdminUsers,
+  AdminAnalytics 
+} from "./pages/admin";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -38,6 +47,14 @@ const App = () => (
             <Route path="/product/:slugOrId" element={<ProductDetail />} />
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin/products" element={<AdminProducts />} />
+            <Route path="/admin/products/add" element={<AdminProductAdd />} />
+            <Route path="/admin/products/edit/:productId" element={<AdminProductEdit />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            
             <Route path="/assets" element={<AssetPage />} />
             <Route path="/agriculture" element={<AgriculturePage />} />
             <Route path="/rent" element={<RentPage />} />
