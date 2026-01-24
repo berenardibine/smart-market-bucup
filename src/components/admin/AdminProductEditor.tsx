@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, X, Plus, Video, Loader2, Sparkles, 
-  Phone, MapPin, Upload
+  ArrowLeft, X, Plus, Video, Loader2, 
+  Phone, MapPin, Save, Image as ImageIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,13 +21,14 @@ import { useCategories } from '@/hooks/useCategories';
 import { useLocations } from '@/hooks/useLocations';
 import { useToast } from '@/hooks/use-toast';
 
-interface AdminProductFormProps {
-  product?: any;
+interface AdminProductEditorProps {
+  product: any;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
 const RENTAL_UNITS = [
+  { value: '', label: 'Not for rent' },
   { value: 'day', label: '/day' },
   { value: 'week', label: '/week' },
   { value: 'month', label: '/month' },
@@ -35,7 +36,7 @@ const RENTAL_UNITS = [
   { value: 'custom', label: '/custom' },
 ];
 
-const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProps) => {
+const AdminProductEditor = ({ product, onSuccess, onCancel }: AdminProductEditorProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { categories } = useCategories();
@@ -53,7 +54,6 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
 
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>(product?.images || []);
-  const [processingImages, setProcessingImages] = useState<Set<number>>(new Set());
   const [videoUrl, setVideoUrl] = useState(product?.video_url || '');
   
   const [formData, setFormData] = useState({
@@ -64,10 +64,15 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
     category: product?.category || '',
     product_type: product?.product_type || 'retail',
     is_negotiable: product?.is_negotiable || false,
+    admin_posted: product?.admin_posted || false,
+    sponsored: product?.sponsored || false,
     admin_phone: product?.admin_phone || product?.contact_whatsapp || '',
-    // Rental fields
+    admin_location: product?.admin_location || product?.location || '',
+    contact_call: product?.contact_call || '',
+    contact_whatsapp: product?.contact_whatsapp || '',
+    show_connect_button: product?.show_connect_button ?? true,
     rental_fee: product?.rental_fee?.toString() || '',
-    rental_unit: product?.rental_unit || 'day',
+    rental_unit: product?.rental_unit || '',
   });
 
   // Check if category is rental
@@ -143,6 +148,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           .getPublicUrl(filePath);
         
         setImages(prev => [...prev, publicUrl]);
+        toast({ title: "Image uploaded successfully" });
       }
     }
   };
@@ -165,6 +171,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
         .getPublicUrl(filePath);
       
       setVideoUrl(publicUrl);
+      toast({ title: "Video uploaded successfully" });
     }
   };
 
@@ -182,7 +189,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
     if (district) parts.push(district.name);
     if (province) parts.push(province.name);
     
-    return parts.join(', ') || null;
+    return parts.join(', ') || formData.admin_location || null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -217,44 +224,32 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
         is_negotiable: formData.is_negotiable,
         images: images,
         video_url: videoUrl || null,
-        seller_id: user.id,
         location: locationString,
-        location_id: selectedSector || null,
-        admin_posted: true,
+        location_id: selectedSector || product?.location_id || null,
+        admin_posted: formData.admin_posted,
         admin_phone: formData.admin_phone || null,
         admin_location: locationString,
-        show_connect_button: false,
-        sponsored: false,
+        show_connect_button: !formData.admin_posted,
+        sponsored: formData.sponsored,
         last_edited_by: user.id,
-        contact_whatsapp: formData.admin_phone || null,
-        contact_call: formData.admin_phone || null,
-        status: 'active',
+        contact_whatsapp: formData.contact_whatsapp || formData.admin_phone || null,
+        contact_call: formData.contact_call || formData.admin_phone || null,
       };
 
       // Add rental fields if applicable
-      if (isRentalCategory) {
+      if (isRentalCategory || formData.rental_unit) {
         productData.rental_fee = formData.rental_fee ? parseFloat(formData.rental_fee) : parseFloat(formData.price);
         productData.rental_unit = formData.rental_unit;
         productData.rental_status = 'available';
       }
 
-      if (product?.id) {
-        const { error } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', product.id);
-        
-        if (error) throw error;
-        toast({ title: "Product updated successfully! ✨" });
-      } else {
-        const { error } = await supabase
-          .from('products')
-          .insert(productData);
-        
-        if (error) throw error;
-        toast({ title: "Product posted successfully! 🎉" });
-      }
-
+      const { error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', product.id);
+      
+      if (error) throw error;
+      toast({ title: "Product updated successfully! ✨" });
       onSuccess();
     } catch (err: any) {
       toast({ 
@@ -278,9 +273,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="font-semibold text-lg">
-            {product ? 'Edit Product' : 'Add New Product'}
-          </h1>
+          <h1 className="font-semibold text-lg">Edit Product</h1>
         </div>
       </div>
 
@@ -292,12 +285,6 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
             {images.map((img, idx) => (
               <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                 <img src={img} alt="" className="w-full h-full object-cover" />
-                {processingImages.has(idx) && (
-                  <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary mb-1" />
-                    <span className="text-xs text-muted-foreground">Processing</span>
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={() => removeImage(idx)}
@@ -416,15 +403,30 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           </Select>
         </div>
 
-        {/* Rental Fields - Show only for rental categories */}
-        {isRentalCategory && (
+        {/* Product Type */}
+        <div className="space-y-2">
+          <Label>Product Type</Label>
+          <Select
+            value={formData.product_type}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
+          >
+            <SelectTrigger className="rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card">
+              <SelectItem value="retail">Retail</SelectItem>
+              <SelectItem value="wholesale">Wholesale</SelectItem>
+              <SelectItem value="rental">Equipment for Rent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Rental Fields */}
+        {(isRentalCategory || formData.product_type === 'rental') && (
           <div className="bg-primary/5 rounded-2xl p-4 space-y-4 border border-primary/20">
             <h3 className="font-semibold flex items-center gap-2 text-primary">
               🔧 Rental Fee Details
             </h3>
-            <p className="text-sm text-muted-foreground">
-              This category requires rental pricing. Set the fee rate below.
-            </p>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Rental Fee (RWF)</Label>
@@ -434,7 +436,6 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
                     rental_fee: e.target.value,
-                    price: e.target.value
                   }))}
                   placeholder="50000"
                   className="rounded-xl"
@@ -450,7 +451,7 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
                   }))}
                 >
                   <SelectTrigger className="rounded-xl">
-                    <SelectValue />
+                    <SelectValue placeholder="Select rate" />
                   </SelectTrigger>
                   <SelectContent className="bg-card">
                     {RENTAL_UNITS.map(unit => (
@@ -465,36 +466,47 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           </div>
         )}
 
-        {/* Product Type - Hide for rental categories */}
-        {!isRentalCategory && (
-          <div className="space-y-2">
-            <Label>Product Type</Label>
-            <Select
-              value={formData.product_type}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, product_type: value }))}
-            >
-              <SelectTrigger className="rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card">
-                <SelectItem value="retail">Retail</SelectItem>
-                <SelectItem value="wholesale">Wholesale</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Toggles */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+            <div>
+              <Label htmlFor="negotiable">Price is Negotiable</Label>
+              <p className="text-sm text-muted-foreground">Allow buyers to negotiate the price</p>
+            </div>
+            <Switch
+              id="negotiable"
+              checked={formData.is_negotiable}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_negotiable: checked }))}
+            />
           </div>
-        )}
 
-        {/* Negotiable */}
-        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
-          <div>
-            <Label htmlFor="negotiable">Price is Negotiable</Label>
-            <p className="text-sm text-muted-foreground">Allow buyers to negotiate the price</p>
+          <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
+            <div>
+              <Label htmlFor="admin_posted" className="text-amber-800">Admin Posted</Label>
+              <p className="text-sm text-amber-600">Mark as official Smart Market product</p>
+            </div>
+            <Switch
+              id="admin_posted"
+              checked={formData.admin_posted}
+              onCheckedChange={(checked) => setFormData(prev => ({ 
+                ...prev, 
+                admin_posted: checked,
+                show_connect_button: !checked
+              }))}
+            />
           </div>
-          <Switch
-            id="negotiable"
-            checked={formData.is_negotiable}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_negotiable: checked }))}
-          />
+
+          <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl border border-purple-200">
+            <div>
+              <Label htmlFor="sponsored" className="text-purple-800">Featured / Sponsored</Label>
+              <p className="text-sm text-purple-600">Highlight at top of listings</p>
+            </div>
+            <Switch
+              id="sponsored"
+              checked={formData.sponsored}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, sponsored: checked }))}
+            />
+          </div>
         </div>
 
         {/* Description */}
@@ -511,11 +523,11 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           />
         </div>
 
-        {/* Admin Location Selection */}
+        {/* Location Selection */}
         <div className="space-y-3 p-4 bg-muted/30 rounded-xl border">
           <Label className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
-            Location (Admin)
+            Location
           </Label>
           <Select value={selectedProvince} onValueChange={setSelectedProvince}>
             <SelectTrigger className="rounded-xl">
@@ -555,33 +567,47 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
           )}
         </div>
 
-        {/* Phone Number */}
-        <div className="space-y-2">
-          <Label className="flex items-center gap-2">
-            <Phone className="h-4 w-4" />
-            Phone Number (Admin)
-          </Label>
-          <Input
-            value={formData.admin_phone}
-            onChange={(e) => setFormData(prev => ({ ...prev, admin_phone: e.target.value }))}
-            placeholder="+250..."
-            className="rounded-xl"
-          />
+        {/* Contact Numbers */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Call Number
+            </Label>
+            <Input
+              value={formData.contact_call}
+              onChange={(e) => setFormData(prev => ({ ...prev, contact_call: e.target.value }))}
+              placeholder="+250..."
+              className="rounded-xl"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>WhatsApp</Label>
+            <Input
+              value={formData.contact_whatsapp}
+              onChange={(e) => setFormData(prev => ({ ...prev, contact_whatsapp: e.target.value }))}
+              placeholder="+250..."
+              className="rounded-xl"
+            />
+          </div>
         </div>
 
         {/* Submit Button */}
         <Button 
           type="submit" 
           disabled={loading}
-          className="w-full h-12 rounded-xl bg-primary text-primary-foreground"
+          className="w-full h-12 rounded-xl bg-primary text-primary-foreground gap-2"
         >
           {loading ? (
             <>
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              {product ? 'Updating...' : 'Adding...'}
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Saving...
             </>
           ) : (
-            product ? 'Update Product' : 'Add Product'
+            <>
+              <Save className="h-5 w-5" />
+              Save Changes
+            </>
           )}
         </Button>
       </form>
@@ -589,4 +615,4 @@ const AdminProductForm = ({ product, onSuccess, onCancel }: AdminProductFormProp
   );
 };
 
-export default AdminProductForm;
+export default AdminProductEditor;
