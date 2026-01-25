@@ -303,8 +303,14 @@ const AdminProductEdit = () => {
       return;
     }
 
-    if (!formData.title || !formData.price) {
-      toast({ title: "Title and price are required", variant: "destructive" });
+    if (!formData.title) {
+      toast({ title: "Product name is required", variant: "destructive" });
+      return;
+    }
+
+    // Price is only required if not negotiable
+    if (!formData.is_negotiable && !formData.price) {
+      toast({ title: "Price is required when not negotiable", variant: "destructive" });
       return;
     }
 
@@ -315,7 +321,7 @@ const AdminProductEdit = () => {
       const productData: any = {
         title: formData.title,
         description: formData.description,
-        price: parseFloat(formData.price),
+        price: formData.price ? parseFloat(formData.price) : 0,
         quantity: parseInt(formData.quantity) || 1,
         category: formData.category || null,
         product_type: isRentalCategory ? 'rental' : formData.product_type,
@@ -479,19 +485,43 @@ const AdminProductEdit = () => {
           />
         </div>
 
+        {/* Negotiable Toggle */}
+        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+          <div>
+            <Label htmlFor="negotiable">Price is Negotiable</Label>
+            <p className="text-sm text-muted-foreground">
+              {formData.is_negotiable 
+                ? "Price field becomes optional" 
+                : "Buyers will see a fixed price"}
+            </p>
+          </div>
+          <Switch
+            id="negotiable"
+            checked={formData.is_negotiable}
+            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_negotiable: checked }))}
+          />
+        </div>
+
         {/* Price & Quantity */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="price">Price (RWF) *</Label>
+            <Label htmlFor="price">
+              Price (RWF) {!formData.is_negotiable && '*'}
+            </Label>
             <Input
               id="price"
               type="number"
               value={formData.price}
               onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-              placeholder="0"
-              required
+              placeholder={formData.is_negotiable ? "Optional" : "0"}
+              required={!formData.is_negotiable}
               className="rounded-xl"
             />
+            {formData.is_negotiable && !formData.price && (
+              <p className="text-xs text-muted-foreground">
+                Will show "Negotiable" instead of price
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="quantity">Quantity *</Label>
@@ -591,19 +621,8 @@ const AdminProductEdit = () => {
           </div>
         )}
 
-        {/* Toggles */}
+        {/* Admin Toggles */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
-            <div>
-              <Label htmlFor="negotiable">Price is Negotiable</Label>
-              <p className="text-sm text-muted-foreground">Allow buyers to negotiate</p>
-            </div>
-            <Switch
-              id="negotiable"
-              checked={formData.is_negotiable}
-              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_negotiable: checked }))}
-            />
-          </div>
 
           <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
             <div>
