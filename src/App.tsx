@@ -26,7 +26,16 @@ import {
   AdminProductAdd, 
   AdminProductEdit,
   AdminUsers,
-  AdminAnalytics 
+  AdminAnalytics,
+  AdminShops,
+  AdminCategories,
+  AdminLocations,
+  AdminMotivations,
+  AdminNotifications,
+  AdminMessages,
+  AdminAds,
+  AdminLinkAnalytics,
+  AdminFilterAnalytics,
 } from "./pages/admin";
 
 const queryClient = new QueryClient();
@@ -54,6 +63,15 @@ const App = () => (
             <Route path="/admin/products/edit/:productId" element={<AdminProductEdit />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin/shops" element={<AdminShops />} />
+            <Route path="/admin/categories" element={<AdminCategories />} />
+            <Route path="/admin/locations" element={<AdminLocations />} />
+            <Route path="/admin/motivations" element={<AdminMotivations />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
+            <Route path="/admin/messages" element={<AdminMessages />} />
+            <Route path="/admin/ads" element={<AdminAds />} />
+            <Route path="/admin/link-analytics" element={<AdminLinkAnalytics />} />
+            <Route path="/admin/filter-analytics" element={<AdminFilterAnalytics />} />
             
             <Route path="/assets" element={<AssetPage />} />
             <Route path="/agriculture" element={<AgriculturePage />} />
