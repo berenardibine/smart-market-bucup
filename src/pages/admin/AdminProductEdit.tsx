@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, X, Plus, Video, Loader2, 
-  Phone, MapPin, Save
+  Phone, MapPin, Save, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,7 @@ const AdminProductEdit = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [images, setImages] = useState<string[]>([]);
+  const [processingImages, setProcessingImages] = useState<Set<number>>(new Set());
   const [videoUrl, setVideoUrl] = useState('');
   
   const [formData, setFormData] = useState({
@@ -161,6 +162,29 @@ const AdminProductEdit = () => {
     formData.category?.toLowerCase().includes('lent') ||
     formData.product_type === 'rental';
 
+  // Smart AI Background processing function
+  const processBackground = async (imageUrl: string): Promise<{ url: string; decision: string; message: string }> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('remove-background', {
+        body: { imageUrl, userId: user?.id }
+      });
+
+      if (error) {
+        console.error('Background processing error:', error);
+        return { url: imageUrl, decision: 'error', message: 'Processing failed' };
+      }
+
+      return {
+        url: data?.processedUrl || imageUrl,
+        decision: data?.analysis?.decision || 'unknown',
+        message: data?.message || data?.analysis?.reason || ''
+      };
+    } catch (err) {
+      console.error('Background processing failed:', err);
+      return { url: imageUrl, decision: 'error', message: 'Processing failed' };
+    }
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -169,6 +193,11 @@ const AdminProductEdit = () => {
       toast({ title: "Maximum 8 images allowed", variant: "destructive" });
       return;
     }
+
+    toast({ 
+      title: "🧠 AI Analyzing Image", 
+      description: "Smart background detection in progress..."
+    });
 
     for (const file of Array.from(files)) {
       const fileExt = file.name.split('.').pop();
@@ -184,7 +213,41 @@ const AdminProductEdit = () => {
           .from('product-images')
           .getPublicUrl(filePath);
         
+        // Add original image first with processing indicator
+        const currentIndex = images.length;
         setImages(prev => [...prev, publicUrl]);
+        setProcessingImages(prev => new Set(prev).add(currentIndex));
+        
+        // Smart AI background processing
+        const result = await processBackground(publicUrl);
+        
+        // Update with processed or original image based on AI decision
+        setImages(prev => prev.map((img, idx) => 
+          idx === currentIndex ? result.url : img
+        ));
+        setProcessingImages(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(currentIndex);
+          return newSet;
+        });
+
+        // Show appropriate toast based on AI decision
+        if (result.decision === 'removed') {
+          toast({ 
+            title: "✨ Background Cleaned", 
+            description: "Product photo optimized with white background"
+          });
+        } else if (result.decision === 'keep') {
+          toast({ 
+            title: "🌈 Background Preserved", 
+            description: result.message || "Background kept to preserve visual context"
+          });
+        } else if (result.decision === 'remove_failed') {
+          toast({ 
+            title: "📷 Original Saved", 
+            description: "Image saved without background processing"
+          });
+        }
       }
     }
   };
@@ -327,18 +390,33 @@ const AdminProductEdit = () => {
       <form onSubmit={handleSubmit} className="p-4 space-y-6">
         {/* Image Upload */}
         <div className="space-y-3">
-          <Label>Product Images (Max 8) *</Label>
+          <Label className="flex items-center gap-2">
+            Product Images (Max 8) *
+            <span className="text-xs text-primary flex items-center gap-1">
+              <Sparkles className="h-3 w-3" /> AI Smart Background
+            </span>
+          </Label>
           <div className="grid grid-cols-4 gap-2">
             {images.map((img, idx) => (
               <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                 <img src={img} alt="" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => removeImage(idx)}
-                  className="absolute top-1 right-1 w-6 h-6 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                {processingImages.has(idx) && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <div className="text-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-white mx-auto mb-1" />
+                      <p className="text-white text-xs">AI Processing...</p>
+                    </div>
+                  </div>
+                )}
+                {!processingImages.has(idx) && (
+                  <button
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="absolute top-1 right-1 w-6 h-6 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             ))}
             {images.length < 8 && (

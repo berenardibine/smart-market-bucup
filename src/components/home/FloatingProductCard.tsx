@@ -12,6 +12,7 @@ interface FloatingProductCardProps {
   rentalUnit?: string | null;
   isSponsored?: boolean | null;
   hideSponsored?: boolean | null;
+  isAdminPosted?: boolean | null;
 }
 
 const FloatingProductCard = ({
@@ -23,6 +24,7 @@ const FloatingProductCard = ({
   rentalUnit,
   isSponsored,
   hideSponsored,
+  isAdminPosted,
 }: FloatingProductCardProps) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -40,8 +42,8 @@ const FloatingProductCard = ({
 
   const productImage = images?.[0] || '/placeholder.svg';
 
-  // Don't show sponsored badge if hideSponsored is true (admin products)
-  const showSponsoredBadge = isSponsored && !hideSponsored;
+  // Don't show sponsored badge if hideSponsored is true OR if product is admin posted
+  const showSponsoredBadge = isSponsored && !hideSponsored && !isAdminPosted;
 
   return (
     <div

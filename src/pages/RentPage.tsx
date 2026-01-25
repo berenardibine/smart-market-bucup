@@ -31,10 +31,11 @@ const RentPage = () => {
   // Load categories from database
   const { categories: dbCategories, loading: categoriesLoading } = useCategories('rent');
   
-  // Use filtered products hook with rent type filter
+  // Use filtered products hook with rent type filter - pass 'rental' as productType
   const { products, loading } = useFilteredProducts(
     selectedSub === 'all' ? undefined : selectedSub,
-    filters
+    filters,
+    'rental' // Only show rental products
   );
   
   const isSeller = profile?.user_type === 'seller';
@@ -119,6 +120,7 @@ const RentPage = () => {
                 images={product.images}
                 rentalUnit={product.rental_unit}
                 isSponsored={product.sponsored}
+                isAdminPosted={product.admin_posted}
               />
             ))}
           </div>
