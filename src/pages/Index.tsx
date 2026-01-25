@@ -114,6 +114,7 @@ const Index = () => {
                 images={product.images}
                 rentalUnit={product.rental_unit}
                 isSponsored={product.sponsored}
+                isAdminPosted={product.admin_posted}
               />
             </div>
           ))}
@@ -232,6 +233,7 @@ const Index = () => {
                           images={product.images}
                           rentalUnit={product.rental_unit}
                           isSponsored={product.sponsored}
+                          isAdminPosted={product.admin_posted}
                         />
                       ))}
                     </div>

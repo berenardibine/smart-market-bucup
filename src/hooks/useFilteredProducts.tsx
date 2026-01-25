@@ -58,7 +58,8 @@ const loadSavedFilters = (): ProductFilters => {
 
 export const useFilteredProducts = (
   category?: string,
-  filtersOrInitial?: ProductFilters
+  filtersOrInitial?: ProductFilters,
+  productType?: string // Add product_type filter
 ) => {
   const [products, setProducts] = useState<FilteredProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,7 @@ export const useFilteredProducts = (
 
   useEffect(() => {
     fetchProducts();
-  }, [category, filters]);
+  }, [category, filters, productType]);
 
   const fetchProducts = async () => {
     try {
@@ -91,6 +92,11 @@ export const useFilteredProducts = (
           shop:shops(id, name, logo_url, trading_center)
         `)
         .eq('status', 'active');
+
+      // Product type filter (for rent page)
+      if (productType) {
+        query = query.eq('product_type', productType);
+      }
 
       // Category filter
       if (category && category !== 'all') {
