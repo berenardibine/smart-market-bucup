@@ -139,21 +139,7 @@ const Index = () => {
             onFiltersChange={setFilters}
           />
         </section>
-
-        {/* AI Greeting */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.05s" }}>
-          <AIGreeting />
-        </section>
-
-        {/* Daily Motivation */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
-          <DailyMotivation />
-        </section>
-
-        {/* Smart Challenge */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.15s" }}>
-          <SmartChallenge />
-        </section>
+        {/*
 
         {/* New Arrivals Section */}
         {newArrivals.length > 0 && (
