@@ -20,6 +20,17 @@ import BlockedPage from "./pages/BlockedPage";
 import SellerMonetization from "./pages/SellerMonetization";
 import NotFound from "./pages/NotFound";
 
+// Menu Pages
+import AccountPage from "./pages/AccountPage";
+import MyShopPage from "./pages/MyShopPage";
+import FavoritesPage from "./pages/FavoritesPage";
+import ChallengesPage from "./pages/ChallengesPage";
+import RewardsPage from "./pages/RewardsPage";
+import PremiumPage from "./pages/PremiumPage";
+import SettingsPage from "./pages/SettingsPage";
+import HelpPage from "./pages/HelpPage";
+import SupportPage from "./pages/SupportPage";
+
 // Admin Pages
 import { 
   AdminProducts, 
@@ -79,6 +90,18 @@ const App = () => (
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/blocked" element={<BlockedPage />} />
             <Route path="/seller-monetization" element={<SellerMonetization />} />
+            
+            {/* Menu Pages */}
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/my-shop" element={<MyShopPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
+            <Route path="/challenges" element={<ChallengesPage />} />
+            <Route path="/rewards" element={<RewardsPage />} />
+            <Route path="/premium" element={<PremiumPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/support" element={<SupportPage />} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

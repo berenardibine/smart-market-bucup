@@ -13,6 +13,7 @@ interface FloatingProductCardProps {
   isSponsored?: boolean | null;
   hideSponsored?: boolean | null;
   isAdminPosted?: boolean | null;
+  isNegotiable?: boolean | null;
 }
 
 const FloatingProductCard = ({
@@ -25,6 +26,7 @@ const FloatingProductCard = ({
   isSponsored,
   hideSponsored,
   isAdminPosted,
+  isNegotiable,
 }: FloatingProductCardProps) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -98,8 +100,14 @@ const FloatingProductCard = ({
 
         {/* Price with rental unit */}
         <p className="font-bold text-base text-primary">
-          Fr {formatPrice(price)}
-          {rentalUnit && <span className="text-xs font-medium text-muted-foreground">/{rentalUnit}</span>}
+          {price <= 0 || isNegotiable ? (
+            'Price Negotiable'
+          ) : (
+            <>
+              Fr {formatPrice(price)}
+              {rentalUnit && <span className="text-xs font-medium text-muted-foreground">/{rentalUnit}</span>}
+            </>
+          )}
         </p>
       </div>
     </div>

@@ -76,7 +76,7 @@ const ProductCard = ({
           {name}
         </h3>
         <p className="font-bold text-primary text-sm mb-1.5">
-          {formatPrice(price)}
+          {price <= 0 ? 'Price Negotiable' : formatPrice(price)}
         </p>
         <div className="flex items-center gap-1 text-muted-foreground">
           <MapPin className="h-3 w-3" />

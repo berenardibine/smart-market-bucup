@@ -105,7 +105,7 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
             </div>
             
             <p className="text-primary font-bold text-sm mt-1">
-              {formatPrice(product.price)}
+              {product.is_negotiable || product.price <= 0 ? 'Price Negotiable' : formatPrice(product.price)}
             </p>
             
             <div className="flex items-center gap-2 mt-2">

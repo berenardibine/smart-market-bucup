@@ -115,6 +115,7 @@ const Index = () => {
                 rentalUnit={product.rental_unit}
                 isSponsored={product.sponsored}
                 isAdminPosted={product.admin_posted}
+                isNegotiable={product.is_negotiable}
               />
             </div>
           ))}
@@ -234,6 +235,7 @@ const Index = () => {
                           rentalUnit={product.rental_unit}
                           isSponsored={product.sponsored}
                           isAdminPosted={product.admin_posted}
+                          isNegotiable={product.is_negotiable}
                         />
                       ))}
                     </div>
