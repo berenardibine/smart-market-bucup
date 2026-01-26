@@ -349,9 +349,15 @@ const ProductDetail = () => {
               )}
             </div>
             <p className="text-3xl font-bold text-primary mt-2">
-              {formatPrice(product.price)}
-              {product.rental_unit && (
-                <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
+              {product.is_negotiable || product.price <= 0 ? (
+                'Price Negotiable'
+              ) : (
+                <>
+                  {formatPrice(product.price)}
+                  {product.rental_unit && (
+                    <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
+                  )}
+                </>
               )}
             </p>
             {product.admin_posted && (

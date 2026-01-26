@@ -243,7 +243,9 @@ const AdminProducts = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-primary text-sm">{formatPrice(product.price)}</p>
+                  <p className="font-bold text-primary text-sm">
+                    {product.is_negotiable || product.price <= 0 ? 'Price Negotiable' : formatPrice(product.price)}
+                  </p>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">

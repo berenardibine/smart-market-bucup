@@ -183,7 +183,7 @@ const ProductCard = ({
           {title}
         </h3>
         <p className="font-bold text-primary text-base mb-2">
-          {is_negotiable ? 'Negotiable' : formatPrice(price)}
+          {is_negotiable || price <= 0 ? 'Price Negotiable' : formatPrice(price)}
         </p>
         {location && (
           <div className="flex items-center gap-1.5 text-muted-foreground mb-3">

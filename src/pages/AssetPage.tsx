@@ -121,6 +121,7 @@ const AssetPage = () => {
                 title={product.title}
                 price={product.price}
                 images={product.images}
+                isNegotiable={product.is_negotiable}
               />
             ))}
           </div>
