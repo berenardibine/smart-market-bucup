@@ -64,11 +64,7 @@ const AgriculturePage = () => {
       />
       
       <main className="container px-4 py-4 space-y-4">
-         {/* Smart Filter Bar */}
-        <ProductFilterBar 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        
         {/* Page Title */}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
