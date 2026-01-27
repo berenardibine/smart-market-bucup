@@ -68,9 +68,9 @@ const AssetPage = () => {
           onChangeLocation={() => setShowLocationModal(true)} 
         />
 
-        {/* Level Filter */}
-        <LocationLevelFilter level={level} onLevelChange={setLevel} />
-
+        {/* Level Filter 
+        <LocationLevelFilter level={level} onLevelChange={setLevel} /> */}
+        
         {/* Page Title */}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary to-blue-400 flex items-center justify-center">
