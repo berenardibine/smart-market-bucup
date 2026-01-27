@@ -15,10 +15,10 @@ interface BottomNavProps {
 }
 
 const navItems: NavItem[] = [
-  { id: "home", label: "Home", icon: <Home className="h-6 w-6" />, href: "/" },
-  { id: "asset", label: "Asset", icon: <Car className="h-6 w-6" />, href: "/assets" },
-  { id: "agriculture", label: "Agri", icon: <Wheat className="h-6 w-6" />, href: "/agriculture" },
-  { id: "rent", label: "Rent", icon: <Wrench className="h-6 w-6" />, href: "/rent" },
+  { id: "home", label: "Home", icon: <Home className="h-4 w-6" />, href: "/" },
+  { id: "asset", label: "Asset", icon: <Car className="h-4 w-6" />, href: "/assets" },
+  { id: "agriculture", label: "Agri", icon: <Wheat className="h-4 w-6" />, href: "/agriculture" },
+  { id: "rent", label: "Rent", icon: <Wrench className="h-4 w-6" />, href: "/rent" },
 ];
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
