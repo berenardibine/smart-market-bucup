@@ -64,12 +64,7 @@ const AssetPage = () => {
       />
       
       <main className="container px-4 py-4 space-y-4">
-         {/* Smart Filter Bar */}
-        <ProductFilterBar 
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
-
+    
         {/* Level Filter 
         <LocationLevelFilter level={level} onLevelChange={setLevel} /> */}
         
