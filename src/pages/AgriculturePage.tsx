@@ -62,20 +62,11 @@ const AgriculturePage = () => {
       />
       
       <main className="container px-4 py-4 space-y-4">
-        {/* Location Header 
-        <SmartLocationHeader 
-          locationLabel={getLocationLabel()} 
-          onChangeLocation={() => setShowLocationModal(true)} 
-        />
-
-        
-        <LocationLevelFilter level={level} onLevelChange={setLevel} />*/}
-           {/* Smart Filter Bar */}
+         {/* Smart Filter Bar */}
         <ProductFilterBar 
           filters={filters}
           onFiltersChange={setFilters}
         />
-
         {/* Page Title */}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center">
@@ -95,9 +86,7 @@ const AgriculturePage = () => {
             ))
           ) : (
             subcategories.map((sub) => (
-              <button
-                key={sub.id}
-                onClick={() => setSelectedSub(sub.slug)}
+                    onClick={() => setSelectedSub(sub.slug)}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all shrink-0",
                   selectedSub === sub.slug
