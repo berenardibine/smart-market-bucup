@@ -7,12 +7,10 @@ import SearchModal from '@/components/layout/SearchModal';
 import SellerFAB from '@/components/layout/SellerFAB';
 import AdminFAB from '@/components/layout/AdminFAB';
 import FloatingProductCard from '@/components/home/FloatingProductCard';
-import ProductFilterBar, { ProductFilters } from '@/components/filters/ProductFilterBar';
 import SmartLocationHeader from '@/components/location/SmartLocationHeader';
 import LocationLevelFilter from '@/components/location/LocationLevelFilter';
 import LocationModal from '@/components/location/LocationModal';
 import { useAuth } from '@/hooks/useAuth';
-import { useFilteredProducts } from '@/hooks/useFilteredProducts';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useUserLocation } from '@/hooks/useUserLocation';
@@ -64,10 +62,15 @@ const AssetPage = () => {
       />
       
       <main className="container px-4 py-4 space-y-4">
-    
-        {/* Level Filter 
-        <LocationLevelFilter level={level} onLevelChange={setLevel} /> */}
-        
+        {/* Location Header */}
+        <SmartLocationHeader 
+          locationLabel={getLocationLabel()} 
+          onChangeLocation={() => setShowLocationModal(true)} 
+        />
+
+        {/* Level Filter */}
+        <LocationLevelFilter level={level} onLevelChange={setLevel} />
+
         {/* Page Title */}
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary to-blue-400 flex items-center justify-center">
