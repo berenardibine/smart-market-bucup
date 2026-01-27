@@ -15,10 +15,10 @@ interface BottomNavProps {
 }
 
 const navItems: NavItem[] = [
-  { id: "home", label: "Home", icon: <Home className="h-2 w-6" />, href: "/" },
-  { id: "asset", label: "Asset", icon: <Car className="h-2 w-6" />, href: "/assets" },
-  { id: "agriculture", label: "Agri", icon: <Wheat className="h-2 w-6" />, href: "/agriculture" },
-  { id: "rent", label: "Rent", icon: <Wrench className="h-2 w-6" />, href: "/rent" },
+  { id: "home", label: "Home", icon: <Home className="h-4 w-6" />, href: "/" },
+  { id: "asset", label: "Asset", icon: <Car className="h-4 w-6" />, href: "/assets" },
+  { id: "agriculture", label: "Agri", icon: <Wheat className="h-4 w-6" />, href: "/agriculture" },
+  { id: "rent", label: "Rent", icon: <Wrench className="h-4 w-6" />, href: "/rent" },
 ];
 
 const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
@@ -31,7 +31,7 @@ const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-orange-100 safe-bottom">
-      <div className="flex items-center justify-around h-8 max-w-md mx-auto">
+      <div className="flex items-center justify-around h-4 max-w-md mx-auto">
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
