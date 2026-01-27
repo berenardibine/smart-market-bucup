@@ -62,10 +62,10 @@ const AssetPage = () => {
       />
       
       <main className="container px-4 py-4 space-y-4">
-        {/* Location Header */}
-        <SmartLocationHeader 
-          locationLabel={getLocationLabel()} 
-          onChangeLocation={() => setShowLocationModal(true)} 
+         {/* Smart Filter Bar */}
+        <ProductFilterBar 
+          filters={filters}
+          onFiltersChange={setFilters}
         />
 
         {/* Level Filter 
