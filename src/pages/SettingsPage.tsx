@@ -1,27 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Bell, Moon, Sun, Globe, Lock, 
-  Trash2, ChevronRight, Shield, Eye, Smartphone
+  Trash2, ChevronRight, Shield, Eye, Smartphone, LogOut
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  const [settings, setSettings] = useState({
-    pushNotifications: true,
-    emailNotifications: true,
-    darkMode: false,
-    twoFactor: false,
-    showOnlineStatus: true,
-  });
+  const { user, signOut } = useAuth();
+  const { preferences, loading, updatePreference } = useUserPreferences();
+  const { toast } = useToast();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-  const toggleSetting = (key: keyof typeof settings) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  const handleToggle = (key: keyof typeof preferences, value: boolean) => {
+    if (!preferences) return;
+    updatePreference(key as any, !value);
+  };
+
+  const handleDeleteAccount = () => {
+    // TODO: Implement account deletion
+    toast({
+      title: "Coming Soon",
+      description: "Account deletion will be available soon.",
+    });
+    setShowDeleteDialog(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    toast({
+      title: "Logged out",
+      description: "You have logged out successfully.",
+    });
+    navigate('/');
   };
 
   const settingSections = [
@@ -32,15 +60,17 @@ const SettingsPage = () => {
           icon: Bell,
           label: "Push Notifications",
           description: "Receive push notifications",
-          key: "pushNotifications" as const,
-          type: "toggle"
+          key: "push_notifications" as const,
+          type: "toggle",
+          value: preferences?.push_notifications ?? true
         },
         {
           icon: Bell,
           label: "Email Notifications",
           description: "Receive email updates",
-          key: "emailNotifications" as const,
-          type: "toggle"
+          key: "email_notifications" as const,
+          type: "toggle",
+          value: preferences?.email_notifications ?? true
         },
       ]
     },
@@ -48,11 +78,12 @@ const SettingsPage = () => {
       title: "Appearance",
       items: [
         {
-          icon: settings.darkMode ? Moon : Sun,
+          icon: preferences?.dark_mode ? Moon : Sun,
           label: "Dark Mode",
           description: "Switch between light and dark theme",
-          key: "darkMode" as const,
-          type: "toggle"
+          key: "dark_mode" as const,
+          type: "toggle",
+          value: preferences?.dark_mode ?? false
         },
         {
           icon: Globe,
@@ -70,15 +101,17 @@ const SettingsPage = () => {
           icon: Lock,
           label: "Two-Factor Authentication",
           description: "Add extra security to your account",
-          key: "twoFactor" as const,
-          type: "toggle"
+          key: "two_factor_enabled" as const,
+          type: "toggle",
+          value: preferences?.two_factor_enabled ?? false
         },
         {
           icon: Eye,
           label: "Show Online Status",
           description: "Let others see when you're online",
-          key: "showOnlineStatus" as const,
-          type: "toggle"
+          key: "show_online_status" as const,
+          type: "toggle",
+          value: preferences?.show_online_status ?? true
         },
         {
           icon: Shield,
@@ -103,9 +136,8 @@ const SettingsPage = () => {
           icon: Trash2,
           label: "Delete Account",
           description: "Permanently delete your account",
-          type: "link",
-          href: "/settings/delete",
-          danger: true
+          type: "danger",
+          action: () => setShowDeleteDialog(true)
         },
       ]
     }
@@ -138,30 +170,34 @@ const SettingsPage = () => {
                   key={itemIndex}
                   className={cn(
                     "flex items-center gap-4 p-4",
-                    item.type === 'link' && "cursor-pointer hover:bg-accent transition-colors"
+                    (item.type === 'link' || item.type === 'danger') && "cursor-pointer hover:bg-accent transition-colors"
                   )}
-                  onClick={() => item.type === 'link' && item.href && navigate(item.href)}
+                  onClick={() => {
+                    if (item.type === 'link' && item.href) navigate(item.href);
+                    if (item.type === 'danger' && item.action) item.action();
+                  }}
                 >
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center",
-                    item.danger ? "bg-red-100" : "bg-muted"
+                    item.type === 'danger' ? "bg-red-100" : "bg-muted"
                   )}>
                     <item.icon className={cn(
                       "h-5 w-5",
-                      item.danger ? "text-red-600" : "text-muted-foreground"
+                      item.type === 'danger' ? "text-red-600" : "text-muted-foreground"
                     )} />
                   </div>
                   <div className="flex-1">
                     <p className={cn(
                       "font-medium",
-                      item.danger && "text-red-600"
+                      item.type === 'danger' && "text-red-600"
                     )}>{item.label}</p>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
                   </div>
                   {item.type === 'toggle' && item.key && (
                     <Switch
-                      checked={settings[item.key]}
-                      onCheckedChange={() => toggleSetting(item.key)}
+                      checked={item.value}
+                      onCheckedChange={() => handleToggle(item.key!, item.value!)}
+                      disabled={loading}
                     />
                   )}
                   {item.type === 'link' && (
@@ -174,10 +210,63 @@ const SettingsPage = () => {
         ))}
       </div>
 
+      {/* Logout Button */}
+      {user && (
+        <div className="px-4 mt-2">
+          <Button 
+            onClick={() => setShowLogoutDialog(true)}
+            variant="outline" 
+            className="w-full h-12 rounded-xl border-red-200 text-red-600 hover:bg-red-50 gap-2"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </Button>
+        </div>
+      )}
+
       {/* App Version */}
       <div className="px-4 py-6 text-center">
         <p className="text-sm text-muted-foreground">Smart Market v1.0.0</p>
       </div>
+
+      {/* Delete Account Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete your account permanently? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteAccount}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Logout Dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout}>
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

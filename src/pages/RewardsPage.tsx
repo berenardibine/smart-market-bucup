@@ -1,22 +1,30 @@
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Gift, Star, Zap, Ticket, ShoppingBag, 
-  Percent, Clock, ChevronRight 
+  Percent, Clock, ChevronRight, Crown, TrendingUp, Award
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useRewards, useLeaderboard } from "@/hooks/useRewards";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const RewardsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { userReward, loading } = useRewards();
+  const { leaderboard, loading: loadingLeaderboard } = useLeaderboard();
 
   if (!user) {
     navigate('/auth');
     return null;
   }
+
+  const currentPoints = userReward?.points || 0;
+  const nextLevel = ((userReward?.level || 1) + 1) * 100;
+  const progressToNextLevel = Math.min((currentPoints % 100), 100);
 
   const rewards = [
     {
@@ -26,7 +34,7 @@ const RewardsPage = () => {
       points: 200,
       icon: Percent,
       color: "from-green-500 to-emerald-500",
-      available: true
+      available: currentPoints >= 200
     },
     {
       id: 2,
@@ -35,7 +43,7 @@ const RewardsPage = () => {
       points: 350,
       icon: ShoppingBag,
       color: "from-blue-500 to-cyan-500",
-      available: true
+      available: currentPoints >= 350
     },
     {
       id: 3,
@@ -44,7 +52,7 @@ const RewardsPage = () => {
       points: 500,
       icon: Star,
       color: "from-amber-500 to-orange-500",
-      available: false
+      available: currentPoints >= 500
     },
     {
       id: 4,
@@ -53,12 +61,16 @@ const RewardsPage = () => {
       points: 1000,
       icon: Ticket,
       color: "from-purple-500 to-pink-500",
-      available: false
+      available: currentPoints >= 1000
     },
   ];
 
-  const currentPoints = 375;
-  const nextLevel = 500;
+  const getBadgeColor = (index: number) => {
+    if (index === 0) return 'from-yellow-400 to-amber-500';
+    if (index === 1) return 'from-gray-300 to-gray-400';
+    if (index === 2) return 'from-amber-600 to-amber-700';
+    return 'from-blue-400 to-blue-500';
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -76,28 +88,49 @@ const RewardsPage = () => {
 
         {/* Points Card */}
         <div className="px-4 mt-4">
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-white/30 flex items-center justify-center">
-                <Gift className="h-8 w-8 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-white/80 text-sm">Available Points</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-white">{currentPoints}</span>
-                  <Zap className="h-5 w-5 text-yellow-300" />
+          {loading ? (
+            <Skeleton className="h-40 rounded-2xl" />
+          ) : (
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-5">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/30 flex items-center justify-center">
+                  <Gift className="h-8 w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white/80 text-sm">Available Points</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold text-white">{currentPoints}</span>
+                    <Zap className="h-5 w-5 text-yellow-300" />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <Badge className="bg-white text-primary">Level {userReward?.level || 1}</Badge>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-5">
-              <div className="flex items-center justify-between text-sm text-white/80 mb-2">
-                <span>Progress to next level</span>
-                <span>{currentPoints}/{nextLevel}</span>
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-sm text-white/80 mb-2">
+                  <span>Progress to next level</span>
+                  <span>{progressToNextLevel}%</span>
+                </div>
+                <Progress value={progressToNextLevel} className="h-2 bg-white/30" />
               </div>
-              <Progress value={(currentPoints / nextLevel) * 100} className="h-2 bg-white/30" />
             </div>
-          </div>
+          )}
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="px-4 -mt-4 grid grid-cols-2 gap-3">
+        <div className="bg-card rounded-xl p-4 border shadow-sm text-center">
+          <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-1" />
+          <p className="font-bold text-lg">{userReward?.streak_days || 0}</p>
+          <p className="text-xs text-muted-foreground">Day Streak</p>
+        </div>
+        <div className="bg-card rounded-xl p-4 border shadow-sm text-center">
+          <Star className="h-6 w-6 text-amber-500 mx-auto mb-1" />
+          <p className="font-bold text-lg">{userReward?.coins || 0}</p>
+          <p className="text-xs text-muted-foreground">Coins</p>
         </div>
       </div>
 
@@ -115,7 +148,7 @@ const RewardsPage = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">+50</div>
-              <span className="text-muted-foreground">First Purchase</span>
+              <span className="text-muted-foreground">Complete Challenge</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">+10</div>
@@ -123,10 +156,63 @@ const RewardsPage = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold">+25</div>
-              <span className="text-muted-foreground">Leave Review</span>
+              <span className="text-muted-foreground">Post Product</span>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            className="w-full mt-4"
+            onClick={() => navigate('/challenges')}
+          >
+            View All Challenges
+          </Button>
         </div>
+      </div>
+
+      {/* Leaderboard */}
+      <div className="px-4 mb-4">
+        <h3 className="font-semibold mb-3 flex items-center justify-between">
+          <span>Leaderboard</span>
+          <span className="text-xs text-muted-foreground">This Week</span>
+        </h3>
+        
+        {loadingLeaderboard ? (
+          <div className="space-y-2">
+            {Array(3).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-14 rounded-xl" />
+            ))}
+          </div>
+        ) : leaderboard.length === 0 ? (
+          <div className="text-center py-6 bg-card rounded-xl border">
+            <Crown className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No data yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {leaderboard.slice(0, 5).map((entry, index) => (
+              <div
+                key={entry.id}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-xl border",
+                  entry.user_id === user?.id ? 'bg-primary/5 border-primary/20' : 'bg-card'
+                )}
+              >
+                <div className={cn(
+                  "w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center text-white font-bold text-sm",
+                  getBadgeColor(index)
+                )}>
+                  {index < 3 ? <Award className="h-4 w-4" /> : index + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {entry.profile?.full_name || 'Anonymous'}
+                  </p>
+                </div>
+                <span className="font-bold text-primary">{entry.points || 0}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Available Rewards */}
@@ -157,7 +243,7 @@ const RewardsPage = () => {
               </div>
               <Button 
                 size="sm" 
-                disabled={!reward.available || currentPoints < reward.points}
+                disabled={!reward.available}
                 className="rounded-xl"
               >
                 Redeem

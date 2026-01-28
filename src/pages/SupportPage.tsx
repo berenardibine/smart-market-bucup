@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const SupportPage = () => {
   const navigate = useNavigate();
@@ -38,11 +39,27 @@ const SupportPage = () => {
     }
 
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setLoading(false);
-    setSubmitted(true);
-    toast({ title: "Message sent successfully!" });
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          message: `[${formData.subject}] ${formData.message}`,
+        });
+
+      if (error) throw error;
+      setSubmitted(true);
+      toast({ title: "Message sent successfully!" });
+    } catch (err: any) {
+      toast({ 
+        title: "Failed to send message", 
+        description: err.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
