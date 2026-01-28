@@ -660,6 +660,42 @@ export type Database = {
         }
         Relationships: []
       }
+      help_articles: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          id: string
+          is_published: boolean | null
+          slug: string
+          title: string
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_published?: boolean | null
+          slug: string
+          title: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_published?: boolean | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       idea_collaborators: {
         Row: {
           id: string
@@ -3100,6 +3136,45 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          created_at: string | null
+          dark_mode: boolean | null
+          email_notifications: boolean | null
+          id: string
+          language: string | null
+          push_notifications: boolean | null
+          show_online_status: boolean | null
+          two_factor_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dark_mode?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          push_notifications?: boolean | null
+          show_online_status?: boolean | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dark_mode?: boolean | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          push_notifications?: boolean | null
+          show_online_status?: boolean | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_rewards: {
         Row: {
           badge: string | null
@@ -3153,6 +3228,45 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          browser: string | null
+          created_at: string | null
+          device_name: string | null
+          device_type: string | null
+          id: string
+          ip_address: string | null
+          is_current: boolean | null
+          last_active: string | null
+          location: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active?: string | null
+          location?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          id?: string
+          ip_address?: string | null
+          is_current?: boolean | null
+          last_active?: string | null
+          location?: string | null
           user_id?: string
         }
         Relationships: []

@@ -1,16 +1,24 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, User, Mail, Phone, MapPin, Calendar, Edit, 
-  Camera, Shield, Bell, Lock, LogOut, ChevronRight 
+  Camera, Shield, Bell, Lock, LogOut, ChevronRight, Eye,
+  CheckCircle, Smartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import EditProfileModal from "@/components/account/EditProfileModal";
+import ChangePasswordModal from "@/components/account/ChangePasswordModal";
 
 const AccountPage = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { toast } = useToast();
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   if (!user) {
     navigate('/auth');
@@ -19,16 +27,23 @@ const AccountPage = () => {
 
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const initials = displayName.charAt(0).toUpperCase();
+  const isVerified = (profile as any)?.identity_verified;
 
   const menuItems = [
-    { icon: User, label: "Edit Profile", href: "/account/edit", color: "bg-blue-500" },
-    { icon: Bell, label: "Notification Settings", href: "/account/notifications", color: "bg-purple-500" },
-    { icon: Lock, label: "Change Password", href: "/account/password", color: "bg-amber-500" },
-    { icon: Shield, label: "Privacy Settings", href: "/account/privacy", color: "bg-green-500" },
+    { icon: Edit, label: "Edit Profile", action: () => setShowEditProfile(true), color: "bg-blue-500" },
+    { icon: Eye, label: "View Public Profile", href: `/seller/${user.id}`, color: "bg-purple-500" },
+    { icon: Lock, label: "Change Password", action: () => setShowChangePassword(true), color: "bg-amber-500" },
+    { icon: Smartphone, label: "Connected Devices", href: "/settings", color: "bg-green-500" },
+    { icon: Bell, label: "Notification Settings", href: "/settings", color: "bg-pink-500" },
+    { icon: Shield, label: "Privacy & Security", href: "/settings", color: "bg-cyan-500" },
   ];
 
   const handleLogout = async () => {
     await signOut();
+    toast({
+      title: "Logged out",
+      description: "You have logged out successfully.",
+    });
     navigate('/');
   };
 
@@ -52,19 +67,27 @@ const AccountPage = () => {
         <div className="bg-card rounded-2xl p-6 border shadow-sm">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-orange-500 flex items-center justify-center overflow-hidden">
                 {profile?.profile_image ? (
-                  <img src={profile.profile_image} alt={displayName} className="w-full h-full rounded-2xl object-cover" />
+                  <img src={profile.profile_image} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-white font-bold text-3xl">{initials}</span>
                 )}
               </div>
-              <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
+              <button 
+                onClick={() => setShowEditProfile(true)}
+                className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-lg"
+              >
                 <Camera className="h-3.5 w-3.5" />
               </button>
             </div>
             <div className="flex-1">
-              <h2 className="font-bold text-xl">{displayName}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-xl">{displayName}</h2>
+                {isVerified && (
+                  <CheckCircle className="h-5 w-5 text-blue-500 fill-blue-500" />
+                )}
+              </div>
               <Badge className="mt-1 bg-primary/10 text-primary capitalize">
                 {profile?.user_type || 'Member'}
               </Badge>
@@ -82,9 +105,17 @@ const AccountPage = () => {
                 <span className="text-sm">{profile.phone_number}</span>
               </div>
             )}
+            {(profile as any)?.location && (
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span className="text-sm">{(profile as any).location}</span>
+              </div>
+            )}
             <div className="flex items-center gap-3 text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              <span className="text-sm">Member</span>
+              <span className="text-sm">
+                Member since {(profile as any)?.created_at ? format(new Date((profile as any).created_at), 'MMM yyyy') : 'N/A'}
+              </span>
             </div>
           </div>
         </div>
@@ -95,7 +126,7 @@ const AccountPage = () => {
         {menuItems.map((item) => (
           <button
             key={item.label}
-            onClick={() => navigate(item.href)}
+            onClick={() => item.action ? item.action() : item.href && navigate(item.href)}
             className="w-full flex items-center gap-3 p-4 bg-card rounded-xl border hover:bg-accent transition-colors"
           >
             <div className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center`}>
@@ -118,6 +149,16 @@ const AccountPage = () => {
           Logout
         </Button>
       </div>
+
+      {/* Modals */}
+      <EditProfileModal 
+        open={showEditProfile} 
+        onClose={() => setShowEditProfile(false)} 
+      />
+      <ChangePasswordModal 
+        open={showChangePassword} 
+        onClose={() => setShowChangePassword(false)} 
+      />
     </div>
   );
 };
