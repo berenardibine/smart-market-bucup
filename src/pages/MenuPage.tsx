@@ -1,0 +1,211 @@
+import { useNavigate } from "react-router-dom";
+import { 
+  User, Store, Heart, Trophy, Settings, Phone, LogOut, LogIn, 
+  ChevronRight, Shield, Bell, HelpCircle, Star, Gift, ArrowLeft
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
+import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
+
+const MenuPage = () => {
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
+  const { isAdmin } = useAdmin();
+  const { toast } = useToast();
+  const { unreadCount } = useNotifications();
+
+  const menuItems = [
+    { icon: User, label: "My Account", href: "/account", requiresAuth: true, color: "bg-blue-500" },
+    { icon: Store, label: "My Shop", href: "/my-shop", requiresAuth: true, sellerOnly: true, color: "bg-green-500" },
+    { icon: Heart, label: "Favorites", href: "/favorites", requiresAuth: true, color: "bg-pink-500" },
+    { icon: Trophy, label: "Smart Challenge", href: "/challenges", badge: "New", color: "bg-amber-500" },
+    { icon: Bell, label: "Notifications", href: "/notifications", requiresAuth: true, badgeCount: unreadCount, color: "bg-purple-500" },
+    { icon: Gift, label: "Rewards", href: "/rewards", requiresAuth: true, color: "bg-orange-500" },
+    { icon: Star, label: "Premium", href: "/premium", color: "bg-gradient-to-r from-amber-500 to-orange-500" },
+  ];
+
+  const supportItems = [
+    { icon: Settings, label: "Settings", href: "/settings", color: "bg-slate-500" },
+    { icon: HelpCircle, label: "Help Center", href: "/help", color: "bg-cyan-500" },
+    { icon: Phone, label: "Contact Support", href: "/support", color: "bg-teal-500" },
+  ];
+
+  const filteredItems = menuItems.filter(item => {
+    if (item.sellerOnly && profile?.user_type !== 'seller') return false;
+    if (item.requiresAuth && !user) return false;
+    return true;
+  });
+
+  const handleLogout = async () => {
+    await signOut();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/');
+  };
+
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Guest';
+  const initials = displayName.charAt(0).toUpperCase();
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-primary via-orange-500 to-amber-500 pt-safe pb-8 px-4">
+        <div className="flex items-center gap-3 mb-6">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+          >
+            <ArrowLeft className="h-5 w-5 text-white" />
+          </button>
+          <h1 className="font-semibold text-lg text-white">Menu</h1>
+        </div>
+
+        {user ? (
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg border-2 border-white/30 overflow-hidden">
+              {profile?.profile_image ? (
+                <img src={profile.profile_image} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white font-bold text-2xl">{initials}</span>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-white text-lg">{displayName}</p>
+              <p className="text-white/80 text-sm capitalize">{profile?.user_type || 'Member'}</p>
+            </div>
+            <button 
+              onClick={() => navigate('/account')}
+              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center"
+            >
+              <ChevronRight className="h-5 w-5 text-white" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <User className="h-8 w-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-white text-lg">Welcome!</p>
+              <p className="text-white/80 text-sm">Sign in to explore more</p>
+            </div>
+            <Button 
+              onClick={() => navigate('/auth')}
+              className="bg-white text-primary hover:bg-white/90"
+            >
+              Sign In
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Admin Button */}
+      {isAdmin && (
+        <div className="px-4 -mt-4 mb-4">
+          <button
+            onClick={() => navigate('/admin')}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg hover:shadow-xl transition-all"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <Shield className="h-6 w-6 text-white" />
+            </div>
+            <span className="flex-1 text-left font-semibold text-white text-lg">Admin Dashboard</span>
+            <ChevronRight className="h-5 w-5 text-white/70" />
+          </button>
+        </div>
+      )}
+
+      {/* Menu Items */}
+      <div className="px-4 py-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Menu</p>
+        <div className="space-y-2">
+          {filteredItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => navigate(item.href)}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
+            >
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white", item.color)}>
+                <item.icon className="h-6 w-6" />
+              </div>
+              <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
+                {item.label}
+              </span>
+              {item.badge && (
+                <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+                  {item.badge}
+                </span>
+              )}
+              {item.badgeCount && item.badgeCount > 0 && (
+                <span className="px-2.5 py-1 rounded-full bg-red-500 text-white text-xs font-semibold min-w-[24px] text-center">
+                  {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                </span>
+              )}
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+          ))}
+        </div>
+
+        <div className="h-px bg-border my-6" />
+        
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Support</p>
+        <div className="space-y-2">
+          {supportItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => navigate(item.href)}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
+            >
+              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white", item.color)}>
+                <item.icon className="h-6 w-6" />
+              </div>
+              <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
+                {item.label}
+              </span>
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Login/Logout */}
+      <div className="px-4 mt-6">
+        {user ? (
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+          >
+            <div className="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center">
+              <LogOut className="h-6 w-6 text-white" />
+            </div>
+            <span className="font-semibold text-red-600 dark:text-red-400 text-base">Logout</span>
+          </button>
+        ) : (
+          <button 
+            onClick={() => navigate('/auth')}
+            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary to-orange-500 hover:opacity-90 transition-opacity shadow-lg"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+              <LogIn className="h-6 w-6 text-white" />
+            </div>
+            <span className="font-semibold text-white text-base">Sign In / Sign Up</span>
+          </button>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-8">
+        <p className="text-center text-xs text-muted-foreground">
+          Smart Market v1.0.0 • Developed by Smart Technology
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default MenuPage;

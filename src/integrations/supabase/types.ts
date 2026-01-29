@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string | null
+          details: Json | null
+          id: string
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          reason?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_audit_log: {
+        Row: {
+          admin_id: string | null
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_messages: {
         Row: {
           created_at: string | null
@@ -3145,6 +3202,7 @@ export type Database = {
           language: string | null
           push_notifications: boolean | null
           show_online_status: boolean | null
+          theme: string | null
           two_factor_enabled: boolean | null
           updated_at: string | null
           user_id: string
@@ -3157,6 +3215,7 @@ export type Database = {
           language?: string | null
           push_notifications?: boolean | null
           show_online_status?: boolean | null
+          theme?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id: string
@@ -3169,7 +3228,41 @@ export type Database = {
           language?: string | null
           push_notifications?: boolean | null
           show_online_status?: boolean | null
+          theme?: string | null
           two_factor_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_privacy: {
+        Row: {
+          allow_messaging: boolean | null
+          created_at: string | null
+          hide_contact: boolean | null
+          hide_products: boolean | null
+          id: string
+          show_online_status: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          allow_messaging?: boolean | null
+          created_at?: string | null
+          hide_contact?: boolean | null
+          hide_products?: boolean | null
+          id?: string
+          show_online_status?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          allow_messaging?: boolean | null
+          created_at?: string | null
+          hide_contact?: boolean | null
+          hide_products?: boolean | null
+          id?: string
+          show_online_status?: boolean | null
           updated_at?: string | null
           user_id?: string
         }
@@ -3228,6 +3321,36 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_security: {
+        Row: {
+          backup_codes: string[] | null
+          created_at: string | null
+          id: string
+          secret_key: string | null
+          two_factor_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          id?: string
+          secret_key?: string | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          backup_codes?: string[] | null
+          created_at?: string | null
+          id?: string
+          secret_key?: string | null
+          two_factor_enabled?: boolean | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

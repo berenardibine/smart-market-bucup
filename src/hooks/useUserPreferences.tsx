@@ -12,6 +12,7 @@ export interface UserPreferences {
   language: string;
   show_online_status: boolean;
   two_factor_enabled: boolean;
+  theme?: string;
 }
 
 export const useUserPreferences = () => {
@@ -65,6 +66,9 @@ export const useUserPreferences = () => {
   const updatePreference = async (key: keyof UserPreferences, value: any) => {
     if (!user || !preferences) return;
 
+    // Optimistic update
+    setPreferences(prev => prev ? { ...prev, [key]: value } : null);
+
     try {
       const { error } = await supabase
         .from('user_preferences')
@@ -73,13 +77,14 @@ export const useUserPreferences = () => {
 
       if (error) throw error;
 
-      setPreferences(prev => prev ? { ...prev, [key]: value } : null);
       toast({
         title: "Settings updated",
         description: "Your preferences have been saved.",
       });
     } catch (err) {
       console.error('Error updating preference:', err);
+      // Revert on error
+      fetchPreferences();
       toast({
         title: "Error",
         description: "Failed to update settings.",

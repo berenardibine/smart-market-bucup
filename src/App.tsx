@@ -48,6 +48,8 @@ import {
   AdminLinkAnalytics,
   AdminFilterAnalytics,
 } from "./pages/admin";
+import AdminChallenges from "./pages/admin/AdminChallenges";
+import MenuPage from "./pages/MenuPage";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +85,9 @@ const App = () => (
             <Route path="/admin/ads" element={<AdminAds />} />
             <Route path="/admin/link-analytics" element={<AdminLinkAnalytics />} />
             <Route path="/admin/filter-analytics" element={<AdminFilterAnalytics />} />
+            <Route path="/admin/challenges" element={<AdminChallenges />} />
+            
+            <Route path="/menu" element={<MenuPage />} />
             
             <Route path="/assets" element={<AssetPage />} />
             <Route path="/agriculture" element={<AgriculturePage />} />
