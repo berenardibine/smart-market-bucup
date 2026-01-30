@@ -291,7 +291,7 @@ const AdsManagement = () => {
               Create Ad
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-background max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingAd ? 'Edit Ad' : 'Create New Ad'}</DialogTitle>
             </DialogHeader>
@@ -323,7 +323,7 @@ const AdsManagement = () => {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-white">
+                    <SelectContent className="bg-background">
                       <SelectItem value="text">Text Only</SelectItem>
                       <SelectItem value="image">Image</SelectItem>
                       <SelectItem value="banner">Banner</SelectItem>
@@ -339,7 +339,7 @@ const AdsManagement = () => {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-white">
+                    <SelectContent className="bg-background">
                       <SelectItem value="all">All Users</SelectItem>
                       <SelectItem value="seller">Sellers Only</SelectItem>
                       <SelectItem value="buyer">Buyers Only</SelectItem>
@@ -358,7 +358,7 @@ const AdsManagement = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="All locations" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white max-h-60">
+                  <SelectContent className="bg-background max-h-60">
                     <SelectItem value="">All Locations</SelectItem>
                     {locations.map(loc => (
                       <SelectItem key={loc.id} value={loc.id}>
@@ -473,7 +473,7 @@ const AdsManagement = () => {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white">
+                  <SelectContent className="bg-background">
                     <SelectItem value="small">Small</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="large">Large</SelectItem>
@@ -538,22 +538,22 @@ const AdsManagement = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl p-4 border">
-          <div className="flex items-center gap-2 text-orange-600 mb-1">
+        <div className="bg-card rounded-xl p-4 border">
+          <div className="flex items-center gap-2 text-primary mb-1">
             <Megaphone className="h-4 w-4" />
             <span className="text-xs font-medium">Total Ads</span>
           </div>
           <p className="text-2xl font-bold">{ads.length}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border">
-          <div className="flex items-center gap-2 text-green-600 mb-1">
+        <div className="bg-card rounded-xl p-4 border">
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
             <Eye className="h-4 w-4" />
             <span className="text-xs font-medium">Active</span>
           </div>
           <p className="text-2xl font-bold">{activeAds.length}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border">
-          <div className="flex items-center gap-2 text-blue-600 mb-1">
+        <div className="bg-card rounded-xl p-4 border">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
             <MapPin className="h-4 w-4" />
             <span className="text-xs font-medium">Targeted</span>
           </div>
@@ -562,11 +562,11 @@ const AdsManagement = () => {
       </div>
 
       {/* Ads List */}
-      <div className="bg-white rounded-2xl border overflow-hidden">
-        <div className="p-4 border-b bg-gradient-to-r from-orange-50 to-white">
+      <div className="bg-card rounded-2xl border overflow-hidden">
+        <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-transparent">
           <h3 className="font-semibold">All Ads</h3>
         </div>
-        <div className="divide-y max-h-[500px] overflow-y-auto">
+        <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <div key={i} className="p-4">
@@ -579,8 +579,8 @@ const AdsManagement = () => {
               <p>No ads created yet</p>
             </div>
           ) : (
-            ads.map(ad => (
-              <div key={ad.id} className="p-4 hover:bg-gray-50 transition-colors">
+          ads.map(ad => (
+              <div key={ad.id} className="p-4 hover:bg-accent transition-colors">
                 <div className="flex items-start gap-4">
                   <div 
                     className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -597,7 +597,7 @@ const AdsManagement = () => {
                       <p className="font-semibold">{ad.title}</p>
                       <Badge className={cn(
                         "text-xs",
-                        ad.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                        ad.is_active ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : "bg-muted text-muted-foreground"
                       )}>
                         {ad.is_active ? 'Active' : 'Inactive'}
                       </Badge>
@@ -640,7 +640,7 @@ const AdsManagement = () => {
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-white">
+                    <DropdownMenuContent align="end" className="bg-popover">
                       <DropdownMenuItem onClick={() => toggleAdStatus(ad.id, ad.is_active)}>
                         <Eye className="h-4 w-4 mr-2" />
                         {ad.is_active ? 'Deactivate' : 'Activate'}

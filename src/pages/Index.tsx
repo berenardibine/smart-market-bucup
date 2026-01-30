@@ -17,6 +17,7 @@ import SmartChallenge from "@/components/home/SmartChallenge";
 import FloatingProductCard from "@/components/home/FloatingProductCard";
 import CategoryCarousel from "@/components/home/CategoryCarousel";
 import SectionHeader from "@/components/home/SectionHeader";
+import HomeAds from "@/components/home/HomeAds";
 import { useAuth } from "@/hooks/useAuth";
 import { useDynamicHomeFeed } from "@/hooks/useDynamicHomeFeed";
 import { useUserLocation } from "@/hooks/useUserLocation";
@@ -129,6 +130,11 @@ const Index = () => {
       />
       
       <main className="container px-4 py-4 space-y-5">
+        {/* Smart Ads at Top */}
+        <section className="animate-fade-up">
+          <HomeAds />
+        </section>
+
         {/* Smart Filter Bar */}
         <section className="animate-fade-up">
           <ProductFilterBar 
@@ -136,7 +142,6 @@ const Index = () => {
             onFiltersChange={setFilters}
           />
         </section>
-        {/*
 
         {/* New Arrivals Section */}
         {newArrivals.length > 0 && (

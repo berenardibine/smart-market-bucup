@@ -48,8 +48,8 @@ import {
   AdminAds,
   AdminLinkAnalytics,
   AdminFilterAnalytics,
+  AdminChallenges,
 } from "./pages/admin";
-import AdminChallenges from "./pages/admin/AdminChallenges";
 import MenuPage from "./pages/MenuPage";
 
 const queryClient = new QueryClient();
