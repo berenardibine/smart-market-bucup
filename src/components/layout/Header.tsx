@@ -5,12 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
-  onMenuClick: () => void;
   onSearchClick: () => void;
   notificationCount?: number;
 }
 
-const Header = ({ onMenuClick, onSearchClick, notificationCount = 0 }: HeaderProps) => {
+const Header = ({ onSearchClick, notificationCount = 0 }: HeaderProps) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
@@ -66,7 +65,7 @@ const Header = ({ onMenuClick, onSearchClick, notificationCount = 0 }: HeaderPro
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={onMenuClick}
+                onClick={() => navigate('/menu')}
                 className="h-9 w-9 hover:bg-white/20"
               >
                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">

@@ -29,9 +29,16 @@ const SettingsPage = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-  const handleToggle = (key: keyof typeof preferences, value: boolean) => {
+  const handleToggle = (key: keyof NonNullable<typeof preferences>, checked: boolean) => {
     if (!preferences) return;
-    updatePreference(key as any, !value);
+
+    // Persist the exact checked value (previously this was toggling stale UI state)
+    updatePreference(key as any, checked);
+
+    // Keep theme column in sync for global theming
+    if (key === 'dark_mode') {
+      updatePreference('theme' as any, checked ? 'dark' : 'light');
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -196,7 +203,7 @@ const SettingsPage = () => {
                   {item.type === 'toggle' && item.key && (
                     <Switch
                       checked={item.value}
-                      onCheckedChange={() => handleToggle(item.key!, item.value!)}
+                      onCheckedChange={(checked) => handleToggle(item.key!, checked)}
                       disabled={loading}
                     />
                   )}

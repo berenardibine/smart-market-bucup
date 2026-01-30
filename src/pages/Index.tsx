@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
-import MenuDrawer from "@/components/layout/MenuDrawer";
 import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
 import AdminFAB from "@/components/layout/AdminFAB";
@@ -29,7 +28,6 @@ const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState("home");
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [filters, setFilters] = useState<ProductFilters>({ sortBy: 'random' });
   
@@ -127,7 +125,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pb-20 pt-14">
       <Header
-        onMenuClick={() => setIsMenuOpen(true)}
         onSearchClick={() => setIsSearchOpen(true)}
       />
       
@@ -268,7 +265,6 @@ const Index = () => {
       {isSeller && <SellerFAB />}
       <AdminFAB />
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
-      <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <LocationModal 
         isOpen={showLocationModal} 

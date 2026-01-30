@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { Car, Sparkles } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
-import MenuDrawer from '@/components/layout/MenuDrawer';
 import SearchModal from '@/components/layout/SearchModal';
 import SellerFAB from '@/components/layout/SellerFAB';
 import AdminFAB from '@/components/layout/AdminFAB';
@@ -19,7 +18,6 @@ import { cn } from '@/lib/utils';
 
 const AssetPage = () => {
   const { profile } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedSub, setSelectedSub] = useState('all');
   
@@ -57,7 +55,6 @@ const AssetPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/5 pb-20 pt-14">
       <Header
-        onMenuClick={() => setIsMenuOpen(true)}
         onSearchClick={() => setIsSearchOpen(true)}
       />
       
@@ -139,7 +136,6 @@ const AssetPage = () => {
       {isSeller && <SellerFAB />}
       <AdminFAB />
       <BottomNav activeTab="asset" onTabChange={() => {}} />
-      <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <LocationModal 
         isOpen={showLocationModal} 
