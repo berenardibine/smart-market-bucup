@@ -30,6 +30,34 @@ export const useUserPreferences = () => {
     }
   }, [user]);
 
+  // Realtime sync (multi-device / multi-tab)
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`user-preferences-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_preferences',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          // payload.new is the latest row
+          if (payload.new) {
+            setPreferences(payload.new as UserPreferences);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const fetchPreferences = async () => {
     if (!user) return;
     
@@ -78,8 +106,8 @@ export const useUserPreferences = () => {
       if (error) throw error;
 
       toast({
-        title: "Settings updated",
-        description: "Your preferences have been saved.",
+        title: "Preferences saved successfully.",
+        description: "Your changes have been synced.",
       });
     } catch (err) {
       console.error('Error updating preference:', err);

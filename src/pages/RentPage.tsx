@@ -57,7 +57,6 @@ const RentPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-purple-500/5 pb-20 pt-14">
       <Header
-        onMenuClick={() => setIsMenuOpen(true)}
         onSearchClick={() => setIsSearchOpen(true)}
       />
       
