@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Bell, Moon, Sun, Globe, Lock, 
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "next-themes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,29 +21,44 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import TwoFactorSetupModal from "@/components/settings/TwoFactorSetupModal";
+import ConnectedDevicesModal from "@/components/settings/ConnectedDevicesModal";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { preferences, loading, updatePreference } = useUserPreferences();
   const { toast } = useToast();
+  const { setTheme } = useTheme();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [showDevicesModal, setShowDevicesModal] = useState(false);
+
+  const isSeller = profile?.user_type === 'seller';
 
   const handleToggle = (key: keyof NonNullable<typeof preferences>, checked: boolean) => {
     if (!preferences) return;
 
-    // Persist the exact checked value (previously this was toggling stale UI state)
-    updatePreference(key as any, checked);
-
-    // Keep theme column in sync for global theming
+    // Special handling for dark mode - apply theme immediately
     if (key === 'dark_mode') {
-      updatePreference('theme' as any, checked ? 'dark' : 'light');
+      const newTheme = checked ? 'dark' : 'light';
+      setTheme(newTheme);
+      updatePreference('dark_mode', checked);
+      updatePreference('theme' as any, newTheme);
+      return;
     }
+
+    // Special handling for 2FA - show setup modal
+    if (key === 'two_factor_enabled' && checked && !preferences.two_factor_enabled) {
+      setShow2FAModal(true);
+      return;
+    }
+
+    updatePreference(key as any, checked);
   };
 
   const handleDeleteAccount = () => {
-    // TODO: Implement account deletion
     toast({
       title: "Coming Soon",
       description: "Account deletion will be available soon.",
@@ -95,7 +111,7 @@ const SettingsPage = () => {
         {
           icon: Globe,
           label: "Language",
-          description: "English",
+          description: preferences?.language || "English",
           type: "link",
           href: "/settings/language"
         },
@@ -104,14 +120,16 @@ const SettingsPage = () => {
     {
       title: "Privacy & Security",
       items: [
-        {
+        ...(isSeller ? [{
           icon: Lock,
           label: "Two-Factor Authentication",
-          description: "Add extra security to your account",
+          description: preferences?.two_factor_enabled 
+            ? "Enabled - Your account is secured" 
+            : "Add extra security to your account",
           key: "two_factor_enabled" as const,
-          type: "toggle",
+          type: "toggle" as const,
           value: preferences?.two_factor_enabled ?? false
-        },
+        }] : []),
         {
           icon: Eye,
           label: "Show Online Status",
@@ -136,8 +154,8 @@ const SettingsPage = () => {
           icon: Smartphone,
           label: "Connected Devices",
           description: "Manage devices logged into your account",
-          type: "link",
-          href: "/settings/devices"
+          type: "action",
+          action: () => setShowDevicesModal(true)
         },
         {
           icon: Trash2,
@@ -171,43 +189,44 @@ const SettingsPage = () => {
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">
               {section.title}
             </h3>
-            <div className="bg-card rounded-2xl border overflow-hidden divide-y">
+            <div className="bg-card rounded-2xl border overflow-hidden divide-y divide-border">
               {section.items.map((item, itemIndex) => (
                 <div 
                   key={itemIndex}
                   className={cn(
                     "flex items-center gap-4 p-4",
-                    (item.type === 'link' || item.type === 'danger') && "cursor-pointer hover:bg-accent transition-colors"
+                    (item.type === 'link' || item.type === 'danger' || item.type === 'action') && 
+                    "cursor-pointer hover:bg-accent transition-colors"
                   )}
                   onClick={() => {
-                    if (item.type === 'link' && item.href) navigate(item.href);
-                    if (item.type === 'danger' && item.action) item.action();
+                    if (item.type === 'link' && 'href' in item && item.href) navigate(item.href);
+                    if ((item.type === 'danger' || item.type === 'action') && 'action' in item && item.action) item.action();
                   }}
                 >
                   <div className={cn(
                     "w-10 h-10 rounded-xl flex items-center justify-center",
-                    item.type === 'danger' ? "bg-red-100" : "bg-muted"
+                    item.type === 'danger' ? "bg-destructive/10" : "bg-muted"
                   )}>
                     <item.icon className={cn(
                       "h-5 w-5",
-                      item.type === 'danger' ? "text-red-600" : "text-muted-foreground"
+                      item.type === 'danger' ? "text-destructive" : "text-muted-foreground"
                     )} />
                   </div>
                   <div className="flex-1">
                     <p className={cn(
                       "font-medium",
-                      item.type === 'danger' && "text-red-600"
+                      item.type === 'danger' && "text-destructive"
                     )}>{item.label}</p>
                     <p className="text-sm text-muted-foreground">{item.description}</p>
                   </div>
-                  {item.type === 'toggle' && item.key && (
+                  {item.type === 'toggle' && 'key' in item && item.key && (
                     <Switch
                       checked={item.value}
                       onCheckedChange={(checked) => handleToggle(item.key!, checked)}
                       disabled={loading}
                     />
                   )}
-                  {item.type === 'link' && (
+                  {(item.type === 'link' || item.type === 'action') && (
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   )}
                 </div>
@@ -223,7 +242,7 @@ const SettingsPage = () => {
           <Button 
             onClick={() => setShowLogoutDialog(true)}
             variant="outline" 
-            className="w-full h-12 rounded-xl border-red-200 text-red-600 hover:bg-red-50 gap-2"
+            className="w-full h-12 rounded-xl border-destructive/20 text-destructive hover:bg-destructive/5 gap-2"
           >
             <LogOut className="h-5 w-5" />
             Logout
@@ -235,6 +254,21 @@ const SettingsPage = () => {
       <div className="px-4 py-6 text-center">
         <p className="text-sm text-muted-foreground">Smart Market v1.0.0</p>
       </div>
+
+      {/* 2FA Setup Modal */}
+      <TwoFactorSetupModal
+        open={show2FAModal}
+        onClose={() => setShow2FAModal(false)}
+        onSuccess={() => {
+          // Refresh preferences to show enabled state
+        }}
+      />
+
+      {/* Connected Devices Modal */}
+      <ConnectedDevicesModal
+        open={showDevicesModal}
+        onClose={() => setShowDevicesModal(false)}
+      />
 
       {/* Delete Account Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -249,7 +283,7 @@ const SettingsPage = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteAccount}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Delete Account
             </AlertDialogAction>
