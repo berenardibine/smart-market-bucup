@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, X, Plus, Video, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, X, Plus, Video, Loader2, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCategories } from "@/hooks/useCategories";
 import { useToast } from "@/hooks/use-toast";
+import { useFileOptimization } from "@/hooks/useFileOptimization";
 
 interface ProductFormProps {
   product?: any;
@@ -30,9 +31,11 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const { categories } = useCategories();
+  const { optimizeFile, isOptimizing: isOptimizingFile } = useFileOptimization();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>(product?.images || []);
   const [processingImages, setProcessingImages] = useState<Set<number>>(new Set());
+  const [optimizingImages, setOptimizingImages] = useState<Set<number>>(new Set());
   const [videoUrl, setVideoUrl] = useState(product?.video_url || '');
   const [formData, setFormData] = useState({
     title: product?.title || '',
@@ -85,8 +88,8 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
     }
 
     toast({ 
-      title: "🧠 AI Analyzing Image", 
-      description: "Smart background detection in progress..."
+      title: "🧠 AI Processing Image", 
+      description: "Smart optimization & background detection..."
     });
 
     for (const file of Array.from(files)) {
@@ -108,12 +111,13 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
         setImages(prev => [...prev, publicUrl]);
         setProcessingImages(prev => new Set(prev).add(currentIndex));
         
-        // Smart AI background processing
-        const result = await processBackground(publicUrl);
+        // Step 1: Smart AI background processing
+        const bgResult = await processBackground(publicUrl);
+        let processedUrl = bgResult.url;
         
-        // Update with processed or original image based on AI decision
+        // Update with background-processed image
         setImages(prev => prev.map((img, idx) => 
-          idx === currentIndex ? result.url : img
+          idx === currentIndex ? processedUrl : img
         ));
         setProcessingImages(prev => {
           const newSet = new Set(prev);
@@ -121,21 +125,39 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
           return newSet;
         });
 
-        // Show appropriate toast based on AI decision
-        if (result.decision === 'removed') {
+        // Step 2: AI File Optimization (compress, resize, enhance)
+        setOptimizingImages(prev => new Set(prev).add(currentIndex));
+        
+        const optimizeResult = await optimizeFile(processedUrl, 'product_card', true);
+        
+        if (optimizeResult && optimizeResult.optimizedUrl !== processedUrl) {
+          processedUrl = optimizeResult.optimizedUrl;
+          setImages(prev => prev.map((img, idx) => 
+            idx === currentIndex ? processedUrl : img
+          ));
+          
+          toast({ 
+            title: "✨ Image Optimized", 
+            description: `Reduced by ${optimizeResult.compressionRatio}%${optimizeResult.wasEnhanced ? ' + Enhanced' : ''}`
+          });
+        }
+        
+        setOptimizingImages(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(currentIndex);
+          return newSet;
+        });
+
+        // Show background processing result
+        if (bgResult.decision === 'removed') {
           toast({ 
             title: "✨ Background Cleaned", 
             description: "Product photo optimized with white background"
           });
-        } else if (result.decision === 'keep') {
+        } else if (bgResult.decision === 'keep') {
           toast({ 
             title: "🌈 Background Preserved", 
-            description: result.message || "Background kept to preserve visual context"
-          });
-        } else if (result.decision === 'remove_failed') {
-          toast({ 
-            title: "📷 Original Saved", 
-            description: "Image saved without background processing"
+            description: bgResult.message || "Background kept to preserve visual context"
           });
         }
       }
@@ -261,7 +283,16 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
                     <Loader2 className="h-6 w-6 animate-spin text-primary mb-1" />
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
-                      AI Processing
+                      Background
+                    </span>
+                  </div>
+                )}
+                {optimizingImages.has(idx) && !processingImages.has(idx) && (
+                  <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mb-1" />
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Zap className="h-3 w-3" />
+                      Optimizing
                     </span>
                   </div>
                 )}
@@ -269,7 +300,7 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
                   type="button"
                   onClick={() => removeImage(idx)}
                   className="absolute top-1 right-1 w-6 h-6 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground"
-                  disabled={processingImages.has(idx)}
+                  disabled={processingImages.has(idx) || optimizingImages.has(idx)}
                 >
                   <X className="h-4 w-4" />
                 </button>
