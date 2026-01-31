@@ -13,3 +13,4 @@ export { default as AdminAds } from './AdminAds';
 export { default as AdminLinkAnalytics } from './AdminLinkAnalytics';
 export { default as AdminFilterAnalytics } from './AdminFilterAnalytics';
 export { default as AdminChallenges } from './AdminChallenges';
+export { default as AdminFileOptimization } from './AdminFileOptimization';

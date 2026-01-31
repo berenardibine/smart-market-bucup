@@ -49,6 +49,7 @@ import {
   AdminLinkAnalytics,
   AdminFilterAnalytics,
   AdminChallenges,
+  AdminFileOptimization,
 } from "./pages/admin";
 import MenuPage from "./pages/MenuPage";
 
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="/admin/link-analytics" element={<AdminLinkAnalytics />} />
             <Route path="/admin/filter-analytics" element={<AdminFilterAnalytics />} />
             <Route path="/admin/challenges" element={<AdminChallenges />} />
+            <Route path="/admin/file-optimization" element={<AdminFileOptimization />} />
             
             <Route path="/menu" element={<MenuPage />} />
             

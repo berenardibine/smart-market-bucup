@@ -238,6 +238,48 @@ export type Database = {
           },
         ]
       }
+      batch_optimization_jobs: {
+        Row: {
+          compression_ratio: number | null
+          created_at: string | null
+          errors: Json | null
+          files_failed: number | null
+          files_processed: number | null
+          files_skipped: number | null
+          id: string
+          optimized_size_total: number | null
+          original_size_total: number | null
+          space_saved: number | null
+          status: string | null
+        }
+        Insert: {
+          compression_ratio?: number | null
+          created_at?: string | null
+          errors?: Json | null
+          files_failed?: number | null
+          files_processed?: number | null
+          files_skipped?: number | null
+          id?: string
+          optimized_size_total?: number | null
+          original_size_total?: number | null
+          space_saved?: number | null
+          status?: string | null
+        }
+        Update: {
+          compression_ratio?: number | null
+          created_at?: string | null
+          errors?: Json | null
+          files_failed?: number | null
+          files_processed?: number | null
+          files_skipped?: number | null
+          id?: string
+          optimized_size_total?: number | null
+          original_size_total?: number | null
+          space_saved?: number | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -692,6 +734,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      file_optimization_logs: {
+        Row: {
+          compression_ratio: number
+          created_at: string | null
+          id: string
+          optimized_size: number
+          optimized_url: string
+          original_size: number
+          original_url: string
+          target_type: string | null
+          user_id: string | null
+          was_enhanced: boolean | null
+        }
+        Insert: {
+          compression_ratio?: number
+          created_at?: string | null
+          id?: string
+          optimized_size?: number
+          optimized_url: string
+          original_size?: number
+          original_url: string
+          target_type?: string | null
+          user_id?: string | null
+          was_enhanced?: boolean | null
+        }
+        Update: {
+          compression_ratio?: number
+          created_at?: string | null
+          id?: string
+          optimized_size?: number
+          optimized_url?: string
+          original_size?: number
+          original_url?: string
+          target_type?: string | null
+          user_id?: string | null
+          was_enhanced?: boolean | null
+        }
+        Relationships: []
       }
       filter_analytics: {
         Row: {

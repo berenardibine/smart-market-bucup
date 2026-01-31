@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { ArrowLeft, Store, Upload, X } from "lucide-react";
+import { ArrowLeft, Store, Upload, X, Loader2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useFileOptimization } from "@/hooks/useFileOptimization";
+import { useToast } from "@/hooks/use-toast";
 
 interface ShopFormProps {
   shop?: any;
@@ -15,8 +17,11 @@ interface ShopFormProps {
 
 const ShopForm = ({ shop, onSubmit, onCancel }: ShopFormProps) => {
   const { profile } = useAuth();
+  const { toast } = useToast();
+  const { optimizeFile, isOptimizing } = useFileOptimization();
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState(shop?.logo_url || '');
+  const [isProcessingLogo, setIsProcessingLogo] = useState(false);
   const [formData, setFormData] = useState({
     name: shop?.name || '',
     description: shop?.description || '',
@@ -27,6 +32,9 @@ const ShopForm = ({ shop, onSubmit, onCancel }: ShopFormProps) => {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    setIsProcessingLogo(true);
+    toast({ title: "🧠 AI Optimizing Logo", description: "Processing your shop logo..." });
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
@@ -41,9 +49,22 @@ const ShopForm = ({ shop, onSubmit, onCancel }: ShopFormProps) => {
         .from('profile-images')
         .getPublicUrl(filePath);
       
-      setFormData(prev => ({ ...prev, logo_url: publicUrl }));
-      setLogoPreview(publicUrl);
+      // Optimize the logo
+      const optimizeResult = await optimizeFile(publicUrl, 'profile', true);
+      const finalUrl = optimizeResult?.optimizedUrl || publicUrl;
+      
+      setFormData(prev => ({ ...prev, logo_url: finalUrl }));
+      setLogoPreview(finalUrl);
+      
+      if (optimizeResult && optimizeResult.compressionRatio > 0) {
+        toast({ 
+          title: "✨ Logo Optimized", 
+          description: `Reduced by ${optimizeResult.compressionRatio}%` 
+        });
+      }
     }
+    
+    setIsProcessingLogo(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,7 +98,15 @@ const ShopForm = ({ shop, onSubmit, onCancel }: ShopFormProps) => {
         {/* Logo Upload */}
         <div className="text-center">
           <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 border-2 border-dashed border-primary/50 flex items-center justify-center overflow-hidden relative">
-            {logoPreview ? (
+            {isProcessingLogo ? (
+              <div className="flex flex-col items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-1" />
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  Optimizing
+                </span>
+              </div>
+            ) : logoPreview ? (
               <>
                 <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
                 <button
@@ -86,7 +115,7 @@ const ShopForm = ({ shop, onSubmit, onCancel }: ShopFormProps) => {
                     setLogoPreview('');
                     setFormData(prev => ({ ...prev, logo_url: '' }));
                   }}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
+                  className="absolute top-1 right-1 w-6 h-6 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
