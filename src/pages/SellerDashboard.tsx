@@ -20,6 +20,7 @@ import ProductForm from "@/components/seller/ProductForm";
 import ProductList from "@/components/seller/ProductList";
 import RequestList from "@/components/seller/RequestList";
 import LinkAnalytics from "@/components/seller/LinkAnalytics";
+import SellerProductAnalytics from "@/components/seller/SellerProductAnalytics";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -505,9 +506,16 @@ const SellerDashboard = () => {
           />
         </TabsContent>
 
-        {/* Link Analytics Tab */}
-        <TabsContent value="analytics" className="mt-4">
-          <LinkAnalytics />
+        {/* Analytics Tab - Combined Link Analytics and Product Performance */}
+        <TabsContent value="analytics" className="mt-4 space-y-6">
+          {/* Product Views & Impressions Analytics */}
+          <SellerProductAnalytics />
+          
+          {/* Link Click Analytics */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">Link Click Analytics</h3>
+            <LinkAnalytics />
+          </div>
         </TabsContent>
 
         {/* Requests Tab */}

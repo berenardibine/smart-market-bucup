@@ -1993,6 +1993,85 @@ export type Database = {
           },
         ]
       }
+      product_analytics_daily: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          impressions_count: number | null
+          product_id: string
+          source_breakdown: Json | null
+          unique_impressions: number | null
+          unique_views: number | null
+          views_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          impressions_count?: number | null
+          product_id: string
+          source_breakdown?: Json | null
+          unique_impressions?: number | null
+          unique_views?: number | null
+          views_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          impressions_count?: number | null
+          product_id?: string
+          source_breakdown?: Json | null
+          unique_impressions?: number | null
+          unique_views?: number | null
+          views_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_analytics_daily_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_impressions: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          ref_source: string | null
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          ref_source?: string | null
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          ref_source?: string | null
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_impressions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_likes: {
         Row: {
           created_at: string
@@ -2111,6 +2190,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_requests_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_views: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          ref_source: string | null
+          session_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          ref_source?: string | null
+          session_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          ref_source?: string | null
+          session_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_views_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
@@ -3662,6 +3776,14 @@ export type Database = {
       }
       can_user_perform_action: {
         Args: { _action_type: string; _user_id: string }
+        Returns: boolean
+      }
+      check_recent_impression: {
+        Args: { p_hours?: number; p_product_id: string; p_session_id: string }
+        Returns: boolean
+      }
+      check_recent_view: {
+        Args: { p_minutes?: number; p_product_id: string; p_session_id: string }
         Returns: boolean
       }
       check_user_status: {
