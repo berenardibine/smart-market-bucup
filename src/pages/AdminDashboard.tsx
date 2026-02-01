@@ -101,6 +101,7 @@ const AdminDashboard = () => {
     { id: 'challenges', label: 'Challenges', icon: Target, color: 'from-amber-500 to-orange-500', bg: 'bg-amber-50 dark:bg-amber-950/30', path: '/admin/challenges', description: 'Task rewards' },
     { id: 'file-optimization', label: 'Optimizer', icon: Sparkles, color: 'from-violet-500 to-purple-500', bg: 'bg-violet-50 dark:bg-violet-950/30', path: '/admin/file-optimization', description: 'AI file optimize' },
     { id: 'analytics', label: 'Analytics', icon: PieChart, color: 'from-cyan-500 to-teal-500', bg: 'bg-cyan-50 dark:bg-cyan-950/30', path: '/admin/analytics', description: 'Platform stats' },
+    { id: 'views-analytics', label: 'Views', icon: Eye, color: 'from-sky-500 to-blue-500', bg: 'bg-sky-50 dark:bg-sky-950/30', path: '/admin/views-analytics', description: 'Impressions & views' },
     { id: 'link-analytics', label: 'Links', icon: TrendingUp, color: 'from-teal-500 to-emerald-500', bg: 'bg-teal-50 dark:bg-teal-950/30', path: '/admin/link-analytics', description: 'Traffic tracking' },
     { id: 'filter-analytics', label: 'Filters', icon: Activity, color: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', path: '/admin/filter-analytics', description: 'User filters' },
     { id: 'motivations', label: 'Quotes', icon: Quote, color: 'from-pink-500 to-rose-500', bg: 'bg-pink-50 dark:bg-pink-950/30', path: '/admin/motivations', description: 'Daily quotes' },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { 
   ArrowLeft, Heart, MessageCircle, Phone, Bell, Share2, 
   MapPin, Store, ShieldCheck, ChevronLeft, ChevronRight,
@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSellerConnections } from "@/hooks/useSellerConnections";
 import { useProductBySlug } from "@/hooks/useProductBySlug";
 import { useLinkAnalytics } from "@/hooks/useLinkAnalytics";
+import { useProductViewTracking } from "@/hooks/useProductTracking";
 import ProductMetaTags from "@/components/seo/ProductMetaTags";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ const ProductNotFound = () => (
 
 const ProductDetail = () => {
   const { slugOrId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -57,8 +59,14 @@ const ProductDetail = () => {
   const [currentImage, setCurrentImage] = useState(0);
   const [connectLoading, setConnectLoading] = useState(false);
 
-  // Track link analytics
+  // Determine ref source from URL params or default to 'direct'
+  const refSource = searchParams.get('ref') || 'direct';
+
+  // Track link analytics (existing)
   useLinkAnalytics(product?.id);
+
+  // Track product view (new impressions/views system)
+  useProductViewTracking(product?.id, refSource);
 
   const sellerId = product?.seller_id;
   const { connectionCount, isConnected, toggleConnection } = useSellerConnections(sellerId);
