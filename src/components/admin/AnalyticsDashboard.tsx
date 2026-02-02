@@ -35,6 +35,7 @@ interface AnalyticsData {
   productGrowth: { date: string; count: number }[];
   categoryDistribution: { name: string; count: number; fill: string }[];
   totalViews: number;
+  totalImpressions: number;
   totalConnections: number;
   activeUsers: number;
   blockedUsers: number;
@@ -51,6 +52,7 @@ const AnalyticsDashboard = () => {
     productGrowth: [],
     categoryDistribution: [],
     totalViews: 0,
+    totalImpressions: 0,
     totalConnections: 0,
     activeUsers: 0,
     blockedUsers: 0,
@@ -95,7 +97,7 @@ const AnalyticsDashboard = () => {
       // Fetch products created in the time range
       const { data: products } = await supabase
         .from('products')
-        .select('created_at, category, views')
+        .select('created_at, category')
         .gte('created_at', startDate.toISOString());
 
       // Fetch ALL products for category distribution (from database)
@@ -103,6 +105,15 @@ const AnalyticsDashboard = () => {
         .from('products')
         .select('category')
         .eq('status', 'active');
+
+      // Fetch real views and impressions from analytics tables
+      const { count: viewsCount } = await supabase
+        .from('product_views')
+        .select('id', { count: 'exact', head: true });
+
+      const { count: impressionsCount } = await supabase
+        .from('product_impressions')
+        .select('id', { count: 'exact', head: true });
 
       // Fetch connections count
       const { count: connectionsCount } = await (supabase as any)
@@ -121,9 +132,6 @@ const AnalyticsDashboard = () => {
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'blocked');
-
-      // Calculate total views
-      const totalViews = products?.reduce((sum, p) => sum + (p.views || 0), 0) || 0;
 
       // Group users by date
       const userGrowth = dateRange.map(date => {
@@ -170,11 +178,12 @@ const AnalyticsDashboard = () => {
         userGrowth,
         productGrowth,
         categoryDistribution,
-        totalViews,
+        totalViews: viewsCount || 0,
         totalConnections: connectionsCount || 0,
         activeUsers: activeCount || 0,
         blockedUsers: blockedCount || 0,
         onlineVisitors: Math.floor(Math.random() * 50) + 10, // Simulated live visitors
+        totalImpressions: impressionsCount || 0,
       });
     } catch (err) {
       console.error('Error fetching analytics:', err);

@@ -34,20 +34,20 @@ const AdminDashboard = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const [usersRes, productsRes, shopsRes, newUsersRes, pendingRes] = await Promise.all([
+      const [usersRes, productsRes, shopsRes, newUsersRes, pendingRes, viewsRes, impressionsRes] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
-        supabase.from('products').select('id, views', { count: 'exact' }),
+        supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('shops').select('id', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
         supabase.from('products').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('product_views').select('id', { count: 'exact', head: true }),
+        supabase.from('product_impressions').select('id', { count: 'exact', head: true }),
       ]);
-
-      const totalViews = productsRes.data?.reduce((sum, p) => sum + (p.views || 0), 0) || 0;
 
       setStats({
         totalUsers: usersRes.count || 0,
         totalProducts: productsRes.count || 0,
-        totalViews,
+        totalViews: viewsRes.count || 0,
         activeShops: shopsRes.count || 0,
         newUsersToday: newUsersRes.count || 0,
         pendingProducts: pendingRes.count || 0,

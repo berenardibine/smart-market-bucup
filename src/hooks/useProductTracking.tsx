@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 
 const SUPABASE_URL = "https://tbykrulfzhhkmtgjhvjh.supabase.co";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWtydWxmemhoa210Z2podmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjgxNTksImV4cCI6MjA4MDQ0NDE1OX0.Bm5bMN6QGgXeF2EOvmF7nmNBksmrPCLTkcXy-bXWiV0";
 
 // Generate or retrieve a persistent session ID for guests
 const getSessionId = (): string => {
@@ -68,7 +69,11 @@ const flushImpressionQueue = async () => {
       chunk.map(item => 
         fetch(`${SUPABASE_URL}/functions/v1/record-impression`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ANON_KEY}`,
+            'apikey': ANON_KEY
+          },
           body: JSON.stringify(item)
         }).catch(err => console.error('Impression tracking error:', err))
       )
@@ -86,7 +91,11 @@ const flushViewQueue = async () => {
     batch.map(item => 
       fetch(`${SUPABASE_URL}/functions/v1/record-view`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ANON_KEY}`,
+          'apikey': ANON_KEY
+        },
         body: JSON.stringify(item)
       }).catch(err => console.error('View tracking error:', err))
     )

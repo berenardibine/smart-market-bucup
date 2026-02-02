@@ -51,7 +51,8 @@ const FileOptimizationDashboard = () => {
     totalFiles: 0,
     spaceSaved: 0,
     avgCompression: 0,
-    filesEnhanced: 0
+    filesEnhanced: 0,
+    unoptimizedProducts: 0
   });
   const [recentLogs, setRecentLogs] = useState<OptimizationLog[]>([]);
   const [batchJobs, setBatchJobs] = useState<BatchJob[]>([]);
@@ -63,13 +64,28 @@ const FileOptimizationDashboard = () => {
     try {
       // Fetch stats
       const statsResult = await getOptimizationStats();
+      
+      // Count products with unoptimized images (images not from optimized folder)
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, images');
+      
+      const unoptimizedCount = (products || []).filter(p => 
+        (p.images as string[] || []).some(img => 
+          !img.includes('/optimized/') && img.includes('product-images')
+        )
+      ).length;
+
       if (statsResult) {
         setStats({
           totalFiles: statsResult.totalFilesProcessed,
           spaceSaved: statsResult.totalSpaceSaved,
           avgCompression: statsResult.averageCompression,
-          filesEnhanced: statsResult.filesEnhanced
+          filesEnhanced: statsResult.filesEnhanced,
+          unoptimizedProducts: unoptimizedCount
         });
+      } else {
+        setStats(prev => ({ ...prev, unoptimizedProducts: unoptimizedCount }));
       }
 
       // Fetch recent logs
@@ -215,6 +231,20 @@ const FileOptimizationDashboard = () => {
               <div>
                 <p className="text-2xl font-bold">{stats.filesEnhanced}</p>
                 <p className="text-sm text-muted-foreground">AI Enhanced</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-red-500/10">
+                <AlertCircle className="h-6 w-6 text-red-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.unoptimizedProducts}</p>
+                <p className="text-sm text-muted-foreground">Unoptimized Products</p>
               </div>
             </div>
           </CardContent>
