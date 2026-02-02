@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Crown } from "lucide-react";
+import { useProductTracking } from "@/hooks/useProductTracking";
 
 interface FloatingProductCardProps {
   id: string;
@@ -14,6 +15,7 @@ interface FloatingProductCardProps {
   hideSponsored?: boolean | null;
   isAdminPosted?: boolean | null;
   isNegotiable?: boolean | null;
+  refSource?: string;
 }
 
 const FloatingProductCard = ({
@@ -27,9 +29,19 @@ const FloatingProductCard = ({
   hideSponsored,
   isAdminPosted,
   isNegotiable,
+  refSource = 'home',
 }: FloatingProductCardProps) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { trackElement, recordView } = useProductTracking();
+
+  // Setup impression tracking when card mounts
+  useEffect(() => {
+    if (cardRef.current && id) {
+      trackElement(cardRef.current, id, refSource);
+    }
+  }, [id, refSource, trackElement]);
 
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('en-RW', {
@@ -39,6 +51,8 @@ const FloatingProductCard = ({
   };
 
   const handleClick = () => {
+    // Record view on click
+    recordView(id, refSource);
     navigate(`/product/${slug || id}`);
   };
 
@@ -49,7 +63,10 @@ const FloatingProductCard = ({
 
   return (
     <div
+      ref={cardRef}
       onClick={handleClick}
+      data-product-id={id}
+      data-ref-source={refSource}
       className={cn(
         "group relative bg-background rounded-2xl overflow-hidden cursor-pointer",
         "border-none p-3 md:p-4",

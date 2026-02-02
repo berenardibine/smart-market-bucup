@@ -129,6 +129,26 @@ serve(async (req) => {
             results.totalOriginalSize += result.originalSize || 0;
             results.totalOptimizedSize += result.optimizedSize || 0;
 
+            // Update product records that use this image
+            const { data: affectedProducts } = await supabase
+              .from('products')
+              .select('id, images')
+              .filter('images', 'cs', `["${publicUrl}"]`);
+
+            if (affectedProducts && affectedProducts.length > 0) {
+              for (const product of affectedProducts) {
+                const updatedImages = (product.images as string[]).map(img => 
+                  img === publicUrl ? result.optimizedUrl : img
+                );
+                
+                await supabase
+                  .from('products')
+                  .update({ images: updatedImages })
+                  .eq('id', product.id);
+              }
+              console.log(`[Batch Optimizer] Updated ${affectedProducts.length} product(s) with optimized image`);
+            }
+
             // Archive original file (move to archive folder)
             const archivePath = `archive/${file.path}`;
             const { data: originalFile } = await supabase.storage
@@ -139,6 +159,11 @@ serve(async (req) => {
               await supabase.storage
                 .from('product-images')
                 .upload(archivePath, originalFile, { upsert: true });
+              
+              // Delete original after successful archive
+              await supabase.storage
+                .from('product-images')
+                .remove([file.path]);
             }
 
             console.log(`[Batch Optimizer] Optimized: ${file.path}`);

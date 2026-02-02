@@ -4,7 +4,7 @@ import {
   ArrowLeft, Store, Package, Plus, MessageSquare, Bell,
   Eye, Heart, Settings, ChevronRight, Phone,
   Users, DollarSign, Sparkles, Menu, X, Home,
-  ShoppingBag, TrendingUp, BarChart3, Zap, Star, Link2
+  ShoppingBag, TrendingUp, BarChart3, Zap, Star, Link2, MousePointerClick
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useMyShop } from "@/hooks/useShops";
 import { useMyProducts } from "@/hooks/useProducts";
 import { useProductRequests } from "@/hooks/useProductRequests";
 import { useToast } from "@/hooks/use-toast";
+import { useSellerViewsStats } from "@/hooks/useProductViews";
 import { supabase } from "@/integrations/supabase/client";
 import ShopForm from "@/components/seller/ShopForm";
 import ProductForm from "@/components/seller/ProductForm";
@@ -31,6 +32,7 @@ const SellerDashboard = () => {
   const { shop, loading: shopLoading, createShop, updateShop } = useMyShop();
   const { products, loading: productsLoading, refetch: refetchProducts } = useMyProducts();
   const { requests, loading: requestsLoading, updateRequestStatus } = useProductRequests();
+  const { stats: viewsStats, loading: viewsLoading } = useSellerViewsStats(user?.id);
   const isMobile = useIsMobile();
   
   const [activeTab, setActiveTab] = useState("overview");
@@ -41,7 +43,6 @@ const SellerDashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
-  const totalViews = products.reduce((sum, p) => sum + (p.views || 0), 0);
   const totalLikes = products.reduce((sum, p) => sum + (p.likes || 0), 0);
 
   // Fetch connectors count
@@ -132,9 +133,9 @@ const SellerDashboard = () => {
   }
 
   const stats = [
-    { label: 'Views', value: totalViews, icon: Eye, color: 'from-blue-500 to-cyan-400', bg: 'from-blue-500/10 to-cyan-500/10' },
-    { label: 'Favorites', value: totalLikes, icon: Heart, color: 'from-red-500 to-pink-400', bg: 'from-red-500/10 to-pink-500/10' },
-    { label: 'Requests', value: requests.length, icon: MessageSquare, color: 'from-green-500 to-emerald-400', bg: 'from-green-500/10 to-emerald-500/10' },
+    { label: 'Views', value: viewsStats.totalViews, icon: Eye, color: 'from-blue-500 to-cyan-400', bg: 'from-blue-500/10 to-cyan-500/10' },
+    { label: 'Impressions', value: viewsStats.totalImpressions, icon: MousePointerClick, color: 'from-green-500 to-emerald-400', bg: 'from-green-500/10 to-emerald-500/10' },
+    { label: 'Requests', value: requests.length, icon: MessageSquare, color: 'from-orange-500 to-amber-400', bg: 'from-orange-500/10 to-amber-500/10' },
     { label: 'Connectors', value: connectorsCount, icon: Users, color: 'from-purple-500 to-violet-400', bg: 'from-purple-500/10 to-violet-500/10' },
   ];
 
