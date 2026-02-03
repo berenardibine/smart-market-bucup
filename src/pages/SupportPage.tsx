@@ -99,11 +99,11 @@ const SupportPage = () => {
       {/* Quick Contact Options */}
       <div className="p-4">
         <div className="grid grid-cols-3 gap-3">
-          <a href="tel:+250788000000" className="bg-card rounded-xl p-4 border text-center hover:border-primary/50 transition-colors">
+          <a href="tel:+250798751685" className="bg-card rounded-xl p-4 border text-center hover:border-primary/50 transition-colors">
             <Phone className="h-6 w-6 text-green-600 mx-auto mb-2" />
             <p className="text-sm font-medium">Call Us</p>
           </a>
-          <a href="mailto:support@smartmarket.rw" className="bg-card rounded-xl p-4 border text-center hover:border-primary/50 transition-colors">
+          <a href="mailto:manishimweberenard@gmail.com" className="bg-card rounded-xl p-4 border text-center hover:border-primary/50 transition-colors">
             <Mail className="h-6 w-6 text-blue-600 mx-auto mb-2" />
             <p className="text-sm font-medium">Email</p>
           </a>
@@ -190,7 +190,7 @@ const SupportPage = () => {
       {/* Contact Info */}
       <div className="px-4 py-6 text-center text-sm text-muted-foreground">
         <p>Smart Market Support Team</p>
-        <p>support@smartmarket.rw • +250 788 000 000</p>
+        <p> +250 798 751 685</p>
       </div>
     </div>
   );
