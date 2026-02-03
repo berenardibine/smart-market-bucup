@@ -36,7 +36,7 @@ interface SignUpData {
   email: string;
   password: string;
   fullName: string;
-  userType: 'buyer' | 'seller';
+  userType: 'seller'; // Only seller accounts now - guests don't need accounts
   phoneNumber: string;
   callNumber?: string;
   whatsappNumber?: string;
