@@ -80,7 +80,7 @@ const Header = ({ onSearchClick, notificationCount = 0 }: HeaderProps) => {
               className="h-8 bg-white text-primary hover:bg-orange-50 font-semibold text-xs px-3 gap-1.5 shadow-sm"
             >
               <UserPlus className="h-3.5 w-3.5" />
-              Sign Up
+              Become a Seller
             </Button>
           )}
         </div>

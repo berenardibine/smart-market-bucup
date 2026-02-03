@@ -83,8 +83,8 @@ const FloatingProductCard = ({
         </div>
       )}
 
-      {/* Product Image */}
-      <div className="relative aspect-square w-full mb-3 overflow-hidden rounded-xl bg-background">
+      {/* Product Image - No zoom, color accurate */}
+      <div className="relative aspect-square w-full mb-3 overflow-hidden rounded-xl bg-white">
         {!imageLoaded && (
           <div className="absolute inset-0 bg-muted animate-pulse rounded-xl" />
         )}
@@ -94,14 +94,12 @@ const FloatingProductCard = ({
           alt={title}
           onLoad={() => setImageLoaded(true)}
           className={cn(
-            "w-full h-full object-contain max-h-[220px] mx-auto",
-            "transition-all duration-300",
-            "group-hover:scale-105",
+            "w-full h-full object-contain",
+            "transition-opacity duration-300",
             !imageLoaded && "opacity-0"
           )}
-          style={{ 
-            mixBlendMode: 'multiply',
-            backgroundColor: 'white'
+          onError={(e) => {
+            e.currentTarget.src = '/placeholder.svg';
           }}
         />
       </div>

@@ -1,21 +1,20 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { 
-  ArrowLeft, Heart, MessageCircle, Phone, Bell, Share2, 
+  ArrowLeft, Heart, MessageCircle, Phone, Share2, 
   MapPin, Store, ShieldCheck, ChevronLeft, ChevronRight,
-  Package, Tag, Home, Loader2, Link2, Users
+  Package, Tag, Home, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useProducts";
-import { useSendRequest } from "@/hooks/useProductRequests";
 import { useAuth } from "@/hooks/useAuth";
-import { useSellerConnections } from "@/hooks/useSellerConnections";
 import { useProductBySlug } from "@/hooks/useProductBySlug";
 import { useLinkAnalytics } from "@/hooks/useLinkAnalytics";
 import { useProductViewTracking } from "@/hooks/useProductTracking";
 import ProductMetaTags from "@/components/seo/ProductMetaTags";
+import ImageLightbox from "@/components/ui/image-lightbox";
 import { cn } from "@/lib/utils";
 
 // Loading Component
@@ -55,9 +54,8 @@ const ProductDetail = () => {
   const { user } = useAuth();
   const { product, loading, error, isSlugBased } = useProductBySlug(slugOrId);
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { sendRequest, sending } = useSendRequest();
   const [currentImage, setCurrentImage] = useState(0);
-  const [connectLoading, setConnectLoading] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   // Determine ref source from URL params or default to 'direct'
   const refSource = searchParams.get('ref') || 'direct';
@@ -67,9 +65,6 @@ const ProductDetail = () => {
 
   // Track product view (new impressions/views system)
   useProductViewTracking(product?.id, refSource);
-
-  const sellerId = product?.seller_id;
-  const { connectionCount, isConnected, toggleConnection } = useSellerConnections(sellerId);
 
   // Redirect old ID-based URLs to slug-based URLs
   useEffect(() => {
@@ -84,12 +79,10 @@ const ProductDetail = () => {
   }
 
   // Generate product URLs for sharing
-  // Use /p/ path for social media sharing (goes through edge function for OG tags)
   const productSlugOrId = product?.slug || product?.id;
   const shareableUrl = productSlugOrId 
     ? `https://smart-market-online.vercel.app/p/${productSlugOrId}`
     : window.location.href;
-  // Regular URL for direct navigation
   const productUrl = product?.slug 
     ? `https://smart-market-online.vercel.app/product/${product.slug}`
     : window.location.href;
@@ -97,7 +90,6 @@ const ProductDetail = () => {
   const handleWhatsApp = () => {
     const phone = product?.contact_whatsapp || product?.seller?.whatsapp_number;
     if (phone) {
-      // Use shareableUrl for better social media preview
       const message = encodeURIComponent(`Hello! I'm interested in your product on Smart Market: ${shareableUrl}`);
       window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
     } else {
@@ -114,61 +106,8 @@ const ProductDetail = () => {
     }
   };
 
-  const handleRequest = async () => {
-    if (!user) {
-      toast({ 
-        title: "Please sign in", 
-        description: "You need to be logged in to request a product",
-        variant: "destructive" 
-      });
-      navigate('/auth');
-      return;
-    }
-
-    if (!product) return;
-
-    try {
-      await sendRequest(product.id, product.seller_id);
-      toast({ 
-        title: "🎉 Request sent!", 
-        description: "Seller will contact you soon." 
-      });
-    } catch (err: any) {
-      toast({ 
-        title: "Request failed", 
-        description: err.message,
-        variant: "destructive" 
-      });
-    }
-  };
-
-  const handleConnect = async () => {
-    if (!user) {
-      toast({ 
-        title: "Please sign in", 
-        description: "Sign in to connect with sellers",
-        variant: "destructive" 
-      });
-      navigate('/auth');
-      return;
-    }
-    if (user.id === sellerId) {
-      toast({ title: "You can't connect with yourself" });
-      return;
-    }
-    setConnectLoading(true);
-    const { error } = await toggleConnection();
-    if (error) {
-      toast({ title: "Failed to connect", variant: "destructive" });
-    } else {
-      toast({ title: isConnected ? "Disconnected" : "Connected with seller! 🎉" });
-    }
-    setConnectLoading(false);
-  };
-
   const handleShare = async () => {
     try {
-      // Use shareableUrl for social media sharing (includes OG meta tags)
       if (navigator.share) {
         await navigator.share({
           title: product?.title,
@@ -216,13 +155,20 @@ const ProductDetail = () => {
         price={product.price}
       />
       
+      {/* Fullscreen Image Lightbox */}
+      <ImageLightbox
+        images={images}
+        initialIndex={currentImage}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
+      
       <div className="min-h-screen bg-background pb-8">
         {/* Header */}
         <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
           <div className="flex items-center justify-between p-4">
             <button 
               onClick={() => {
-                // Check if there's browser history to go back to, otherwise go home
                 if (window.history.length > 2) {
                   navigate(-1);
                 } else {
@@ -256,13 +202,16 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Image Carousel */}
-        <div className="relative bg-gradient-to-br from-muted to-muted/50">
-          <div className="aspect-square relative overflow-hidden">
+        {/* Image Carousel - No zoom, click opens lightbox */}
+        <div className="relative bg-background">
+          <div 
+            className="aspect-square relative overflow-hidden cursor-pointer"
+            onClick={() => setLightboxOpen(true)}
+          >
             <img 
               src={images[currentImage]} 
               alt={product.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain bg-white"
               onError={(e) => {
                 e.currentTarget.src = '/placeholder.svg';
               }}
@@ -272,13 +221,13 @@ const ProductDetail = () => {
             {images.length > 1 && (
               <>
                 <button
-                  onClick={() => setCurrentImage(prev => prev > 0 ? prev - 1 : images.length - 1)}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImage(prev => prev > 0 ? prev - 1 : images.length - 1); }}
                   className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button
-                  onClick={() => setCurrentImage(prev => prev < images.length - 1 ? prev + 1 : 0)}
+                  onClick={(e) => { e.stopPropagation(); setCurrentImage(prev => prev < images.length - 1 ? prev + 1 : 0); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -289,7 +238,7 @@ const ProductDetail = () => {
                   {images.map((_, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setCurrentImage(idx)}
+                      onClick={(e) => { e.stopPropagation(); setCurrentImage(idx); }}
                       className={cn(
                         "w-2 h-2 rounded-full transition-all",
                         idx === currentImage 
@@ -301,11 +250,16 @@ const ProductDetail = () => {
                 </div>
               </>
             )}
+            
+            {/* Tap to view hint */}
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-3 py-1 rounded-full">
+              Tap to view full screen
+            </div>
           </div>
 
           {/* Thumbnail Strip */}
           {images.length > 1 && (
-            <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide bg-background">
               {images.map((img, idx) => (
                 <button
                   key={idx}
@@ -439,33 +393,11 @@ const ProductDetail = () => {
                     {product.shop.trading_center}
                   </p>
                 )}
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                  <Users className="h-3 w-3" />
-                  <span>{connectionCount} connectors</span>
-                </div>
               </div>
             </div>
-
-            {/* Connect with Seller Button - Hidden for admin products */}
-            {!product.admin_posted && (
-              <Button
-                onClick={handleConnect}
-                disabled={connectLoading}
-                variant={isConnected ? "outline" : "default"}
-                className={cn(
-                  "w-full mt-4 gap-2",
-                  isConnected 
-                    ? "border-primary text-primary hover:bg-primary/5" 
-                    : "bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90"
-                )}
-              >
-                <Link2 className="h-5 w-5" />
-                {connectLoading ? "..." : isConnected ? `Connected (${connectionCount})` : `Connect with Seller (${connectionCount})`}
-              </Button>
-            )}
           </div>
 
-          {/* Vertical Contact Buttons Section */}
+          {/* Contact Buttons Section */}
           <div className="bg-background rounded-2xl p-4 space-y-3">
             <h3 className="font-semibold mb-3 text-foreground">Contact Seller</h3>
             
@@ -493,23 +425,6 @@ const ProductDetail = () => {
               </div>
               <span className="flex-1 text-left font-semibold">Contact Seller on WhatsApp</span>
             </Button>
-
-            {/* I Need This Product Button - Hidden for admin products */}
-            {!product.admin_posted && (
-              <Button
-                onClick={handleRequest}
-                disabled={sending}
-                size="lg"
-                className="w-full gap-3 h-14 rounded-xl bg-gradient-to-r from-primary via-primary to-amber-500 hover:opacity-90 text-white transition-all duration-300 shadow-soft hover:shadow-elevated"
-              >
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <span className="text-lg">❤️</span>
-                </div>
-                <span className="flex-1 text-left font-semibold">
-                  {sending ? "Sending..." : "I Need This Product"}
-                </span>
-              </Button>
-            )}
 
             {/* Secure contact label */}
             <p className="text-center text-xs text-muted-foreground pt-2">

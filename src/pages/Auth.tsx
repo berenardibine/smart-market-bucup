@@ -4,7 +4,6 @@ import { ShoppingBag, Mail, User, Phone, Store, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import PasswordInput, { validatePassword } from '@/components/auth/PasswordInput';
@@ -23,10 +22,8 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
-  // Sign Up fields
+  // Sign Up fields (Seller only)
   const [fullName, setFullName] = useState('');
-  const [userType, setUserType] = useState<'buyer' | 'seller'>('buyer');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [callNumber, setCallNumber] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [provinceId, setProvinceId] = useState('');
@@ -82,19 +79,10 @@ const Auth = () => {
       return;
     }
 
-    if (userType === 'buyer' && !phoneNumber) {
-      toast({
-        title: 'Phone number required',
-        description: 'Please enter your phone number.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (userType === 'seller' && (!callNumber || !whatsappNumber)) {
+    if (!callNumber || !whatsappNumber) {
       toast({
         title: 'Contact numbers required',
-        description: 'Sellers must provide both call and WhatsApp numbers.',
+        description: 'Please provide both call and WhatsApp numbers.',
         variant: 'destructive',
       });
       return;
@@ -106,10 +94,10 @@ const Auth = () => {
       email,
       password,
       fullName,
-      userType,
-      phoneNumber: userType === 'buyer' ? phoneNumber : callNumber,
-      callNumber: userType === 'seller' ? callNumber : undefined,
-      whatsappNumber: userType === 'seller' ? whatsappNumber : undefined,
+      userType: 'seller', // Always seller - no buyer accounts
+      phoneNumber: callNumber,
+      callNumber,
+      whatsappNumber,
       provinceId,
       districtId,
       sectorId,
@@ -169,7 +157,7 @@ const Auth = () => {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            Sign Up
+            Become a Seller
           </button>
         </div>
 
@@ -177,7 +165,7 @@ const Auth = () => {
           <form onSubmit={handleSignIn} className="space-y-6">
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold text-foreground">Welcome Back!</h1>
-              <p className="text-muted-foreground mt-2">Sign in to continue shopping</p>
+              <p className="text-muted-foreground mt-2">Sign in to manage your shop</p>
             </div>
 
             <div className="space-y-4">
@@ -223,49 +211,11 @@ const Auth = () => {
         ) : (
           <form onSubmit={handleSignUp} className="space-y-6">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
-              <p className="text-muted-foreground mt-2">Join Rwanda Smart Market today</p>
-            </div>
-
-            {/* User Type Selection */}
-            <div className="space-y-3">
-              <Label>I want to:</Label>
-              <RadioGroup
-                value={userType}
-                onValueChange={(value) => setUserType(value as 'buyer' | 'seller')}
-                className="grid grid-cols-2 gap-3"
-              >
-                <Label
-                  htmlFor="buyer"
-                  className={cn(
-                    "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                    userType === 'buyer'
-                      ? "border-primary bg-primary/5"
-                      : "border-border/50 hover:border-primary/50"
-                  )}
-                >
-                  <RadioGroupItem value="buyer" id="buyer" />
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Buy</span>
-                  </div>
-                </Label>
-                <Label
-                  htmlFor="seller"
-                  className={cn(
-                    "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                    userType === 'seller'
-                      ? "border-primary bg-primary/5"
-                      : "border-border/50 hover:border-primary/50"
-                  )}
-                >
-                  <RadioGroupItem value="seller" id="seller" />
-                  <div className="flex items-center gap-2">
-                    <Store className="h-4 w-4 text-primary" />
-                    <span className="font-medium">Sell</span>
-                  </div>
-                </Label>
-              </RadioGroup>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Store className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground">Become a Seller</h1>
+              <p className="text-muted-foreground mt-2">Start selling on Rwanda Smart Market</p>
             </div>
 
             {/* Full Name */}
@@ -293,56 +243,38 @@ const Auth = () => {
             />
 
             {/* Phone Numbers */}
-            {userType === 'buyer' ? (
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Label htmlFor="callNumber">Call Number</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="phoneNumber"
+                    id="callNumber"
                     type="tel"
                     placeholder="07X XXX XXXX"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    value={callNumber}
+                    onChange={(e) => setCallNumber(e.target.value)}
                     className="pl-10 h-12 bg-white/80"
                     required
                   />
                 </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="callNumber">Call Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="callNumber"
-                      type="tel"
-                      placeholder="07X XXX XXXX"
-                      value={callNumber}
-                      onChange={(e) => setCallNumber(e.target.value)}
-                      className="pl-10 h-12 bg-white/80"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
-                    <Input
-                      id="whatsappNumber"
-                      type="tel"
-                      placeholder="07X XXX XXXX"
-                      value={whatsappNumber}
-                      onChange={(e) => setWhatsappNumber(e.target.value)}
-                      className="pl-10 h-12 bg-white/80"
-                      required
-                    />
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
+                  <Input
+                    id="whatsappNumber"
+                    type="tel"
+                    placeholder="07X XXX XXXX"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    className="pl-10 h-12 bg-white/80"
+                    required
+                  />
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Email */}
             <div className="space-y-2">
@@ -374,10 +306,29 @@ const Auth = () => {
               className="w-full h-12 bg-gradient-primary hover:opacity-90 text-white font-semibold rounded-xl"
               disabled={loading}
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? 'Creating account...' : 'Create Seller Account'}
             </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              🛍️ Start selling your products to thousands of buyers
+            </p>
           </form>
         )}
+
+        {/* Guest Info */}
+        <div className="mt-8 p-4 bg-muted/30 rounded-2xl text-center">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Looking to buy?</span><br />
+            Browse and contact sellers without an account!
+          </p>
+          <Button
+            variant="outline"
+            className="mt-3"
+            onClick={() => navigate('/')}
+          >
+            Continue as Guest
+          </Button>
+        </div>
 
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-8">
