@@ -299,7 +299,7 @@ const SellerDashboard = () => {
             </div>
           )}
 
-          {/* Monetization Card */}
+          {/* Monetization Card 
           <div 
             onClick={() => navigate('/seller-monetization')}
             className="bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-500/10 rounded-2xl p-5 border border-amber-500/20 cursor-pointer hover:shadow-lg transition-all group"
@@ -322,7 +322,7 @@ const SellerDashboard = () => {
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
-          </div>
+          </div> */}
 
           {/* Quick Actions */}
           <div className="bg-white rounded-2xl p-4 border shadow-soft">

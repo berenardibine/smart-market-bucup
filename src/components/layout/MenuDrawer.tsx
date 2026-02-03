@@ -23,11 +23,7 @@ const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
   const menuItems = [
     { icon: User, label: "My Account", href: "/account", requiresAuth: true, color: "bg-blue-500" },
     { icon: Store, label: "My Shop", href: "/my-shop", requiresAuth: true, sellerOnly: true, color: "bg-green-500" },
-    { icon: Heart, label: "Favorites", href: "/favorites", requiresAuth: true, color: "bg-pink-500" },
-    { icon: Trophy, label: "Smart Challenge", href: "/challenges", badge: "New", color: "bg-amber-500" },
     { icon: Bell, label: "Notifications", href: "/notifications", requiresAuth: true, color: "bg-purple-500" },
-    { icon: Gift, label: "Rewards", href: "/rewards", requiresAuth: true, color: "bg-orange-500" },
-    { icon: Star, label: "Premium", href: "/premium", color: "bg-gradient-to-r from-amber-500 to-orange-500" },
   ];
 
   const supportItems = [
