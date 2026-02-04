@@ -25,8 +25,7 @@ import { cn } from "@/lib/utils";
 const ProductLoader = () => (
   <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
     <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-     <h2 className="text-primary font-bond">Smart Market </h2>
-    <p className="text-muted-foreground">Developed and powered by <br>Smart Technology</br>.</p>
+    <p className="text-muted-foreground">Developed by Smart Technology</p>
   </div>
 );
 
