@@ -25,7 +25,8 @@ import { cn } from "@/lib/utils";
 const ProductLoader = () => (
   <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
     <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-    <p className="text-muted-foreground">Loading product details...</p>
+     <h2 className="text-primary font-bond">Smart Market </h2>
+    <p className="text-muted-foreground">Developed and powered by <br>Smart Technology</br>.</p>
   </div>
 );
 
@@ -192,7 +193,7 @@ const ProductDetail = () => {
               >
                 <Share2 className="h-5 w-5" />
               </button>
-              <button 
+              {/*   <button 
                 onClick={() => toggleFavorite(product.id)}
                 className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center transition-all",
@@ -202,7 +203,7 @@ const ProductDetail = () => {
                 )}
               >
                 <Heart className={cn("h-5 w-5", favorite && "fill-current")} />
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -348,7 +349,7 @@ const ProductDetail = () => {
             </div>
             {product.admin_posted && (
               <Badge className="mt-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
-                ✓ Official Smart Market Listing
+                
               </Badge>
             )}
           </div>
@@ -423,7 +424,7 @@ const ProductDetail = () => {
 
           {/* Contact Buttons Section */}
           <div className="bg-background rounded-2xl p-4 space-y-3">
-            <h3 className="font-semibold mb-3 text-foreground">Contact Seller</h3>
+            <h3 className="font-semibold mb-3 text-foreground">Contact Seller For This product</h3>
             
             {/* Call Seller Button */}
             <Button
@@ -435,7 +436,7 @@ const ProductDetail = () => {
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Phone className="h-5 w-5 text-primary" />
               </div>
-              <span className="flex-1 text-left font-semibold text-foreground">Call Seller</span>
+              <span className="flex-1 text-left font-semibold text-foreground">Call Seller Directly</span>
             </Button>
 
             {/* WhatsApp Button */}
@@ -452,7 +453,7 @@ const ProductDetail = () => {
 
             {/* Secure contact label */}
             <p className="text-center text-xs text-muted-foreground pt-2">
-              🔒 Secure contact powered by Smart Market
+              🔒 Secure contact powered by Smart Technology 
             </p>
           </div>
 
@@ -462,10 +463,10 @@ const ProductDetail = () => {
               variant="ghost"
               size="sm"
               onClick={() => setReportModalOpen(true)}
-              className="text-muted-foreground hover:text-destructive gap-2"
+              className="w-full gap-3 h-14 rounded-xl border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-soft"
             >
               <Flag className="h-4 w-4" />
-              Report product or seller — help us keep Smart Market safe
+              Report this product or seller
             </Button>
           </div>
 
