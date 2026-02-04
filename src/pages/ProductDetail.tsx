@@ -463,7 +463,7 @@ const ProductDetail = () => {
               variant="ghost"
               size="sm"
               onClick={() => setReportModalOpen(true)}
-              className="w-full gap-3 h-14 rounded-xl border-2 border-primary/20 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-soft"
+              className="w-full gap-3 h-14 rounded-xl border-2 border-primary/20 hover:border-primary text:bg-red transition-all duration-300 shadow-soft"
             >
               <Flag className="h-4 w-4" />
               Report this product or seller
