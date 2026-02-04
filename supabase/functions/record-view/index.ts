@@ -68,6 +68,23 @@ serve(async (req) => {
       );
     }
 
+    // Update metrics cache and daily aggregation (fire and forget)
+    const today = new Date().toISOString().split('T')[0];
+    
+    await Promise.all([
+      supabase.rpc('increment_product_metrics', {
+        p_product_id: productId,
+        p_increment_impressions: 0,
+        p_increment_views: 1
+      }),
+      supabase.rpc('increment_daily_agg', {
+        p_product_id: productId,
+        p_date: today,
+        p_increment_impressions: 0,
+        p_increment_views: 1
+      })
+    ]).catch(err => console.error('Error updating aggregates:', err));
+
     return new Response(
       JSON.stringify({ success: true, recorded: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

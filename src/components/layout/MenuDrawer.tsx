@@ -20,12 +20,19 @@ const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
 
-  const menuItems = [
+  const menuItems: Array<{
+    icon: typeof User;
+    label: string;
+    href: string;
+    requiresAuth?: boolean;
+    sellerOnly?: boolean;
+    color: string;
+    badge?: string;
+  }> = [
     { icon: User, label: "My Account", href: "/account", requiresAuth: true, color: "bg-blue-500" },
     { icon: Store, label: "My Shop", href: "/my-shop", requiresAuth: true, sellerOnly: true, color: "bg-green-500" },
     { icon: Bell, label: "Notifications", href: "/notifications", requiresAuth: true, color: "bg-purple-500" },
   ];
-
   const supportItems = [
     { icon: Settings, label: "Settings", href: "/settings", color: "bg-slate-500" },
     { icon: HelpCircle, label: "Help Center", href: "/help", color: "bg-cyan-500" },

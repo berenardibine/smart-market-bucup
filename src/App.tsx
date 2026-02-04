@@ -19,6 +19,7 @@ import RentPage from "./pages/RentPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import BlockedPage from "./pages/BlockedPage";
 import SellerMonetization from "./pages/SellerMonetization";
+import ShopPage from "./pages/ShopPage";
 import NotFound from "./pages/NotFound";
 
 // Menu Pages
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/product/:slugOrId" element={<ProductDetail />} />
             <Route path="/seller-dashboard" element={<SellerDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/shop/:shopId" element={<ShopPage />} />
             
             {/* Admin Routes */}
             <Route path="/admin/products" element={<AdminProducts />} />

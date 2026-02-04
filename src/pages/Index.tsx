@@ -11,13 +11,12 @@ import SellerFAB from "@/components/layout/SellerFAB";
 import AdminFAB from "@/components/layout/AdminFAB";
 import LocationModal from "@/components/location/LocationModal";
 import ProductFilterBar, { ProductFilters } from "@/components/filters/ProductFilterBar";
-import AIGreeting from "@/components/home/AIGreeting";
-import DailyMotivation from "@/components/home/DailyMotivation";
-import SmartChallenge from "@/components/home/SmartChallenge";
-import FloatingProductCard from "@/components/home/FloatingProductCard";
-import CategoryCarousel from "@/components/home/CategoryCarousel";
-import SectionHeader from "@/components/home/SectionHeader";
 import HomeAds from "@/components/home/HomeAds";
+import FloatingProductCard from "@/components/home/FloatingProductCard";
+import AutoScrollCarousel from "@/components/home/AutoScrollCarousel";
+import ShopNearMe from "@/components/home/ShopNearMe";
+import SectionHeader from "@/components/home/SectionHeader";
+import CategoryCarousel from "@/components/home/CategoryCarousel";
 import { useAuth } from "@/hooks/useAuth";
 import { useDynamicHomeFeed } from "@/hooks/useDynamicHomeFeed";
 import { useUserLocation } from "@/hooks/useUserLocation";
@@ -66,63 +65,6 @@ const Index = () => {
     </div>
   );
 
-  // Featured Section Card
-  const FeaturedSectionCard = ({
-    title,
-    icon: Icon,
-    color,
-    products,
-    onViewAll,
-  }: {
-    title: string;
-    icon: React.ElementType;
-    color: string;
-    products: any[];
-    onViewAll: () => void;
-  }) => (
-    <div className="relative">
-      {/* Header */}
-      <div className={cn(
-        "flex items-center justify-between px-4 py-3 rounded-t-2xl",
-        `bg-gradient-to-r ${color}`
-      )}>
-        <div className="flex items-center gap-2">
-          <Icon className="h-5 w-5 text-white" />
-          <h3 className="font-bold text-white">{title}</h3>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onViewAll}
-          className="text-white hover:bg-white/20 gap-1"
-        >
-          View All
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      {/* Products */}
-      <div className="bg-card rounded-b-2xl shadow-soft p-3">
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
-          {products.slice(0, 6).map((product) => (
-            <div key={product.id} className="w-[160px] shrink-0">
-              <FloatingProductCard
-                id={product.id}
-                title={product.title}
-                price={product.price}
-                images={product.images}
-                rentalUnit={product.rental_unit}
-                isSponsored={product.sponsored}
-                isAdminPosted={product.admin_posted}
-                isNegotiable={product.is_negotiable}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pb-20 pt-14">
       <Header
@@ -143,54 +85,63 @@ const Index = () => {
           />
         </section>
 
-        {/* New Arrivals Section */}
+        {/* New Arrivals Section - Auto-scroll */}
         {newArrivals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            <FeaturedSectionCard
-              title="✨ New Arrivals"
-              icon={Clock}
+            <AutoScrollCarousel
+              title="New Arrivals"
+              icon="✨"
               color="from-blue-500 to-cyan-400"
               products={newArrivals}
-              onViewAll={() => navigate('/new-arrivals')}
+              viewAllLink="/new-arrivals"
+              autoScrollInterval={3000}
             />
           </section>
         )}
 
-        {/* Asset Section */}
+        {/* Shop Near Me Section */}
+        <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
+          <ShopNearMe />
+        </section>
+
+        {/* Asset Section - Auto-scroll */}
         {assetProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
-            <FeaturedSectionCard
-              title="🏠 Assets"
-              icon={Home}
+          <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
+            <AutoScrollCarousel
+              title="Assets"
+              icon="🏠"
               color="from-orange-500 to-amber-400"
               products={assetProducts}
-              onViewAll={() => navigate('/assets')}
+              viewAllLink="/assets"
+              autoScrollInterval={3000}
             />
           </section>
         )}
 
-        {/* Agriculture Section */}
+        {/* Agriculture Section - Auto-scroll */}
         {agricultureProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
-            <FeaturedSectionCard
-              title="🌾 Agriculture"
-              icon={Wheat}
+          <section className="animate-fade-up" style={{ animationDelay: "0.35s" }}>
+            <AutoScrollCarousel
+              title="Agriculture"
+              icon="🌾"
               color="from-green-500 to-emerald-400"
               products={agricultureProducts}
-              onViewAll={() => navigate('/agriculture')}
+              viewAllLink="/agriculture"
+              autoScrollInterval={3000}
             />
           </section>
         )}
 
-        {/* Equipment for Rent Section */}
+        {/* Equipment for Rent Section - Auto-scroll */}
         {rentProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.35s" }}>
-            <FeaturedSectionCard
-              title="🔧 Equipment for Rent"
-              icon={Wrench}
+          <section className="animate-fade-up" style={{ animationDelay: "0.4s" }}>
+            <AutoScrollCarousel
+              title="Equipment for Rent"
+              icon="🔧"
               color="from-purple-500 to-violet-400"
               products={rentProducts}
-              onViewAll={() => navigate('/rent')}
+              viewAllLink="/rent"
+              autoScrollInterval={3000}
             />
           </section>
         )}
