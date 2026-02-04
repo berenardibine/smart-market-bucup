@@ -106,7 +106,7 @@ const NotificationsPage = () => {
     if (!isAdmin) {
       toast({
         title: "Permission Denied",
-        description: "Only administrators can delete notifications.",
+        description: "",
         variant: "destructive"
       });
       return;
@@ -206,7 +206,7 @@ const NotificationsPage = () => {
         </div>
       </div>
 
-      {/* Admin Notice */}
+      {/* Admin Notice *
       {!isAdmin && (
         <div className="mx-4 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
           <Lock className="h-5 w-5 text-amber-600 shrink-0" />
@@ -214,7 +214,7 @@ const NotificationsPage = () => {
             Only administrators can delete notifications. You can read and mark them as read.
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Notifications List */}
       <div className="p-4">
