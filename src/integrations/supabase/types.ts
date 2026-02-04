@@ -2037,6 +2037,93 @@ export type Database = {
           },
         ]
       }
+      product_comments: {
+        Row: {
+          author_name: string
+          content: string
+          created_at: string | null
+          id: string
+          is_deleted: boolean | null
+          product_id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          author_name: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          product_id: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          author_name?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_deleted?: boolean | null
+          product_id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_comments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_daily_agg: {
+        Row: {
+          date: string
+          id: string
+          impressions: number | null
+          product_id: string
+          views: number | null
+        }
+        Insert: {
+          date?: string
+          id?: string
+          impressions?: number | null
+          product_id: string
+          views?: number | null
+        }
+        Update: {
+          date?: string
+          id?: string
+          impressions?: number | null
+          product_id?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_daily_agg_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_impressions: {
         Row: {
           created_at: string
@@ -2096,6 +2183,38 @@ export type Database = {
             foreignKeyName: "product_likes_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_metrics_cache: {
+        Row: {
+          id: string
+          last_updated: string | null
+          product_id: string
+          total_impressions: number | null
+          total_views: number | null
+        }
+        Insert: {
+          id?: string
+          last_updated?: string | null
+          product_id: string
+          total_impressions?: number | null
+          total_views?: number | null
+        }
+        Update: {
+          id?: string
+          last_updated?: string | null
+          product_id?: string
+          total_impressions?: number | null
+          total_views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_metrics_cache_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -2715,6 +2834,35 @@ export type Database = {
           },
         ]
       }
+      recommendation_index: {
+        Row: {
+          id: string
+          product_id: string
+          recommended_ids: Json
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          recommended_ids?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          recommended_ids?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendation_index_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       referral_logs: {
         Row: {
           created_at: string | null
@@ -2812,6 +2960,67 @@ export type Database = {
           {
             foreignKeyName: "referrals_referrer_id_fkey"
             columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string | null
+          details: string | null
+          id: string
+          product_id: string | null
+          reason: string
+          reported_seller_id: string | null
+          reporter_email: string | null
+          reporter_name: string
+          reporter_phone: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          product_id?: string | null
+          reason: string
+          reported_seller_id?: string | null
+          reporter_email?: string | null
+          reporter_name: string
+          reporter_phone: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          product_id?: string | null
+          reason?: string
+          reported_seller_id?: string | null
+          reporter_email?: string | null
+          reporter_name?: string
+          reporter_phone?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reported_seller_id_fkey"
+            columns: ["reported_seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reported_seller_id_fkey"
+            columns: ["reported_seller_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
             referencedColumns: ["id"]
@@ -3813,6 +4022,10 @@ export type Database = {
           location_type: string
         }[]
       }
+      get_session_comment_count: {
+        Args: { p_hours?: number; p_session_id: string }
+        Returns: number
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"][]
@@ -3824,8 +4037,25 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_daily_agg: {
+        Args: {
+          p_date: string
+          p_increment_impressions?: number
+          p_increment_views?: number
+          p_product_id: string
+        }
+        Returns: undefined
+      }
       increment_opportunity_view: {
         Args: { opportunity_uuid: string }
+        Returns: undefined
+      }
+      increment_product_metrics: {
+        Args: {
+          p_increment_impressions?: number
+          p_increment_views?: number
+          p_product_id: string
+        }
         Returns: undefined
       }
       increment_product_view: {

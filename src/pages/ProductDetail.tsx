@@ -3,10 +3,11 @@ import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom"
 import { 
   ArrowLeft, Heart, MessageCircle, Phone, Share2, 
   MapPin, Store, ShieldCheck, ChevronLeft, ChevronRight,
-  Package, Tag, Home, Loader2
+  Package, Tag, Home, Loader2, Flag, HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useProducts";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +16,9 @@ import { useLinkAnalytics } from "@/hooks/useLinkAnalytics";
 import { useProductViewTracking } from "@/hooks/useProductTracking";
 import ProductMetaTags from "@/components/seo/ProductMetaTags";
 import ImageLightbox from "@/components/ui/image-lightbox";
+import ReportModal from "@/components/products/ReportModal";
+import ProductComments from "@/components/products/ProductComments";
+import AIRecommendations from "@/components/products/AIRecommendations";
 import { cn } from "@/lib/utils";
 
 // Loading Component
@@ -56,6 +60,7 @@ const ProductDetail = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const [currentImage, setCurrentImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   // Determine ref source from URL params or default to 'direct'
   const refSource = searchParams.get('ref') || 'direct';
@@ -299,31 +304,50 @@ const ProductDetail = () => {
 
         {/* Product Info */}
         <div className="p-4 space-y-4">
-          {/* Title & Price */}
+          {/* Title & Price with Negotiable display */}
           <div>
             <div className="flex items-start justify-between gap-4">
               <h1 className="text-2xl font-bold text-foreground">{product.title}</h1>
               {product.is_negotiable && (
-                <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0">
-                  <Tag className="h-3 w-3 mr-1" />
-                  Negotiable
-                </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0 cursor-help">
+                        <Tag className="h-3 w-3 mr-1" />
+                        Negotiable
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Contact seller to negotiate the price</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
-            <p className="text-3xl font-bold text-primary mt-2">
-              {product.is_negotiable || product.price <= 0 ? (
-                'Price Negotiable'
-              ) : (
-                <>
+            <div className="mt-2">
+              {product.is_negotiable && product.price > 0 ? (
+                <p className="text-2xl font-bold text-primary">
+                  From {formatPrice(product.price)}
+                  <span className="text-base font-medium text-muted-foreground ml-2">(Negotiable)</span>
+                  {product.rental_unit && (
+                    <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
+                  )}
+                </p>
+              ) : product.is_negotiable ? (
+                <p className="text-2xl font-bold text-primary">Price Negotiable</p>
+              ) : product.price > 0 ? (
+                <p className="text-3xl font-bold text-primary">
                   {formatPrice(product.price)}
                   {product.rental_unit && (
                     <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
                   )}
-                </>
+                </p>
+              ) : (
+                <p className="text-2xl font-bold text-primary">Price Negotiable</p>
               )}
-            </p>
+            </div>
             {product.admin_posted && (
-              <Badge className="mt-2 bg-amber-500/10 text-amber-700 border-amber-500/20">
+              <Badge className="mt-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
                 ✓ Official Smart Market Listing
               </Badge>
             )}
@@ -386,7 +410,7 @@ const ProductDetail = () => {
                   <h4 className="font-semibold">
                     {product.shop?.name || product.seller?.full_name || 'Seller'}
                   </h4>
-                  <ShieldCheck className="h-4 w-4 text-green-500" />
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
                 </div>
                 {product.shop?.trading_center && (
                   <p className="text-sm text-muted-foreground">
@@ -418,7 +442,7 @@ const ProductDetail = () => {
             <Button
               onClick={handleWhatsApp}
               size="lg"
-              className="w-full gap-3 h-14 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white transition-all duration-300 shadow-soft hover:shadow-elevated"
+              className="w-full gap-3 h-14 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white transition-all duration-300 shadow-soft hover:shadow-elevated"
             >
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
                 <MessageCircle className="h-5 w-5 text-white" />
@@ -431,8 +455,40 @@ const ProductDetail = () => {
               🔒 Secure contact powered by Smart Market
             </p>
           </div>
+
+          {/* Report Button */}
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setReportModalOpen(true)}
+              className="text-muted-foreground hover:text-destructive gap-2"
+            >
+              <Flag className="h-4 w-4" />
+              Report product or seller — help us keep Smart Market safe
+            </Button>
+          </div>
+
+          {/* Comments Section */}
+          <div className="bg-muted/30 rounded-2xl p-4">
+            <ProductComments productId={product.id} />
+          </div>
+
+          {/* AI Recommendations */}
+          <div className="pt-4">
+            <AIRecommendations productId={product.id} />
+          </div>
         </div>
 
+        {/* Report Modal */}
+        <ReportModal
+          isOpen={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          productId={product.id}
+          sellerId={product.seller?.id}
+          productTitle={product.title}
+          sellerName={product.shop?.name || product.seller?.full_name}
+        />
       </div>
     </>
   );

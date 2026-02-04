@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.record-view]
 verify_jwt = false
+
+[functions.submit-report]
+verify_jwt = false
+
+[functions.submit-comment]
+verify_jwt = false
+
+[functions.get-recommendations]
+verify_jwt = false
