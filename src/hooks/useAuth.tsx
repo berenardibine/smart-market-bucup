@@ -17,6 +17,11 @@ interface Profile {
   profile_image: string | null;
   status: string | null;
   blocking_reason: string | null;
+  // Global location fields
+  country: string | null;
+  country_code: string | null;
+  currency_code: string | null;
+  currency_symbol: string | null;
 }
 
 interface AuthContextType {
@@ -43,6 +48,11 @@ interface SignUpData {
   provinceId: string;
   districtId: string;
   sectorId: string;
+  // Global location fields
+  country?: string;
+  countryCode?: string;
+  currencyCode?: string;
+  currencySymbol?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -194,6 +204,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           province_id: data.provinceId,
           district_id: data.districtId,
           sector_id: data.sectorId,
+          // Global fields
+          country: data.country || null,
+          country_code: data.countryCode || null,
+          currency_code: data.currencyCode || null,
+          currency_symbol: data.currencySymbol || null,
         }
       }
     });

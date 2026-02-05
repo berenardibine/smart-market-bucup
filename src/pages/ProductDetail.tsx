@@ -393,8 +393,10 @@ const ProductDetail = () => {
               <Store className="h-5 w-5 text-primary" />
               Seller Information
             </h3>
-            <div className="flex items-center gap-4" 
-            onClick={() => navigate(`/shop/${shop.id}`)}>
+            <div 
+              className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity" 
+              onClick={() => product.shop?.id && navigate(`/shop/${product.shop.id}`)}
+            >
               <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center overflow-hidden">
                 {product.shop?.logo_url || product.seller?.profile_image ? (
                   <img 

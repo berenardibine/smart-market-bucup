@@ -221,6 +221,10 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
         contact_whatsapp: profile.whatsapp_number,
         contact_call: profile.call_number,
         status: 'active',
+        // Global country fields - auto-filled from seller profile
+        country: profile.country || null,
+        currency_code: profile.currency_code || 'RWF',
+        currency_symbol: profile.currency_symbol || 'R₣',
       };
 
       // Add rental fields if applicable

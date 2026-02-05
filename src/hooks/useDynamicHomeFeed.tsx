@@ -13,6 +13,11 @@ interface Product {
   rental_unit: string | null;
   sponsored: boolean | null;
   product_type: string | null;
+  country: string | null;
+  currency_code: string | null;
+  currency_symbol: string | null;
+  is_negotiable: boolean | null;
+  admin_posted: boolean | null;
   seller?: {
     id: string;
     full_name: string;
@@ -73,7 +78,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 const SHUFFLE_CACHE_KEY = 'home_feed_cache';
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
 
-export const useDynamicHomeFeed = () => {
+export const useDynamicHomeFeed = (userCountry?: string | null) => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categorySections, setCategorySections] = useState<CategorySection[]>([]);
@@ -92,23 +97,32 @@ export const useDynamicHomeFeed = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [userCountry]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Build products query
+      let productsQuery = supabase
+        .from('products')
+        .select(`
+          id, title, price, images, category, created_at, views, likes, 
+          rental_unit, sponsored, product_type, country, currency_code, 
+          currency_symbol, is_negotiable, admin_posted,
+          seller:profiles!products_seller_id_fkey(id, full_name, profile_image)
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      // Filter by country if specified (for location-based filtering)
+      if (userCountry) {
+        productsQuery = productsQuery.eq('country', userCountry);
+      }
+
       // Fetch products and categories in parallel
       const [productsRes, categoriesRes] = await Promise.all([
-        supabase
-          .from('products')
-          .select(`
-            id, title, price, images, category, created_at, views, likes, 
-            rental_unit, sponsored, product_type,
-            seller:profiles!products_seller_id_fkey(id, full_name, profile_image)
-          `)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(100),
+        productsQuery,
         supabase
           .from('categories')
           .select('id, name, slug, icon, type')
