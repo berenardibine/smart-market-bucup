@@ -16,6 +16,7 @@ interface FloatingProductCardProps {
   isAdminPosted?: boolean | null;
   isNegotiable?: boolean | null;
   refSource?: string;
+  currencySymbol?: string | null;
 }
 
 const FloatingProductCard = ({
@@ -30,6 +31,7 @@ const FloatingProductCard = ({
   isAdminPosted,
   isNegotiable,
   refSource = 'home',
+  currencySymbol = 'Fr',
 }: FloatingProductCardProps) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -119,7 +121,7 @@ const FloatingProductCard = ({
             'Price Negotiable'
           ) : (
             <>
-              Fr {formatPrice(price)}
+              {currencySymbol || 'Fr'} {formatPrice(price)}
               {rentalUnit && <span className="text-xs font-medium text-muted-foreground">/{rentalUnit}</span>}
             </>
           )}

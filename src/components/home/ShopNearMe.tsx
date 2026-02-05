@@ -10,9 +10,14 @@ interface Shop {
   logo_url: string | null;
   trading_center: string | null;
   seller_id: string;
+  country: string | null;
 }
 
-const ShopNearMe = () => {
+interface ShopNearMeProps {
+  userCountry?: string;
+}
+
+const ShopNearMe = ({ userCountry }: ShopNearMeProps) => {
   const navigate = useNavigate();
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,16 +28,22 @@ const ShopNearMe = () => {
 
   useEffect(() => {
     fetchShops();
-  }, []);
+  }, [userCountry]);
 
   const fetchShops = async () => {
     try {
-      const { data } = await supabase
+      let query = supabase
         .from('shops')
-        .select('id, name, logo_url, trading_center, seller_id')
+        .select('id, name, logo_url, trading_center, seller_id, country')
         .eq('is_active', true)
         .limit(20);
       
+      // Filter by country if specified
+      if (userCountry) {
+        query = query.eq('country', userCountry);
+      }
+
+      const { data } = await query;
       setShops(data || []);
     } catch (error) {
       console.error('Error fetching shops:', error);

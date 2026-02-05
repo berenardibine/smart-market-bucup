@@ -655,27 +655,36 @@ export type Database = {
       countries: {
         Row: {
           created_at: string
+          currency_code: string | null
+          currency_symbol: string | null
           id: string
           is_active: boolean | null
           iso_code: string | null
           level_names: Json | null
           name: string
+          phone_code: string | null
         }
         Insert: {
           created_at?: string
+          currency_code?: string | null
+          currency_symbol?: string | null
           id?: string
           is_active?: boolean | null
           iso_code?: string | null
           level_names?: Json | null
           name: string
+          phone_code?: string | null
         }
         Update: {
           created_at?: string
+          currency_code?: string | null
+          currency_symbol?: string | null
           id?: string
           is_active?: boolean | null
           iso_code?: string | null
           level_names?: Json | null
           name?: string
+          phone_code?: string | null
         }
         Relationships: []
       }
@@ -2359,7 +2368,10 @@ export type Database = {
           category: string | null
           contact_call: string | null
           contact_whatsapp: string | null
+          country: string | null
           created_at: string | null
+          currency_code: string | null
+          currency_symbol: string | null
           description: string
           discount: number | null
           discount_expiry: string | null
@@ -2397,7 +2409,10 @@ export type Database = {
           category?: string | null
           contact_call?: string | null
           contact_whatsapp?: string | null
+          country?: string | null
           created_at?: string | null
+          currency_code?: string | null
+          currency_symbol?: string | null
           description: string
           discount?: number | null
           discount_expiry?: string | null
@@ -2435,7 +2450,10 @@ export type Database = {
           category?: string | null
           contact_call?: string | null
           contact_whatsapp?: string | null
+          country?: string | null
           created_at?: string | null
+          currency_code?: string | null
+          currency_symbol?: string | null
           description?: string
           discount?: number | null
           discount_expiry?: string | null
@@ -2504,7 +2522,11 @@ export type Database = {
           blocking_reason: string | null
           business_name: string | null
           call_number: string | null
+          country: string | null
+          country_code: string | null
           created_at: string | null
+          currency_code: string | null
+          currency_symbol: string | null
           detected_ip: string | null
           district_id: string | null
           email: string
@@ -2515,6 +2537,7 @@ export type Database = {
           identity_verified: boolean | null
           installed_at: string | null
           installed_pwa: boolean | null
+          ip_address: string | null
           last_active: string | null
           location: string | null
           phone_number: string | null
@@ -2537,7 +2560,11 @@ export type Database = {
           blocking_reason?: string | null
           business_name?: string | null
           call_number?: string | null
+          country?: string | null
+          country_code?: string | null
           created_at?: string | null
+          currency_code?: string | null
+          currency_symbol?: string | null
           detected_ip?: string | null
           district_id?: string | null
           email: string
@@ -2548,6 +2575,7 @@ export type Database = {
           identity_verified?: boolean | null
           installed_at?: string | null
           installed_pwa?: boolean | null
+          ip_address?: string | null
           last_active?: string | null
           location?: string | null
           phone_number?: string | null
@@ -2570,7 +2598,11 @@ export type Database = {
           blocking_reason?: string | null
           business_name?: string | null
           call_number?: string | null
+          country?: string | null
+          country_code?: string | null
           created_at?: string | null
+          currency_code?: string | null
+          currency_symbol?: string | null
           detected_ip?: string | null
           district_id?: string | null
           email?: string
@@ -2581,6 +2613,7 @@ export type Database = {
           identity_verified?: boolean | null
           installed_at?: string | null
           installed_pwa?: boolean | null
+          ip_address?: string | null
           last_active?: string | null
           location?: string | null
           phone_number?: string | null
@@ -3226,7 +3259,9 @@ export type Database = {
         Row: {
           contact_email: string | null
           contact_phone: string | null
+          country: string | null
           created_at: string | null
+          currency_code: string | null
           description: string | null
           district_id: string | null
           id: string
@@ -3245,7 +3280,9 @@ export type Database = {
         Insert: {
           contact_email?: string | null
           contact_phone?: string | null
+          country?: string | null
           created_at?: string | null
+          currency_code?: string | null
           description?: string | null
           district_id?: string | null
           id?: string
@@ -3264,7 +3301,9 @@ export type Database = {
         Update: {
           contact_email?: string | null
           contact_phone?: string | null
+          country?: string | null
           created_at?: string | null
+          currency_code?: string | null
           description?: string | null
           district_id?: string | null
           id?: string

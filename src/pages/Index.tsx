@@ -2,14 +2,14 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   TrendingUp, ShoppingBag, Sparkles, Package, Clock, Zap, Star,
-  Home, Wheat, Wrench, ChevronRight
+  Home, Wheat, Wrench, ChevronRight, Globe
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
 import AdminFAB from "@/components/layout/AdminFAB";
-import LocationModal from "@/components/location/LocationModal";
+import GlobalLocationModal from "@/components/location/GlobalLocationModal";
 import ProductFilterBar, { ProductFilters } from "@/components/filters/ProductFilterBar";
 import HomeAds from "@/components/home/HomeAds";
 import FloatingProductCard from "@/components/home/FloatingProductCard";
@@ -19,24 +19,30 @@ import SectionHeader from "@/components/home/SectionHeader";
 import CategoryCarousel from "@/components/home/CategoryCarousel";
 import { useAuth } from "@/hooks/useAuth";
 import { useDynamicHomeFeed } from "@/hooks/useDynamicHomeFeed";
-import { useUserLocation } from "@/hooks/useUserLocation";
+import { useGeo } from "@/context/GeoContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// Get country flag emoji
+const getCountryFlag = (code: string | null) => {
+  if (!code || code.length !== 2) return '🌍';
+  return String.fromCodePoint(
+    ...code.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0))
+  );
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { country, countryCode, currencySymbol, loading: geoLoading } = useGeo();
   const [activeTab, setActiveTab] = useState("home");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [filters, setFilters] = useState<ProductFilters>({ sortBy: 'random' });
+  const [showGlobalProducts, setShowGlobalProducts] = useState(false);
   
-  const { 
-    showLocationModal, setShowLocationModal, 
-    saveUserLocation
-  } = useUserLocation();
-  
-  // Get dynamic home feed data
+  // Get dynamic home feed data - filtered by user's country unless showing global
   const { 
     dynamicFeed,
     newArrivals,
@@ -44,7 +50,7 @@ const Index = () => {
     agricultureProducts,
     rentProducts,
     loading,
-  } = useDynamicHomeFeed();
+  } = useDynamicHomeFeed(showGlobalProducts ? null : country);
 
   const isSeller = profile?.user_type === 'seller';
 
@@ -72,6 +78,49 @@ const Index = () => {
       />
       
       <main className="container px-4 py-4 space-y-5">
+        {/* Global Location Header */}
+        <section className="animate-fade-up">
+          <button
+            onClick={() => setShowLocationModal(true)}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-2xl",
+              "bg-gradient-to-r from-primary/5 via-secondary/5 to-primary/5",
+              "border border-primary/20 hover:border-primary/40 transition-all"
+            )}
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shrink-0">
+              <span className="text-xl">{getCountryFlag(countryCode)}</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-xs text-muted-foreground">
+                {showGlobalProducts ? '🌍 Showing products from' : '📍 Products near you in'}
+              </p>
+              <p className="font-semibold text-foreground">
+                {geoLoading ? 'Detecting...' : (showGlobalProducts ? 'All Countries' : country || 'Select Location')}
+                {currencySymbol && !showGlobalProducts && (
+                  <span className="ml-2 text-xs text-muted-foreground">({currencySymbol})</span>
+                )}
+              </p>
+            </div>
+            <Globe className="h-4 w-4 text-muted-foreground" />
+          </button>
+
+          {/* Toggle for global products */}
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={() => setShowGlobalProducts(!showGlobalProducts)}
+              className={cn(
+                "text-xs px-3 py-1 rounded-full transition-colors",
+                showGlobalProducts 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+              )}
+            >
+              {showGlobalProducts ? '🌍 Showing Global Products' : '🔄 Show Global Products'}
+            </button>
+          </div>
+        </section>
+
         {/* Smart Ads at Top */}
         <section className="animate-fade-up">
           <HomeAds />
@@ -101,7 +150,7 @@ const Index = () => {
 
         {/* Shop Near Me Section */}
         <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
-          <ShopNearMe />
+          <ShopNearMe userCountry={showGlobalProducts ? undefined : country || undefined} />
         </section>
 
         {/* Asset Section - Auto-scroll */}
@@ -175,6 +224,7 @@ const Index = () => {
                           isSponsored={product.sponsored}
                           isAdminPosted={product.admin_posted}
                           isNegotiable={product.is_negotiable}
+                          currencySymbol={product.currency_symbol}
                         />
                       ))}
                     </div>
@@ -198,7 +248,22 @@ const Index = () => {
           <section className="animate-fade-up">
             <div className="text-center py-12 bg-muted/30 rounded-2xl">
               <Sparkles className="h-12 w-12 text-primary/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No products available yet. Check back soon!</p>
+              <p className="text-muted-foreground">
+                {showGlobalProducts 
+                  ? 'No products available yet. Check back soon!' 
+                  : `No products in ${country || 'your area'}. Try showing global products!`
+                }
+              </p>
+              {!showGlobalProducts && (
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setShowGlobalProducts(true)}
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Show Global Products
+                </Button>
+              )}
             </div>
           </section>
         )}
@@ -210,7 +275,7 @@ const Index = () => {
             <span className="text-sm font-medium text-primary">Smart Shopping</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            🛍️ Your Market. Your Area. Your Power.
+            🌍 Your Global Marketplace
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Smart Market — Buy Smart, Live Smart.
@@ -222,10 +287,9 @@ const Index = () => {
       <AdminFAB />
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      <LocationModal 
+      <GlobalLocationModal 
         isOpen={showLocationModal} 
         onClose={() => setShowLocationModal(false)}
-        onSave={saveUserLocation}
       />
     </div>
   );
