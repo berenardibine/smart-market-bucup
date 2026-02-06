@@ -135,13 +135,13 @@ const Index = () => {
           <HomeAds />
         </section>
 
-        {/* Smart Filter Bar */}
+        {/* Smart Filter Bar 
         <section className="animate-fade-up">
           <ProductFilterBar 
             filters={filters}
             onFiltersChange={setFilters}
           />
-        </section>
+        </section> */}
 
         {/* New Arrivals Section - Auto-scroll */}
         {newArrivals.length > 0 && (
