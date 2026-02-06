@@ -22,8 +22,8 @@ const AssetPage = () => {
   const [selectedSub, setSelectedSub] = useState('all');
   
     const { 
-    level, 
-    showLocationModal, setShowLocationModal, 
+    level, setLevel,
+    showLocationModal, 
     saveUserLocation, getLocationLabel 
   } = useUserLocation(); 
   
