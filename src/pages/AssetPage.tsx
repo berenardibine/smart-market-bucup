@@ -59,14 +59,14 @@ const AssetPage = () => {
       />
       
       <main className="container px-4 py-4 space-y-4">
-        {/* Location Header */}
+        {/* Location Header 
         <SmartLocationHeader 
           locationLabel={getLocationLabel()} 
           onChangeLocation={() => setShowLocationModal(true)} 
         />
 
-        {/* Level Filter */}
-        <LocationLevelFilter level={level} onLevelChange={setLevel} />
+         
+        <LocationLevelFilter level={level} onLevelChange={setLevel} /> */}
 
         {/* Page Title */}
         <div className="flex items-center gap-3">
