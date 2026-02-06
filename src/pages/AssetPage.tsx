@@ -23,7 +23,7 @@ const AssetPage = () => {
   
     const { 
     level, setLevel,
-    showLocationModal, 
+    showLocationModal, setShowLocationModel
     saveUserLocation, getLocationLabel 
   } = useUserLocation(); 
   
