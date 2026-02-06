@@ -22,6 +22,12 @@ interface Profile {
   country_code: string | null;
   currency_code: string | null;
   currency_symbol: string | null;
+  // GPS fields
+  lat: number | null;
+  lng: number | null;
+  city: string | null;
+  region: string | null;
+  last_location_update: string | null;
 }
 
 interface AuthContextType {

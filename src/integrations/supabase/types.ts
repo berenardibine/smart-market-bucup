@@ -660,7 +660,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           iso_code: string | null
+          lat: number | null
           level_names: Json | null
+          lng: number | null
           name: string
           phone_code: string | null
         }
@@ -671,7 +673,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           iso_code?: string | null
+          lat?: number | null
           level_names?: Json | null
+          lng?: number | null
           name: string
           phone_code?: string | null
         }
@@ -682,7 +686,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           iso_code?: string | null
+          lat?: number | null
           level_names?: Json | null
+          lng?: number | null
           name?: string
           phone_code?: string | null
         }
@@ -2380,7 +2386,9 @@ export type Database = {
           impressions: number | null
           is_negotiable: boolean | null
           last_edited_by: string | null
+          lat: number | null
           likes: number | null
+          lng: number | null
           location: string | null
           location_id: string | null
           price: number
@@ -2421,7 +2429,9 @@ export type Database = {
           impressions?: number | null
           is_negotiable?: boolean | null
           last_edited_by?: string | null
+          lat?: number | null
           likes?: number | null
+          lng?: number | null
           location?: string | null
           location_id?: string | null
           price: number
@@ -2462,7 +2472,9 @@ export type Database = {
           impressions?: number | null
           is_negotiable?: boolean | null
           last_edited_by?: string | null
+          lat?: number | null
           likes?: number | null
+          lng?: number | null
           location?: string | null
           location_id?: string | null
           price?: number
@@ -2522,6 +2534,7 @@ export type Database = {
           blocking_reason: string | null
           business_name: string | null
           call_number: string | null
+          city: string | null
           country: string | null
           country_code: string | null
           created_at: string | null
@@ -2539,6 +2552,9 @@ export type Database = {
           installed_pwa: boolean | null
           ip_address: string | null
           last_active: string | null
+          last_location_update: string | null
+          lat: number | null
+          lng: number | null
           location: string | null
           phone_number: string | null
           profile_image: string | null
@@ -2547,6 +2563,7 @@ export type Database = {
           rating_count: number | null
           referral_code: string | null
           referred_by: string | null
+          region: string | null
           sector_id: string | null
           status: string | null
           updated_at: string | null
@@ -2560,6 +2577,7 @@ export type Database = {
           blocking_reason?: string | null
           business_name?: string | null
           call_number?: string | null
+          city?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string | null
@@ -2577,6 +2595,9 @@ export type Database = {
           installed_pwa?: boolean | null
           ip_address?: string | null
           last_active?: string | null
+          last_location_update?: string | null
+          lat?: number | null
+          lng?: number | null
           location?: string | null
           phone_number?: string | null
           profile_image?: string | null
@@ -2585,6 +2606,7 @@ export type Database = {
           rating_count?: number | null
           referral_code?: string | null
           referred_by?: string | null
+          region?: string | null
           sector_id?: string | null
           status?: string | null
           updated_at?: string | null
@@ -2598,6 +2620,7 @@ export type Database = {
           blocking_reason?: string | null
           business_name?: string | null
           call_number?: string | null
+          city?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string | null
@@ -2615,6 +2638,9 @@ export type Database = {
           installed_pwa?: boolean | null
           ip_address?: string | null
           last_active?: string | null
+          last_location_update?: string | null
+          lat?: number | null
+          lng?: number | null
           location?: string | null
           phone_number?: string | null
           profile_image?: string | null
@@ -2623,6 +2649,7 @@ export type Database = {
           rating_count?: number | null
           referral_code?: string | null
           referred_by?: string | null
+          region?: string | null
           sector_id?: string | null
           status?: string | null
           updated_at?: string | null
@@ -3257,6 +3284,7 @@ export type Database = {
       }
       shops: {
         Row: {
+          city: string | null
           contact_email: string | null
           contact_phone: string | null
           country: string | null
@@ -3266,11 +3294,14 @@ export type Database = {
           district_id: string | null
           id: string
           is_active: boolean | null
+          lat: number | null
+          lng: number | null
           logo_url: string | null
           market_center: string | null
           name: string
           owner_id: string | null
           province_id: string | null
+          region: string | null
           sector_id: string | null
           seller_id: string
           trading_center: string | null
@@ -3278,6 +3309,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          city?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           country?: string | null
@@ -3287,11 +3319,14 @@ export type Database = {
           district_id?: string | null
           id?: string
           is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           logo_url?: string | null
           market_center?: string | null
           name: string
           owner_id?: string | null
           province_id?: string | null
+          region?: string | null
           sector_id?: string | null
           seller_id: string
           trading_center?: string | null
@@ -3299,6 +3334,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          city?: string | null
           contact_email?: string | null
           contact_phone?: string | null
           country?: string | null
@@ -3308,11 +3344,14 @@ export type Database = {
           district_id?: string | null
           id?: string
           is_active?: boolean | null
+          lat?: number | null
+          lng?: number | null
           logo_url?: string | null
           market_center?: string | null
           name?: string
           owner_id?: string | null
           province_id?: string | null
+          region?: string | null
           sector_id?: string | null
           seller_id?: string
           trading_center?: string | null
@@ -4061,6 +4100,38 @@ export type Database = {
           location_type: string
         }[]
       }
+      get_nearby_products: {
+        Args: {
+          max_results?: number
+          radius_km?: number
+          user_lat: number
+          user_lng: number
+        }
+        Returns: {
+          admin_posted: boolean
+          category: string
+          country: string
+          created_at: string
+          currency_code: string
+          currency_symbol: string
+          distance_km: number
+          id: string
+          images: string[]
+          is_negotiable: boolean
+          lat: number
+          likes: number
+          lng: number
+          price: number
+          product_type: string
+          rental_unit: string
+          seller_id: string
+          seller_image: string
+          seller_name: string
+          sponsored: boolean
+          title: string
+          views: number
+        }[]
+      }
       get_session_comment_count: {
         Args: { p_hours?: number; p_session_id: string }
         Returns: number
@@ -4075,6 +4146,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      haversine_distance: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
       }
       increment_daily_agg: {
         Args: {

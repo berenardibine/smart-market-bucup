@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useCountries, Country } from '@/hooks/useCountries';
+import { useGPSLocation } from '@/hooks/useGPSLocation';
 
 interface GeoContextType {
   country: string | null;
@@ -8,11 +9,15 @@ interface GeoContextType {
   currencySymbol: string | null;
   phoneCode: string | null;
   ip: string | null;
+  lat: number | null;
+  lng: number | null;
   loading: boolean;
   isManualOverride: boolean;
+  permissionDenied: boolean;
   countries: Country[];
   setLocation: (country: Country) => void;
   clearOverride: () => void;
+  requestLocationPermission: () => void;
   formatPrice: (price: number, overrideCurrency?: string, overrideSymbol?: string) => string;
 }
 
@@ -23,6 +28,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 export const GeoProvider = ({ children }: { children: ReactNode }) => {
   const { countries, loading: countriesLoading, getCountryByCode } = useCountries();
+  const { coords: gpsCoords, loading: gpsLoading, permissionDenied, requestPermission } = useGPSLocation();
   const [loading, setLoading] = useState(true);
   const [geoData, setGeoData] = useState({
     country: null as string | null,
@@ -182,10 +188,14 @@ export const GeoProvider = ({ children }: { children: ReactNode }) => {
   return (
     <GeoContext.Provider value={{
       ...geoData,
+      lat: gpsCoords?.lat ?? null,
+      lng: gpsCoords?.lng ?? null,
       loading: loading || countriesLoading,
+      permissionDenied,
       countries,
       setLocation,
       clearOverride,
+      requestLocationPermission: requestPermission,
       formatPrice,
     }}>
       {children}

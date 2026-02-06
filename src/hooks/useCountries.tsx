@@ -9,6 +9,8 @@ export interface Country {
   currency_symbol: string | null;
   phone_code: string | null;
   is_active: boolean | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 export const useCountries = () => {
