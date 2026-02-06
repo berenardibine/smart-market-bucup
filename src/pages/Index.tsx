@@ -10,11 +10,13 @@ import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
 import AdminFAB from "@/components/layout/AdminFAB";
 import GlobalLocationModal from "@/components/location/GlobalLocationModal";
+import LocationPermissionBanner from "@/components/location/LocationPermissionBanner";
 import ProductFilterBar, { ProductFilters } from "@/components/filters/ProductFilterBar";
 import HomeAds from "@/components/home/HomeAds";
 import FloatingProductCard from "@/components/home/FloatingProductCard";
 import AutoScrollCarousel from "@/components/home/AutoScrollCarousel";
 import ShopNearMe from "@/components/home/ShopNearMe";
+import NearbyProducts from "@/components/home/NearbyProducts";
 import SectionHeader from "@/components/home/SectionHeader";
 import CategoryCarousel from "@/components/home/CategoryCarousel";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,7 +37,7 @@ const getCountryFlag = (code: string | null) => {
 const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const { country, countryCode, currencySymbol, loading: geoLoading } = useGeo();
+  const { country, countryCode, currencySymbol, lat, lng, permissionDenied, requestLocationPermission, loading: geoLoading } = useGeo();
   const [activeTab, setActiveTab] = useState("home");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -121,6 +123,13 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Location Permission Banner (shown only if denied) */}
+        {permissionDenied && (
+          <section className="animate-fade-up">
+            <LocationPermissionBanner onRequestPermission={requestLocationPermission} />
+          </section>
+        )}
+
         {/* Smart Ads at Top */}
         <section className="animate-fade-up">
           <HomeAds />
@@ -147,6 +156,16 @@ const Index = () => {
             />
           </section>
         )}
+
+        {/* Products Near You - GPS based */}
+        <section className="animate-fade-up" style={{ animationDelay: "0.22s" }}>
+          <NearbyProducts
+            lat={lat}
+            lng={lng}
+            permissionDenied={permissionDenied}
+            onRequestPermission={requestLocationPermission}
+          />
+        </section>
 
         {/* Shop Near Me Section */}
         <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>

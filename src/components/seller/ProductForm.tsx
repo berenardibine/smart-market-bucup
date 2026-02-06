@@ -225,6 +225,9 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
         country: profile.country || null,
         currency_code: profile.currency_code || 'RWF',
         currency_symbol: profile.currency_symbol || 'R₣',
+        // GPS coordinates from seller profile
+        lat: (profile as any).lat || null,
+        lng: (profile as any).lng || null,
       };
 
       // Add rental fields if applicable
