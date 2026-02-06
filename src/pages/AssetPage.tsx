@@ -21,11 +21,11 @@ const AssetPage = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedSub, setSelectedSub] = useState('all');
   
-  const { 
+  {/*  const { 
     level, setLevel, 
     showLocationModal, setShowLocationModal, 
     saveUserLocation, getLocationLabel 
-  } = useUserLocation();
+  } = useUserLocation(); */}
   
   // Load categories from database
   const { categories: dbCategories, loading: categoriesLoading } = useCategories('asset');
