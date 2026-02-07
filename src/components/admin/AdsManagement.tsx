@@ -291,7 +291,7 @@ const AdsManagement = () => {
               Create Ad
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-background max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-popover max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingAd ? 'Edit Ad' : 'Create New Ad'}</DialogTitle>
             </DialogHeader>
@@ -323,7 +323,7 @@ const AdsManagement = () => {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-background">
+                    <SelectContent className="bg-popover">
                       <SelectItem value="text">Text Only</SelectItem>
                       <SelectItem value="image">Image</SelectItem>
                       <SelectItem value="banner">Banner</SelectItem>
@@ -339,7 +339,7 @@ const AdsManagement = () => {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-background">
+                    <SelectContent className="bg-popover">
                       <SelectItem value="all">All Users</SelectItem>
                       <SelectItem value="seller">Sellers Only</SelectItem>
                       <SelectItem value="buyer">Buyers Only</SelectItem>
@@ -352,14 +352,14 @@ const AdsManagement = () => {
               <div>
                 <Label className="text-sm font-medium mb-2 block">Target Location (Optional)</Label>
                 <Select
-                  value={formData.location_id}
-                  onValueChange={(value) => setFormData({ ...formData, location_id: value })}
+                  value={formData.location_id || 'all'}
+                  onValueChange={(value) => setFormData({ ...formData, location_id: value === 'all' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All locations" />
                   </SelectTrigger>
-                  <SelectContent className="bg-background max-h-60">
-                    <SelectItem value="">All Locations</SelectItem>
+                  <SelectContent className="bg-popover max-h-60">
+                    <SelectItem value="all">All Locations</SelectItem>
                     {locations.map(loc => (
                       <SelectItem key={loc.id} value={loc.id}>
                         {loc.name} ({loc.type})
@@ -473,7 +473,7 @@ const AdsManagement = () => {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-background">
+                  <SelectContent className="bg-popover">
                     <SelectItem value="small">Small</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="large">Large</SelectItem>

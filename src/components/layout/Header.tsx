@@ -13,8 +13,6 @@ const Header = ({ onSearchClick, notificationCount = 0 }: HeaderProps) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
 
-  const initials = profile?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase();
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-primary to-orange-500 safe-top shadow-orange">
       <div className="container flex items-center justify-between h-14 px-4">
@@ -44,45 +42,33 @@ const Header = ({ onSearchClick, notificationCount = 0 }: HeaderProps) => {
             <Search className="h-5 w-5" />
           </Button>
           
-          {user ? (
-            <>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate('/notifications')}
-                className="relative h-9 w-9 text-white hover:bg-white/20"
-              >
-                <Bell className="h-5 w-5" />
-                {notificationCount > 0 && (
-                  <Badge 
-                    className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-2 border-primary"
-                  >
-                    {notificationCount > 9 ? "9+" : notificationCount}
-                  </Badge>
-                )}
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate('/menu')}
-                className="h-9 w-9 hover:bg-white/20"
-              >
-                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                  <span className="text-primary font-bold text-sm">{initials}</span>
-                </div>
-              </Button>
-            </>
-          ) : (
+          {user && (
             <Button 
-              size="sm"
-              onClick={() => navigate('/auth')}
-              className="h-8 bg-white text-primary hover:bg-orange-50 font-semibold text-xs px-3 gap-1.5 shadow-sm"
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate('/notifications')}
+              className="relative h-9 w-9 text-white hover:bg-white/20"
             >
-              <UserPlus className="h-3.5 w-3.5" />
-              Become a Seller
+              <Bell className="h-5 w-5" />
+              {notificationCount > 0 && (
+                <Badge 
+                  className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-2 border-primary"
+                >
+                  {notificationCount > 9 ? "9+" : notificationCount}
+                </Badge>
+              )}
             </Button>
           )}
+
+          {/* Hamburger Menu - visible for all users */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate('/menu')}
+            className="h-9 w-9 text-white hover:bg-white/20"
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
         </div>
       </div>
     </header>

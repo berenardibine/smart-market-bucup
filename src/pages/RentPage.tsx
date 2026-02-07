@@ -1,53 +1,45 @@
 import { useState, useMemo } from 'react';
-import { Wrench, Sparkles } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import Header from '@/components/layout/Header';
-import BottomNav from '@/components/layout/BottomNav';
-import MenuDrawer from '@/components/layout/MenuDrawer';
 import SearchModal from '@/components/layout/SearchModal';
 import SellerFAB from '@/components/layout/SellerFAB';
 import AdminFAB from '@/components/layout/AdminFAB';
 import FloatingProductCard from '@/components/home/FloatingProductCard';
+import HomeAds from '@/components/home/HomeAds';
+import GlobalLocationModal from '@/components/location/GlobalLocationModal';
+import LocationPermissionBanner from '@/components/location/LocationPermissionBanner';
 import ProductFilterBar, { ProductFilters } from '@/components/filters/ProductFilterBar';
-import LocationModal from '@/components/location/LocationModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilteredProducts } from '@/hooks/useFilteredProducts';
 import { useCategories } from '@/hooks/useCategories';
-import { useUserLocation } from '@/hooks/useUserLocation';
+import { useGeo } from '@/context/GeoContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const RentPage = () => {
   const { profile } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedSub, setSelectedSub] = useState('all');
   const [filters, setFilters] = useState<ProductFilters>({ sortBy: 'random' });
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const { country, permissionDenied, requestLocationPermission } = useGeo();
   
-  const { 
-    showLocationModal, setShowLocationModal, 
-    saveUserLocation
-  } = useUserLocation();
-  
-  // Load categories from database
   const { categories: dbCategories, loading: categoriesLoading } = useCategories('rent');
-  
-  // Use filtered products hook with rent type filter - pass 'rental' as productType
   const { products, loading } = useFilteredProducts(
     selectedSub === 'all' ? undefined : selectedSub,
     filters,
-    'rental' // Only show rental products
+    'rental'
   );
   
   const isSeller = profile?.user_type === 'seller';
 
-  // Build subcategories with "All" option
   const subcategories = useMemo(() => {
     const allOption = { id: 'all', name: 'All Rentals', slug: 'all', icon: '✨', type: 'rent' };
     return [allOption, ...dbCategories];
   }, [dbCategories]);
 
   const ProductSkeleton = () => (
-    <div className="bg-white rounded-2xl p-3 space-y-3 shadow-[0_6px_12px_rgba(0,0,0,0.08)]">
+    <div className="bg-card rounded-2xl p-3 space-y-3 shadow-[0_6px_12px_rgba(0,0,0,0.08)]">
       <Skeleton className="aspect-square rounded-xl" />
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-5 w-1/2" />
@@ -55,12 +47,18 @@ const RentPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-purple-500/5 pb-20 pt-14">
-      <Header
-        onSearchClick={() => setIsSearchOpen(true)}
-      />
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-purple-500/5 pb-8 pt-14">
+      <Header onSearchClick={() => setIsSearchOpen(true)} />
       
       <main className="container px-4 py-4 space-y-4">
+        {/* Location Permission Banner */}
+        {permissionDenied && (
+          <LocationPermissionBanner onRequestPermission={requestLocationPermission} />
+        )}
+
+        {/* Ads */}
+        <HomeAds />
+
         {/* Smart Filter Bar */}
         <ProductFilterBar 
           filters={filters}
@@ -78,7 +76,7 @@ const RentPage = () => {
           </div>
         </div>
 
-        {/* Subcategory Filter - Database driven */}
+        {/* Subcategory Filter */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
           {categoriesLoading ? (
             Array(4).fill(0).map((_, i) => (
@@ -103,7 +101,7 @@ const RentPage = () => {
           )}
         </div>
 
-        {/* Products Grid - Floating Cards with Rental Unit */}
+        {/* Products Grid */}
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {[1, 2, 3, 4, 5, 6].map(i => <ProductSkeleton key={i} />)}
@@ -128,22 +126,17 @@ const RentPage = () => {
           <div className="text-center py-16 bg-muted/30 rounded-2xl">
             <Wrench className="h-16 w-16 text-purple-500/50 mx-auto mb-4" />
             <h3 className="font-semibold text-lg mb-2">No Rental Equipment Yet</h3>
-            <p className="text-muted-foreground">
-              Be the first to list rental equipment in your area!
-            </p>
+            <p className="text-muted-foreground">Be the first to list rental equipment in your area!</p>
           </div>
         )}
       </main>
 
       {isSeller && <SellerFAB />}
       <AdminFAB />
-      <BottomNav activeTab="rent" onTabChange={() => {}} />
-      <MenuDrawer isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      <LocationModal 
+      <GlobalLocationModal 
         isOpen={showLocationModal} 
         onClose={() => setShowLocationModal(false)}
-        onSave={saveUserLocation}
       />
     </div>
   );
