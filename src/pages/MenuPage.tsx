@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { 
-  User, Store, Heart, Trophy, Settings, Phone, LogOut, LogIn, 
-  ChevronRight, Shield, Bell, HelpCircle, Star, Gift, ArrowLeft
+  User, Store, Heart, Settings, Phone, LogOut, LogIn, 
+  ChevronRight, Shield, Bell, HelpCircle, ArrowLeft, Home, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useCategories } from "@/hooks/useCategories";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MenuPage = () => {
   const navigate = useNavigate();
@@ -16,31 +18,33 @@ const MenuPage = () => {
   const { isAdmin } = useAdmin();
   const { toast } = useToast();
   const { unreadCount } = useNotifications();
+  const { categories, loading: categoriesLoading } = useCategories();
 
-  const menuItems: Array<{
-    icon: typeof User;
-    label: string;
-    href: string;
-    requiresAuth?: boolean;
-    sellerOnly?: boolean;
-    color: string;
-    badge?: string;
-    badgeCount?: number;
-  }> = [
-    { icon: User, label: "My Account", href: "/account", requiresAuth: true, color: "bg-blue-500" },
-    { icon: Store, label: "My Shop", href: "/my-shop", requiresAuth: true, sellerOnly: true, color: "bg-green-500" },
-    { icon: Bell, label: "Notifications", href: "/notifications", requiresAuth: true, badgeCount: unreadCount, color: "bg-purple-500" },
+  // Map category type to route
+  const getCategoryRoute = (cat: { type: string | null; slug: string }) => {
+    if (cat.type === 'asset') return '/assets';
+    if (cat.type === 'agriculture') return '/agriculture';
+    if (cat.type === 'rent') return '/rent';
+    // Default: go to home with category filter (could be extended)
+    return '/';
+  };
+
+  // Authenticated-only menu items
+  const authMenuItems = [
+    { icon: User, label: "My Account", href: "/account", color: "bg-blue-500" },
+    { icon: Store, label: "My Shop", href: "/my-shop", sellerOnly: true, color: "bg-green-500" },
+    { icon: Bell, label: "Notifications", href: "/notifications", badgeCount: unreadCount, color: "bg-purple-500" },
   ];
 
-  const supportItems = [
+  // Items visible to all users (guests + authenticated)
+  const publicItems = [
     { icon: Settings, label: "Settings", href: "/settings", color: "bg-slate-500" },
     { icon: HelpCircle, label: "Help Center", href: "/help", color: "bg-cyan-500" },
     { icon: Phone, label: "Contact Support", href: "/support", color: "bg-teal-500" },
   ];
 
-  const filteredItems = menuItems.filter(item => {
+  const filteredAuthItems = authMenuItems.filter(item => {
     if (item.sellerOnly && profile?.user_type !== 'seller') return false;
-    if (item.requiresAuth && !user) return false;
     return true;
   });
 
@@ -125,42 +129,125 @@ const MenuPage = () => {
         </div>
       )}
 
-      {/* Menu Items */}
+      {/* Home Link */}
       <div className="px-4 py-2">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Menu</p>
-        <div className="space-y-2">
-          {filteredItems.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => navigate(item.href)}
-              className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
-            >
-              <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white", item.color)}>
-                <item.icon className="h-6 w-6" />
-              </div>
-              <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
-                {item.label}
-              </span>
-              {item.badge && (
-                <span className="px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-                  {item.badge}
-                </span>
-              )}
-              {item.badgeCount && item.badgeCount > 0 && (
-                <span className="px-2.5 py-1 rounded-full bg-red-500 text-white text-xs font-semibold min-w-[24px] text-center">
-                  {item.badgeCount > 99 ? '99+' : item.badgeCount}
-                </span>
-              )}
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => navigate('/')}
+          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
+        >
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white bg-primary">
+            <Home className="h-6 w-6" />
+          </div>
+          <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
+            Home
+          </span>
+          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+        </button>
+      </div>
 
-        <div className="h-px bg-border my-6" />
-        
+      {/* Categories from Database */}
+      <div className="px-4 py-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Categories</p>
+        <div className="space-y-2">
+          {categoriesLoading ? (
+            Array(4).fill(0).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-2xl" />
+            ))
+          ) : (
+            // Group categories by type and show unique types as navigation
+            (() => {
+              const typeMap: Record<string, { name: string; icon: string; route: string; color: string }> = {};
+              categories.forEach(cat => {
+                const t = cat.type || 'general';
+                if (!typeMap[t]) {
+                  const routeMap: Record<string, string> = {
+                    'asset': '/assets',
+                    'agriculture': '/agriculture', 
+                    'rent': '/rent',
+                    'general': '/',
+                  };
+                  const colorMap: Record<string, string> = {
+                    'asset': 'bg-blue-500',
+                    'agriculture': 'bg-green-500',
+                    'rent': 'bg-purple-500',
+                    'general': 'bg-orange-500',
+                  };
+                  const nameMap: Record<string, string> = {
+                    'asset': 'Assets & Properties',
+                    'agriculture': 'Agriculture',
+                    'rent': 'Equipment for Rent',
+                    'general': 'General Products',
+                  };
+                  typeMap[t] = {
+                    name: nameMap[t] || t,
+                    icon: cat.icon || '📦',
+                    route: routeMap[t] || '/',
+                    color: colorMap[t] || 'bg-orange-500',
+                  };
+                }
+              });
+              
+              // Also show individual categories
+              return (
+                <>
+                  {Object.entries(typeMap).map(([type, info]) => (
+                    <button
+                      key={type}
+                      onClick={() => navigate(info.route)}
+                      className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
+                    >
+                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl", info.color)}>
+                        {info.icon}
+                      </div>
+                      <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
+                        {info.name}
+                      </span>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </button>
+                  ))}
+                </>
+              );
+            })()
+          )}
+        </div>
+      </div>
+
+      {/* Authenticated Menu Items */}
+      {user && filteredAuthItems.length > 0 && (
+        <div className="px-4 py-2">
+          <div className="h-px bg-border my-2" />
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Account</p>
+          <div className="space-y-2">
+            {filteredAuthItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.href)}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
+              >
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white", item.color)}>
+                  <item.icon className="h-6 w-6" />
+                </div>
+                <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
+                  {item.label}
+                </span>
+                {'badgeCount' in item && item.badgeCount && item.badgeCount > 0 && (
+                  <span className="px-2.5 py-1 rounded-full bg-red-500 text-white text-xs font-semibold min-w-[24px] text-center">
+                    {item.badgeCount > 99 ? '99+' : item.badgeCount}
+                  </span>
+                )}
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Support - visible to all */}
+      <div className="px-4 py-2">
+        <div className="h-px bg-border my-2" />
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Support</p>
         <div className="space-y-2">
-          {supportItems.map((item) => (
+          {publicItems.map((item) => (
             <button
               key={item.label}
               onClick={() => navigate(item.href)}

@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useGeo } from '@/context/GeoContext';
 import PasswordInput, { validatePassword } from '@/components/auth/PasswordInput';
-import LocationSelect from '@/components/auth/LocationSelect';
 import CountrySelect from '@/components/location/CountrySelect';
 import { Country } from '@/hooks/useCountries';
 import { cn } from '@/lib/utils';
@@ -31,9 +30,6 @@ const Auth = () => {
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [callNumber, setCallNumber] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [provinceId, setProvinceId] = useState('');
-  const [districtId, setDistrictId] = useState('');
-  const [sectorId, setSectorId] = useState('');
 
   // Auto-select detected country
   useEffect(() => {
@@ -139,9 +135,9 @@ const Auth = () => {
       phoneNumber: callNumber,
       callNumber,
       whatsappNumber,
-      provinceId: provinceId || 'global',
-      districtId: districtId || 'global',
-      sectorId: sectorId || 'global',
+      provinceId: 'global',
+      districtId: 'global',
+      sectorId: 'global',
       // New global fields
       country: selectedCountry.name,
       countryCode: selectedCountry.iso_code,
@@ -303,14 +299,6 @@ const Auth = () => {
               )}
             </div>
 
-            {/* Location (Optional for non-Rwanda) */}
-            {selectedCountry?.iso_code === 'RW' && (
-              <LocationSelect
-                onProvinceChange={setProvinceId}
-                onDistrictChange={setDistrictId}
-                onSectorChange={setSectorId}
-              />
-            )}
 
             {/* Phone Numbers */}
             <div className="space-y-4">

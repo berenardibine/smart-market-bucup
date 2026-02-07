@@ -1,17 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  TrendingUp, ShoppingBag, Sparkles, Package, Clock, Zap, Star,
-  Home, Wheat, Wrench, ChevronRight, Globe
+  Sparkles, Globe, Car, Wheat, Wrench, ChevronRight
 } from "lucide-react";
 import Header from "@/components/layout/Header";
-import BottomNav from "@/components/layout/BottomNav";
 import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
 import AdminFAB from "@/components/layout/AdminFAB";
 import GlobalLocationModal from "@/components/location/GlobalLocationModal";
 import LocationPermissionBanner from "@/components/location/LocationPermissionBanner";
-import ProductFilterBar, { ProductFilters } from "@/components/filters/ProductFilterBar";
 import HomeAds from "@/components/home/HomeAds";
 import FloatingProductCard from "@/components/home/FloatingProductCard";
 import AutoScrollCarousel from "@/components/home/AutoScrollCarousel";
@@ -38,13 +35,10 @@ const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const { country, countryCode, currencySymbol, lat, lng, permissionDenied, requestLocationPermission, loading: geoLoading } = useGeo();
-  const [activeTab, setActiveTab] = useState("home");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [filters, setFilters] = useState<ProductFilters>({ sortBy: 'random' });
   const [showGlobalProducts, setShowGlobalProducts] = useState(false);
   
-  // Get dynamic home feed data - filtered by user's country unless showing global
   const { 
     dynamicFeed,
     newArrivals,
@@ -56,14 +50,6 @@ const Index = () => {
 
   const isSeller = profile?.user_type === 'seller';
 
-  // Handle tab navigation
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    if (tab === 'asset') navigate('/assets');
-    else if (tab === 'agriculture') navigate('/agriculture');
-    else if (tab === 'rent') navigate('/rent');
-  };
-
   const ProductSkeleton = () => (
     <div className="bg-card rounded-2xl p-3 space-y-3 shadow-[0_6px_12px_rgba(0,0,0,0.08)]">
       <Skeleton className="aspect-square rounded-xl" />
@@ -73,11 +59,16 @@ const Index = () => {
     </div>
   );
 
+  // Category redirect cards for home page
+  const categoryCards = [
+    { icon: <Car className="h-6 w-6 text-white" />, label: "Assets & Properties", href: "/assets", color: "from-blue-500 to-cyan-500", count: assetProducts.length },
+    { icon: <Wheat className="h-6 w-6 text-white" />, label: "Agriculture", href: "/agriculture", color: "from-green-500 to-emerald-500", count: agricultureProducts.length },
+    { icon: <Wrench className="h-6 w-6 text-white" />, label: "Equipment for Rent", href: "/rent", color: "from-purple-500 to-violet-500", count: rentProducts.length },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pb-20 pt-14">
-      <Header
-        onSearchClick={() => setIsSearchOpen(true)}
-      />
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pb-8 pt-14">
+      <Header onSearchClick={() => setIsSearchOpen(true)} />
       
       <main className="container px-4 py-4 space-y-5">
         {/* Global Location Header */}
@@ -107,7 +98,6 @@ const Index = () => {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </button>
 
-          {/* Toggle for global products */}
           <div className="flex justify-center mt-2">
             <button
               onClick={() => setShowGlobalProducts(!showGlobalProducts)}
@@ -123,27 +113,19 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Location Permission Banner (shown only if denied) */}
+        {/* Location Permission Banner */}
         {permissionDenied && (
           <section className="animate-fade-up">
             <LocationPermissionBanner onRequestPermission={requestLocationPermission} />
           </section>
         )}
 
-        {/* Smart Ads at Top */}
+        {/* Smart Ads */}
         <section className="animate-fade-up">
           <HomeAds />
         </section>
 
-        {/* Smart Filter Bar 
-        <section className="animate-fade-up">
-          <ProductFilterBar 
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
-        </section> */}
-
-        {/* New Arrivals Section - Auto-scroll */}
+        {/* New Arrivals Section */}
         {newArrivals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
             <AutoScrollCarousel
@@ -157,7 +139,7 @@ const Index = () => {
           </section>
         )}
 
-        {/* Products Near You - GPS based */}
+        {/* Products Near You */}
         <section className="animate-fade-up" style={{ animationDelay: "0.22s" }}>
           <NearbyProducts
             lat={lat}
@@ -167,54 +149,42 @@ const Index = () => {
           />
         </section>
 
-        {/* Shop Near Me Section */}
+        {/* Shop Near Me */}
         <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
           <ShopNearMe userCountry={showGlobalProducts ? undefined : country || undefined} />
         </section>
 
-        {/* Asset Section - Auto-scroll */}
-        {assetProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
-            <AutoScrollCarousel
-              title="Assets"
-              icon="🏠"
-              color="from-orange-500 to-amber-400"
-              products={assetProducts}
-              viewAllLink="/assets"
-              autoScrollInterval={3000}
-            />
-          </section>
-        )}
+        {/* Category Redirect Cards */}
+        <section className="animate-fade-up" style={{ animationDelay: "0.28s" }}>
+          <SectionHeader
+            title="Browse by Category"
+            icon={<Sparkles className="h-4 w-4 text-primary" />}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+            {categoryCards.map((card) => (
+              <button
+                key={card.href}
+                onClick={() => navigate(card.href)}
+                className={cn(
+                  "flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r text-white",
+                  "hover:shadow-lg transition-all hover:scale-[1.02]",
+                  card.color
+                )}
+              >
+                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                  {card.icon}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold text-sm">{card.label}</p>
+                  <p className="text-xs text-white/80">{card.count} products</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-white/70" />
+              </button>
+            ))}
+          </div>
+        </section>
 
-        {/* Agriculture Section - Auto-scroll */}
-        {agricultureProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.35s" }}>
-            <AutoScrollCarousel
-              title="Agriculture"
-              icon="🌾"
-              color="from-green-500 to-emerald-400"
-              products={agricultureProducts}
-              viewAllLink="/agriculture"
-              autoScrollInterval={3000}
-            />
-          </section>
-        )}
-
-        {/* Equipment for Rent Section - Auto-scroll */}
-        {rentProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.4s" }}>
-            <AutoScrollCarousel
-              title="Equipment for Rent"
-              icon="🔧"
-              color="from-purple-500 to-violet-400"
-              products={rentProducts}
-              viewAllLink="/rent"
-              autoScrollInterval={3000}
-            />
-          </section>
-        )}
-
-        {/* Dynamic Feed - Random Products with Category Sections */}
+        {/* Dynamic Feed */}
         <section className="space-y-4">
           <SectionHeader
             title="🔀 Explore Products"
@@ -287,24 +257,19 @@ const Index = () => {
           </section>
         )}
 
-        {/* Tagline Footer */}
+        {/* Footer */}
         <section className="text-center py-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-secondary/10 mb-3">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-primary">Smart Shopping</span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            🌍 Your Global Marketplace
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Smart Market — Buy Smart, Live Smart.
-          </p>
+          <p className="text-sm text-muted-foreground">🌍 Your Global Marketplace</p>
+          <p className="text-xs text-muted-foreground mt-1">Smart Market — Buy Smart, Live Smart.</p>
         </section>
       </main>
 
       {isSeller && <SellerFAB />}
       <AdminFAB />
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <GlobalLocationModal 
         isOpen={showLocationModal} 
