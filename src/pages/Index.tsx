@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Sparkles, Globe, Car, Wheat, Wrench, ChevronRight
+  Sparkles, Globe, Car, Wheat, Wrench
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import SearchModal from "@/components/layout/SearchModal";
@@ -58,13 +58,6 @@ const Index = () => {
       <Skeleton className="h-3 w-2/3" />
     </div>
   );
-
-  // Category redirect cards for home page
-  const categoryCards = [
-    { icon: <Car className="h-6 w-6 text-white" />, label: "Assets & Properties", href: "/assets", color: "from-blue-500 to-cyan-500", count: assetProducts.length },
-    { icon: <Wheat className="h-6 w-6 text-white" />, label: "Agriculture", href: "/agriculture", color: "from-green-500 to-emerald-500", count: agricultureProducts.length },
-    { icon: <Wrench className="h-6 w-6 text-white" />, label: "Equipment for Rent", href: "/rent", color: "from-purple-500 to-violet-500", count: rentProducts.length },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pb-8 pt-14">
@@ -139,8 +132,50 @@ const Index = () => {
           </section>
         )}
 
+        {/* Asset Products Section */}
+        {assetProducts.length > 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.22s" }}>
+            <AutoScrollCarousel
+              title="Assets & Properties"
+              icon="🏠"
+              color="from-blue-500 to-cyan-500"
+              products={assetProducts}
+              viewAllLink="/assets"
+              autoScrollInterval={3500}
+            />
+          </section>
+        )}
+
+        {/* Agriculture Products Section */}
+        {agricultureProducts.length > 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.24s" }}>
+            <AutoScrollCarousel
+              title="Agriculture Products"
+              icon="🌾"
+              color="from-green-500 to-emerald-500"
+              products={agricultureProducts}
+              viewAllLink="/agriculture"
+              autoScrollInterval={4000}
+            />
+          </section>
+        )}
+
+        {/* Equipment for Rent Section */}
+        {rentProducts.length > 0 && (
+          <section className="animate-fade-up" style={{ animationDelay: "0.26s" }}>
+            <AutoScrollCarousel
+              title="Equipment for Rent"
+              icon="🔧"
+              color="from-purple-500 to-violet-500"
+              products={rentProducts}
+              viewAllLink="/rent"
+              autoScrollInterval={4500}
+            />
+          </section>
+        )}
+
         {/* Products Near You */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.22s" }}>
+        <section className="animate-fade-up" style={{ animationDelay: "0.28s" }}>
           <NearbyProducts
             lat={lat}
             lng={lng}
@@ -150,38 +185,8 @@ const Index = () => {
         </section>
 
         {/* Shop Near Me */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
+        <section className="animate-fade-up" style={{ animationDelay: "0.3s" }}>
           <ShopNearMe userCountry={showGlobalProducts ? undefined : country || undefined} />
-        </section>
-
-        {/* Category Redirect Cards */}
-        <section className="animate-fade-up" style={{ animationDelay: "0.28s" }}>
-          <SectionHeader
-            title="Browse by Category"
-            icon={<Sparkles className="h-4 w-4 text-primary" />}
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
-            {categoryCards.map((card) => (
-              <button
-                key={card.href}
-                onClick={() => navigate(card.href)}
-                className={cn(
-                  "flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r text-white",
-                  "hover:shadow-lg transition-all hover:scale-[1.02]",
-                  card.color
-                )}
-              >
-                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                  {card.icon}
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-semibold text-sm">{card.label}</p>
-                  <p className="text-xs text-white/80">{card.count} products</p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-white/70" />
-              </button>
-            ))}
-          </div>
         </section>
 
         {/* Dynamic Feed */}

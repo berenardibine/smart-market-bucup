@@ -12,6 +12,9 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useCategories } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Hidden category types (shown as dedicated sections on home, not in menu)
+const HIDDEN_CATEGORY_TYPES = ['asset', 'agriculture', 'rent'];
+
 const MenuPage = () => {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
@@ -20,19 +23,16 @@ const MenuPage = () => {
   const { unreadCount } = useNotifications();
   const { categories, loading: categoriesLoading } = useCategories();
 
-  // Map category type to route
-  const getCategoryRoute = (cat: { type: string | null; slug: string }) => {
-    if (cat.type === 'asset') return '/assets';
-    if (cat.type === 'agriculture') return '/agriculture';
-    if (cat.type === 'rent') return '/rent';
-    // Default: go to home with category filter (could be extended)
-    return '/';
-  };
+  // Filter out hidden categories and get visible ones
+  const visibleCategories = categories.filter(
+    cat => !HIDDEN_CATEGORY_TYPES.includes(cat.type || '')
+  );
 
   // Authenticated-only menu items
   const authMenuItems = [
     { icon: User, label: "My Account", href: "/account", color: "bg-blue-500" },
     { icon: Store, label: "My Shop", href: "/my-shop", sellerOnly: true, color: "bg-green-500" },
+    { icon: Heart, label: "Favorites", href: "/favorites", color: "bg-pink-500" },
     { icon: Bell, label: "Notifications", href: "/notifications", badgeCount: unreadCount, color: "bg-purple-500" },
   ];
 
@@ -145,7 +145,7 @@ const MenuPage = () => {
         </button>
       </div>
 
-      {/* Categories from Database */}
+      {/* Categories from Database (individual categories, excluding hidden types) */}
       <div className="px-4 py-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Categories</p>
         <div className="space-y-2">
@@ -154,60 +154,21 @@ const MenuPage = () => {
               <Skeleton key={i} className="h-16 rounded-2xl" />
             ))
           ) : (
-            // Group categories by type and show unique types as navigation
-            (() => {
-              const typeMap: Record<string, { name: string; icon: string; route: string; color: string }> = {};
-              categories.forEach(cat => {
-                const t = cat.type || 'general';
-                if (!typeMap[t]) {
-                  const routeMap: Record<string, string> = {
-                    'asset': '/assets',
-                    'agriculture': '/agriculture', 
-                    'rent': '/rent',
-                    'general': '/',
-                  };
-                  const colorMap: Record<string, string> = {
-                    'asset': 'bg-blue-500',
-                    'agriculture': 'bg-green-500',
-                    'rent': 'bg-purple-500',
-                    'general': 'bg-orange-500',
-                  };
-                  const nameMap: Record<string, string> = {
-                    'asset': 'Assets & Properties',
-                    'agriculture': 'Agriculture',
-                    'rent': 'Equipment for Rent',
-                    'general': 'General Products',
-                  };
-                  typeMap[t] = {
-                    name: nameMap[t] || t,
-                    icon: cat.icon || '📦',
-                    route: routeMap[t] || '/',
-                    color: colorMap[t] || 'bg-orange-500',
-                  };
-                }
-              });
-              
-              // Also show individual categories
-              return (
-                <>
-                  {Object.entries(typeMap).map(([type, info]) => (
-                    <button
-                      key={type}
-                      onClick={() => navigate(info.route)}
-                      className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
-                    >
-                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl", info.color)}>
-                        {info.icon}
-                      </div>
-                      <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
-                        {info.name}
-                      </span>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </button>
-                  ))}
-                </>
-              );
-            })()
+            visibleCategories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => navigate(`/?category=${cat.slug}`)}
+                className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary/10 text-xl">
+                  {cat.icon || '📦'}
+                </div>
+                <span className="flex-1 text-left font-medium text-foreground group-hover:text-primary transition-colors text-base">
+                  {cat.name}
+                </span>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </button>
+            ))
           )}
         </div>
       </div>
