@@ -124,7 +124,7 @@ export const useTasks = () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_task_progress')
         .select('*')
         .eq('user_id', user.id);
@@ -144,7 +144,7 @@ export const useTasks = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_task_progress')
         .insert({
           user_id: user.id,

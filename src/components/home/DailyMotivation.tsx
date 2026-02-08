@@ -15,7 +15,7 @@ const DailyMotivation = () => {
   const fetchMotivation = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('daily_motivations')
         .select('id, quote, author')
         .limit(10);
