@@ -35,7 +35,7 @@ export const usePlans = () => {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('plans')
         .select('*')
         .eq('is_active', true)
@@ -72,7 +72,7 @@ export const useUserSubscription = () => {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('user_subscriptions')
         .select(`
           *,

@@ -41,7 +41,7 @@ const MotivationManagement = () => {
 
   const fetchMotivations = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('daily_motivations')
       .select('*')
       .order('created_at', { ascending: false });
@@ -61,7 +61,7 @@ const MotivationManagement = () => {
     }
 
     if (editingMotivation) {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('daily_motivations')
         .update({
           quote: formData.quote,
@@ -77,7 +77,7 @@ const MotivationManagement = () => {
         fetchMotivations();
       }
     } else {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('daily_motivations')
         .insert({
           quote: formData.quote,
@@ -101,7 +101,7 @@ const MotivationManagement = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this motivation?')) return;
     
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('daily_motivations')
       .delete()
       .eq('id', id);
