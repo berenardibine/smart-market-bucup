@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -62,12 +63,14 @@ interface Location {
 
 const AdsManagement = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [ads, setAds] = useState<Ad[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingAd, setEditingAd] = useState<Ad | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -91,6 +94,7 @@ const AdsManagement = () => {
       .order('created_at', { ascending: false });
     
     if (data) setAds(data);
+    if (error) console.error('Failed to fetch ads:', error);
     setLoading(false);
   };
 
@@ -158,48 +162,73 @@ const AdsManagement = () => {
       return;
     }
 
-    const adData = {
-      title: formData.title,
-      description: formData.description || null,
-      type: formData.type,
-      image_url: formData.image_url || null,
-      link: formData.link || null,
-      bg_color: formData.bg_color,
-      text_color: formData.text_color,
-      font_size: formData.font_size,
-      start_date: formData.start_date || new Date().toISOString(),
-      end_date: formData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      is_active: true,
-      target_audience: formData.target_audience,
-      location_id: formData.location_id || null,
-    };
+    setSubmitting(true);
 
-    if (editingAd) {
-      const { error } = await supabase
-        .from('ads')
-        .update(adData)
-        .eq('id', editingAd.id);
+    try {
+      const now = new Date().toISOString();
+      const adData = {
+        title: formData.title,
+        description: formData.description || null,
+        type: formData.type,
+        image_url: formData.image_url || null,
+        link: formData.link || null,
+        bg_color: formData.bg_color,
+        text_color: formData.text_color,
+        font_size: formData.font_size,
+        start_date: formData.start_date || now,
+        end_date: formData.end_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        is_active: true,
+        target_audience: formData.target_audience || 'all',
+        location_id: formData.location_id || null,
+        created_by: user?.id || null,
+      };
 
-      if (error) {
-        toast({ title: "Failed to update ad", variant: "destructive" });
+      if (editingAd) {
+        const { error } = await supabase
+          .from('ads')
+          .update(adData)
+          .eq('id', editingAd.id);
+
+        if (error) {
+          console.error('Ad update error:', error);
+          toast({ 
+            title: "Failed to update ad", 
+            description: error.message,
+            variant: "destructive" 
+          });
+        } else {
+          toast({ title: "Ad updated!" });
+          fetchAds();
+          resetForm();
+        }
       } else {
-        toast({ title: "Ad updated!" });
-        fetchAds();
-      }
-    } else {
-      const { error } = await supabase
-        .from('ads')
-        .insert(adData);
+        const { error } = await supabase
+          .from('ads')
+          .insert(adData);
 
-      if (error) {
-        toast({ title: "Failed to create ad", variant: "destructive" });
-      } else {
-        toast({ title: "Ad created!" });
-        fetchAds();
+        if (error) {
+          console.error('Ad creation error:', error);
+          toast({ 
+            title: "Failed to create ad", 
+            description: error.message,
+            variant: "destructive" 
+          });
+        } else {
+          toast({ title: "Ad created!" });
+          fetchAds();
+          resetForm();
+        }
       }
+    } catch (err: any) {
+      console.error('Ad submission error:', err);
+      toast({ 
+        title: "Error", 
+        description: err.message || "An unexpected error occurred",
+        variant: "destructive" 
+      });
+    } finally {
+      setSubmitting(false);
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
@@ -227,7 +256,7 @@ const AdsManagement = () => {
     const { error } = await supabase.from('ads').delete().eq('id', id);
 
     if (error) {
-      toast({ title: "Failed to delete", variant: "destructive" });
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Ad deleted!" });
       fetchAds();
@@ -528,8 +557,8 @@ const AdsManagement = () => {
                 </div>
               </div>
 
-              <Button onClick={handleSubmit} className="w-full" disabled={uploading}>
-                {editingAd ? 'Update Ad' : 'Create Ad'}
+              <Button onClick={handleSubmit} className="w-full" disabled={uploading || submitting}>
+                {submitting ? 'Saving...' : editingAd ? 'Update Ad' : 'Create Ad'}
               </Button>
             </div>
           </DialogContent>

@@ -4,31 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
-  HardDrive, 
-  Zap, 
-  Image, 
-  TrendingDown, 
-  RefreshCw, 
-  Play,
-  Eye,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  Sparkles,
-  FileImage,
-  Trash2,
-  RotateCcw
+  HardDrive, Zap, Image, TrendingDown, RefreshCw, 
+  CheckCircle, AlertCircle, Loader2, Sparkles, FileImage
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFileOptimization } from "@/hooks/useFileOptimization";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 
 interface OptimizationLog {
@@ -87,6 +70,18 @@ const FileOptimizationDashboard = () => {
       // Fetch stats
       const statsResult = await getOptimizationStats();
       
+      // Fetch optimization logs to build a set of already-optimized URLs
+      const { data: optimizationLogs } = await supabase
+        .from('file_optimization_logs')
+        .select('original_url, optimized_url');
+      
+      const optimizedOriginalUrls = new Set(
+        (optimizationLogs || []).map(log => log.original_url)
+      );
+      const optimizedResultUrls = new Set(
+        (optimizationLogs || []).map(log => log.optimized_url)
+      );
+      
       // Fetch all products with images
       const { data: products } = await supabase
         .from('products')
@@ -100,7 +95,8 @@ const FileOptimizationDashboard = () => {
       (products || []).forEach(p => {
         const images = p.images as string[] || [];
         images.forEach(img => {
-          const isOpt = img.includes('/optimized/') || img.includes('optimized_');
+          // Check if the image URL is in the optimization logs (either as original or optimized)
+          const isOpt = optimizedOriginalUrls.has(img) || optimizedResultUrls.has(img);
           if (isOpt) optimizedCount++;
           else unoptimizedCount++;
           
@@ -168,22 +164,36 @@ const FileOptimizationDashboard = () => {
       
       if (result?.optimizedUrl) {
         // Update the product's images array in database
-        const { data: product } = await supabase
+        const { data: product, error: fetchErr } = await supabase
           .from('products')
           .select('images')
           .eq('id', file.productId)
           .single();
         
+        if (fetchErr) {
+          console.error('Failed to fetch product:', fetchErr);
+          throw fetchErr;
+        }
+
         if (product) {
           const images = (product.images as string[]) || [];
           const updatedImages = images.map(img => 
             img === file.imageUrl ? result.optimizedUrl : img
           );
           
-          await supabase
+          const { error: updateErr } = await supabase
             .from('products')
             .update({ images: updatedImages })
             .eq('id', file.productId);
+          
+          if (updateErr) {
+            console.error('Failed to update product images:', updateErr);
+            toast({
+              title: "Warning",
+              description: "File optimized but failed to update product reference",
+              variant: "destructive"
+            });
+          }
         }
         
         toast({
@@ -191,12 +201,13 @@ const FileOptimizationDashboard = () => {
           description: `Saved ${result.compressionRatio}% - ${formatBytes(result.originalSize - result.optimizedSize)}`,
         });
         
-        fetchData();
+        // Refresh data to show updated status
+        await fetchData();
       }
     } catch (error) {
       toast({
         title: "Optimization Failed",
-        description: "Could not optimize this file",
+        description: error instanceof Error ? error.message : "Could not optimize this file",
         variant: "destructive"
       });
     } finally {
@@ -209,7 +220,7 @@ const FileOptimizationDashboard = () => {
     if (result) {
       toast({
         title: "Batch Optimization Complete",
-        description: `Processed ${result.filesProcessed || 0} files`,
+        description: `Processed ${result.processed || 0} files`,
       });
       fetchData();
     }
@@ -405,10 +416,7 @@ const FileOptimizationDashboard = () => {
               ) : (
                 <div className="space-y-3">
                   {batchJobs.slice(0, 5).map(job => (
-                    <div 
-                      key={job.id}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-xl"
-                    >
+                    <div key={job.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
                       <div className="flex items-center gap-3">
                         {job.status === 'completed' ? (
                           <CheckCircle className="h-5 w-5 text-green-500" />
@@ -452,10 +460,7 @@ const FileOptimizationDashboard = () => {
               ) : (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {productFiles.filter(f => !f.isOptimized).slice(0, 10).map((file, idx) => (
-                    <div 
-                      key={idx}
-                      className="flex items-center gap-3 p-2 bg-red-500/5 rounded-lg"
-                    >
+                    <div key={idx} className="flex items-center gap-3 p-2 bg-red-500/5 rounded-lg">
                       <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
                         <img src={file.imageUrl} alt="" className="w-full h-full object-cover" />
                       </div>
@@ -499,70 +504,49 @@ const FileOptimizationDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {productFiles.slice(0, 50).map((file, idx) => (
+                {productFiles.map((file, idx) => (
                   <TableRow key={idx}>
                     <TableCell>
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
-                        <img 
-                          src={file.imageUrl} 
-                          alt="" 
-                          className="w-full h-full object-cover"
-                          onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                        />
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted">
+                        <img src={file.imageUrl} alt="" className="w-full h-full object-cover" />
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium max-w-[150px] truncate">
-                      {file.productTitle}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">
-                      {getFileName(file.imageUrl)}
-                    </TableCell>
+                    <TableCell className="max-w-[150px] truncate">{file.productTitle}</TableCell>
+                    <TableCell className="max-w-[120px] truncate text-xs">{getFileName(file.imageUrl)}</TableCell>
                     <TableCell>
-                      <Badge variant={file.isOptimized ? "default" : "destructive"}>
-                        {file.isOptimized ? (
-                          <>
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Optimized
-                          </>
-                        ) : (
-                          <>
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Unoptimized
-                          </>
-                        )}
-                      </Badge>
+                      {file.isOptimized ? (
+                        <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Optimized
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-xs">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Unoptimized
+                        </Badge>
+                      )}
                     </TableCell>
-                    <TableCell className="text-sm">{file.estimatedSize}</TableCell>
+                    <TableCell className="text-xs">{file.estimatedSize}</TableCell>
                     <TableCell>
                       {!file.isOptimized && (
                         <Button
                           size="sm"
+                          variant="outline"
                           onClick={() => handleOptimizeSingle(file)}
                           disabled={optimizingSingle === file.imageUrl}
                         >
                           {optimizingSingle === file.imageUrl ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            <>
-                              <Zap className="h-4 w-4 mr-1" />
-                              Optimize
-                            </>
+                            <Zap className="h-3 w-3" />
                           )}
                         </Button>
-                      )}
-                      {file.isOptimized && (
-                        <span className="text-xs text-muted-foreground">Already optimized</span>
                       )}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            {productFiles.length > 50 && (
-              <p className="text-center text-muted-foreground text-sm py-4">
-                Showing 50 of {productFiles.length} files
-              </p>
-            )}
           </CardContent>
         </Card>
       )}
@@ -571,49 +555,26 @@ const FileOptimizationDashboard = () => {
         <Card>
           <CardContent className="pt-6">
             {recentLogs.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No optimizations yet. Upload files to see them here.
-              </p>
+              <p className="text-center text-muted-foreground py-8">No optimization logs yet</p>
             ) : (
               <div className="space-y-3">
                 {recentLogs.map(log => (
-                  <div 
-                    key={log.id}
-                    className="flex items-center gap-4 p-3 bg-muted/30 rounded-xl"
-                  >
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      <img 
-                        src={log.optimized_url} 
-                        alt="" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/placeholder.svg';
-                        }}
-                      />
+                  <div key={log.id} className="flex items-center gap-4 p-3 bg-muted/30 rounded-xl">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted shrink-0">
+                      <img src={log.optimized_url} alt="" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {log.target_type}
-                        </Badge>
-                        {log.was_enhanced && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Sparkles className="h-3 w-3 mr-1" />
-                            Enhanced
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {formatBytes(log.original_size)} → {formatBytes(log.optimized_size)}
-                      </p>
+                      <p className="text-sm font-medium truncate">{getFileName(log.original_url)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatDate(log.created_at)}
+                        {formatBytes(log.original_size)} → {formatBytes(log.optimized_size)}
+                        {log.was_enhanced && ' • AI Enhanced'}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-green-500">
+                      <Badge variant={log.compression_ratio > 50 ? "default" : "secondary"}>
                         -{log.compression_ratio}%
-                      </p>
+                      </Badge>
+                      <p className="text-xs text-muted-foreground mt-1">{formatDate(log.created_at)}</p>
                     </div>
                   </div>
                 ))}

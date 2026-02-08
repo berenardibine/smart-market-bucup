@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSellerAnalytics } from "@/hooks/useProductAnalytics";
+import { formatNumber } from "@/lib/formatNumber";
 import { Eye, MousePointerClick, TrendingUp, BarChart3, PieChart, Loader2 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from "recharts";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#10b981', '#8b5cf6', '#f59e0b'];
 
@@ -71,7 +72,7 @@ const SellerProductAnalytics = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Impressions</p>
-                <p className="text-2xl font-bold">{analytics.totalImpressions.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatNumber(analytics.totalImpressions)}</p>
               </div>
             </div>
           </CardContent>
@@ -85,7 +86,7 @@ const SellerProductAnalytics = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Views</p>
-                <p className="text-2xl font-bold">{analytics.totalViews.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatNumber(analytics.totalViews)}</p>
               </div>
             </div>
           </CardContent>
@@ -224,7 +225,7 @@ const SellerProductAnalytics = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{product.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {product.impressions} impressions • {product.views} views
+                      {formatNumber(product.impressions)} impressions • {formatNumber(product.views)} views
                     </p>
                   </div>
                   <div className="text-right">

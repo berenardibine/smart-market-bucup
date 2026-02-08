@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useAdminProductAnalytics } from "@/hooks/useProductAnalytics";
+import { formatNumber } from "@/lib/formatNumber";
 import { Eye, MousePointerClick, TrendingUp, BarChart3, PieChart, AlertTriangle, Loader2, Layers } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, Legend } from "recharts";
 
@@ -72,7 +73,7 @@ const AdminProductAnalytics = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Impressions</p>
-                <p className="text-2xl font-bold">{analytics.totalImpressions.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatNumber(analytics.totalImpressions)}</p>
               </div>
             </div>
           </CardContent>
@@ -86,7 +87,7 @@ const AdminProductAnalytics = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Views</p>
-                <p className="text-2xl font-bold">{analytics.totalViews.toLocaleString()}</p>
+                <p className="text-2xl font-bold">{formatNumber(analytics.totalViews)}</p>
               </div>
             </div>
           </CardContent>
@@ -238,7 +239,7 @@ const AdminProductAnalytics = () => {
                         <span className="font-medium capitalize">{source.source}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-semibold">{source.count.toLocaleString()}</span>
+                        <span className="font-semibold">{formatNumber(source.count)}</span>
                         <span className="text-muted-foreground text-sm ml-2">({source.percentage.toFixed(1)}%)</span>
                       </div>
                     </div>
@@ -307,7 +308,7 @@ const AdminProductAnalytics = () => {
                         <p className="text-sm text-muted-foreground">ID: {product.productId.slice(0, 8)}...</p>
                       </div>
                       <div className="text-right">
-                        <Badge variant="destructive">{product.impressions.toLocaleString()} impressions</Badge>
+                        <Badge variant="destructive">{formatNumber(product.impressions)} impressions</Badge>
                         <p className="text-sm text-destructive mt-1">0 views</p>
                       </div>
                     </div>
@@ -342,7 +343,7 @@ const AdminProductAnalytics = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{product.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {product.impressions.toLocaleString()} impr • {product.views.toLocaleString()} views
+                      {formatNumber(product.impressions)} impr • {formatNumber(product.views)} views
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
