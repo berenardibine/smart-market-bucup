@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,9 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { GeoProvider } from "@/context/GeoContext";
 import PreferenceThemeSync from "@/components/theme/PreferenceThemeSync";
 import ScrollToTop from "@/components/layout/ScrollToTop";
+import SplashScreen from "@/components/pwa/SplashScreen";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
+import PermissionHandler from "@/components/pwa/PermissionHandler";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -59,74 +63,90 @@ import MenuPage from "./pages/MenuPage";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <GeoProvider>
-          <PreferenceThemeSync />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/product/:slugOrId" element={<ProductDetail />} />
-            <Route path="/seller-dashboard" element={<SellerDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/shop/:shopId" element={<ShopPage />} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin/products" element={<AdminProducts />} />
-            <Route path="/admin/products/add" element={<AdminProductAdd />} />
-            <Route path="/admin/products/edit/:productId" element={<AdminProductEdit />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
-            <Route path="/admin/shops" element={<AdminShops />} />
-            <Route path="/admin/categories" element={<AdminCategories />} />
-            <Route path="/admin/locations" element={<AdminLocations />} />
-            <Route path="/admin/motivations" element={<AdminMotivations />} />
-            <Route path="/admin/notifications" element={<AdminNotifications />} />
-            <Route path="/admin/messages" element={<AdminMessages />} />
-            <Route path="/admin/ads" element={<AdminAds />} />
-            <Route path="/admin/link-analytics" element={<AdminLinkAnalytics />} />
-            <Route path="/admin/filter-analytics" element={<AdminFilterAnalytics />} />
-            <Route path="/admin/challenges" element={<AdminChallenges />} />
-            <Route path="/admin/file-optimization" element={<AdminFileOptimization />} />
-            <Route path="/admin/views-analytics" element={<AdminViewsAnalytics />} />
-            
-            <Route path="/menu" element={<MenuPage />} />
-            
-            <Route path="/assets" element={<AssetPage />} />
-            <Route path="/agriculture" element={<AgriculturePage />} />
-            <Route path="/rent" element={<RentPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/blocked" element={<BlockedPage />} />
-            <Route path="/seller-monetization" element={<SellerMonetization />} />
-            
-            {/* Menu Pages */}
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/my-shop" element={<MyShopPage />} />
-            <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/challenges" element={<ChallengesPage />} />
-            <Route path="/rewards" element={<RewardsPage />} />
-            <Route path="/premium" element={<PremiumPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/help" element={<HelpPage />} />
-            <Route path="/support" element={<SupportPage />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        </GeoProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [splashDone, setSplashDone] = useState(
+    !!sessionStorage.getItem('sm-splash-shown')
+  );
+
+  const handleSplashComplete = useCallback(() => {
+    setSplashDone(true);
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <GeoProvider>
+            {/* Splash Screen */}
+            {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
+
+            <PreferenceThemeSync />
+            <PermissionHandler />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ScrollToTop />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/product/:slugOrId" element={<ProductDetail />} />
+                <Route path="/seller-dashboard" element={<SellerDashboard />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/shop/:shopId" element={<ShopPage />} />
+
+                {/* Admin Routes */}
+                <Route path="/admin/products" element={<AdminProducts />} />
+                <Route path="/admin/products/add" element={<AdminProductAdd />} />
+                <Route path="/admin/products/edit/:productId" element={<AdminProductEdit />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                <Route path="/admin/shops" element={<AdminShops />} />
+                <Route path="/admin/categories" element={<AdminCategories />} />
+                <Route path="/admin/locations" element={<AdminLocations />} />
+                <Route path="/admin/motivations" element={<AdminMotivations />} />
+                <Route path="/admin/notifications" element={<AdminNotifications />} />
+                <Route path="/admin/messages" element={<AdminMessages />} />
+                <Route path="/admin/ads" element={<AdminAds />} />
+                <Route path="/admin/link-analytics" element={<AdminLinkAnalytics />} />
+                <Route path="/admin/filter-analytics" element={<AdminFilterAnalytics />} />
+                <Route path="/admin/challenges" element={<AdminChallenges />} />
+                <Route path="/admin/file-optimization" element={<AdminFileOptimization />} />
+                <Route path="/admin/views-analytics" element={<AdminViewsAnalytics />} />
+
+                <Route path="/menu" element={<MenuPage />} />
+
+                <Route path="/assets" element={<AssetPage />} />
+                <Route path="/agriculture" element={<AgriculturePage />} />
+                <Route path="/rent" element={<RentPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/blocked" element={<BlockedPage />} />
+                <Route path="/seller-monetization" element={<SellerMonetization />} />
+
+                {/* Menu Pages */}
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/my-shop" element={<MyShopPage />} />
+                <Route path="/favorites" element={<FavoritesPage />} />
+                <Route path="/challenges" element={<ChallengesPage />} />
+                <Route path="/rewards" element={<RewardsPage />} />
+                <Route path="/premium" element={<PremiumPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/help" element={<HelpPage />} />
+                <Route path="/support" element={<SupportPage />} />
+
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              {/* PWA Install Prompt */}
+              <InstallPrompt />
+            </BrowserRouter>
+          </GeoProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
