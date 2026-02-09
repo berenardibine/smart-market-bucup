@@ -143,7 +143,7 @@ const HomeAds = () => {
           </a>
         )}
 
-        {/* Dismiss button */}
+        {/* Dismiss button 
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -153,7 +153,7 @@ const HomeAds = () => {
           className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center text-white transition-colors"
         >
           <X className="h-3 w-3" />
-        </button>
+        </button> */}
       </div>
 
       {/* Pagination dots */}
