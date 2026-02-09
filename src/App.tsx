@@ -11,6 +11,7 @@ import ScrollToTop from "@/components/layout/ScrollToTop";
 import SplashScreen from "@/components/pwa/SplashScreen";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import PermissionHandler from "@/components/pwa/PermissionHandler";
+import PushNotificationInit from "@/components/pwa/PushNotificationInit";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -82,6 +83,7 @@ const App = () => {
 
             <PreferenceThemeSync />
             <PermissionHandler />
+            <PushNotificationInit />
             <Toaster />
             <Sonner />
             <BrowserRouter>
