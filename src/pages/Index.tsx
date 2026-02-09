@@ -268,8 +268,8 @@ const Index = () => {
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium text-primary">Smart Shopping</span>
           </div>
-          <p className="text-sm text-muted-foreground">🌍 Your Global Marketplace</p>
-          <p className="text-xs text-muted-foreground mt-1">Smart Market — Buy Smart, Live Smart.</p>
+          <p className="text-sm text-muted-foreground"></p>
+          <p className="text-xs text-muted-foreground mt-1"></p>
         </section>
       </main>
 
