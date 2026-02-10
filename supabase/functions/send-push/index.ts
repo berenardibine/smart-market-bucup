@@ -12,12 +12,13 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tbykrulfzhhkmtgjhvjh.supabase.co';
     const supabase = createClient(
-      'https://tbykrulfzhhkmtgjhvjh.supabase.co',
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
     );
 
-    const { title, body, url, userId, broadcast } = await req.json();
+    const { title, body, url, userId, broadcast, type } = await req.json();
 
     if (!title || !body) {
       return new Response(JSON.stringify({ error: 'title and body required' }), {
@@ -26,7 +27,7 @@ serve(async (req) => {
       });
     }
 
-    // Get subscriptions
+    // Get subscriptions from push_subscriptions table
     let query = supabase.from('push_subscriptions').select('*');
     if (!broadcast && userId) {
       query = query.eq('user_id', userId);
@@ -35,66 +36,91 @@ serve(async (req) => {
     const { data: subscriptions, error } = await query;
     if (error) throw error;
 
-    if (!subscriptions || subscriptions.length === 0) {
+    // Also check notification_tokens table
+    let tokenQuery = supabase.from('notification_tokens').select('*');
+    if (!broadcast && userId) {
+      tokenQuery = tokenQuery.eq('user_id', userId);
+    }
+    const { data: tokens } = await tokenQuery;
+
+    const allTargets = [
+      ...(subscriptions || []).map(s => ({ type: 'web-push', data: s })),
+      ...(tokens || []).map(t => ({ type: 'fcm-token', data: t })),
+    ];
+
+    if (allTargets.length === 0) {
       return new Response(JSON.stringify({ sent: 0, message: 'No subscriptions found' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const vapidPublicKey = 'BJQLmyHGaCpq_n_BhNqefS1x1MoK4DqjkAC793XzKEhaA3OmVOOx1OyjjB-HI7XqsCqarTmncXH4B_v4mGKJecw';
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
-
-    if (!vapidPrivateKey) {
-      console.warn('VAPID_PRIVATE_KEY not configured. Push notifications won\'t be sent.');
-      return new Response(JSON.stringify({ 
-        sent: 0, 
-        error: 'VAPID_PRIVATE_KEY not configured',
-        message: 'Please add the VAPID private key to edge function secrets' 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const payload = JSON.stringify({ title, body, url: url || '/' });
+    const payload = JSON.stringify({ title, body, url: url || '/', icon: '/favicon.ico' });
     let sent = 0;
     let failed = 0;
 
-    for (const sub of subscriptions) {
+    for (const target of allTargets) {
       try {
-        // Use the Web Push protocol to send notifications
-        const response = await fetch(sub.endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'TTL': '86400',
-          },
-          body: payload,
-        });
+        if (target.type === 'web-push') {
+          const sub = target.data;
+          const response = await fetch(sub.endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'TTL': '86400',
+            },
+            body: payload,
+          });
 
-        if (response.ok || response.status === 201) {
-          sent++;
-        } else if (response.status === 410 || response.status === 404) {
-          // Subscription expired, clean up
-          await supabase.from('push_subscriptions').delete().eq('id', sub.id);
-          failed++;
-        } else {
-          failed++;
+          if (response.ok || response.status === 201) {
+            sent++;
+          } else if (response.status === 410 || response.status === 404) {
+            await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+            failed++;
+          } else {
+            failed++;
+          }
         }
       } catch (err) {
-        console.error(`Failed to send to ${sub.endpoint}:`, err);
+        console.error(`Failed to send notification:`, err);
         failed++;
       }
     }
 
-    // Also create an in-app notification
+    // Log to notifications_history
+    const historyEntries = [];
     if (broadcast) {
+      // Get all unique user_ids
+      const userIds = new Set<string>();
+      allTargets.forEach(t => {
+        if (t.data.user_id) userIds.add(t.data.user_id);
+      });
+      userIds.forEach(uid => {
+        historyEntries.push({
+          user_id: uid,
+          title,
+          body,
+          type: type || 'broadcast',
+          url: url || '/',
+          delivered: sent > 0,
+        });
+      });
+      // Also create in-app notification
       await supabase.from('notifications').insert({
         title,
         message: body,
         type: 'push',
-        user_id: null, // null = broadcast to all
+        user_id: null,
       });
     } else if (userId) {
+      historyEntries.push({
+        user_id: userId,
+        title,
+        body,
+        type: type || 'direct',
+        url: url || '/',
+        delivered: sent > 0,
+      });
       await supabase.from('notifications').insert({
         title,
         message: body,
@@ -103,12 +129,17 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ sent, failed, total: subscriptions.length }), {
+    if (historyEntries.length > 0) {
+      await supabase.from('notifications_history').insert(historyEntries);
+    }
+
+    return new Response(JSON.stringify({ sent, failed, total: allTargets.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('Push notification error:', err);
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }), {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
