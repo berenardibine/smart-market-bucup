@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import splashIcon from '/icons/icon-512x512.png';
+import splashIcon from '/og-image-v3.png';
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [phase, setPhase] = useState<'zoom' | 'fade-out' | 'done'>('zoom');
@@ -11,12 +11,12 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
       return;
     }
 
-    const zoomTimer = setTimeout(() => setPhase('fade-out'), 1800);
+    const zoomTimer = setTimeout(() => setPhase('fade-out'), 5000);
     const completeTimer = setTimeout(() => {
       sessionStorage.setItem('sm-splash-shown', 'true');
       setPhase('done');
       onComplete();
-    }, 2200);
+    }, 5000);
 
     return () => {
       clearTimeout(zoomTimer);
