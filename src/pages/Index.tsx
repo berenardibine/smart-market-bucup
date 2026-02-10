@@ -116,7 +116,7 @@ const Index = () => {
         {/* Smart Ads */}
         <section className="animate-fade-up">
           <HomeAds />
-        </section>gg
+        </section>
         {/* New Arrivals Section */}
         {newArrivals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
@@ -234,6 +234,10 @@ const Index = () => {
               ))}
             </div>
           )}
+        </section>
+        {/* Smart Ads */}
+        <section className="animate-fade-up">
+          <HomeAds />
         </section>
 
         {/* Empty State */}
