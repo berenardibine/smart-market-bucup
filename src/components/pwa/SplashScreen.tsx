@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import splashIcon from '/og-image-v3.png';
+import splashIcon from '/icons/icon-512x512.png';
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [phase, setPhase] = useState<'zoom' | 'fade-out' | 'done'>('zoom');

@@ -33,7 +33,7 @@ const HomeAds = () => {
     
     const interval = setInterval(() => {
       setCurrentAdIndex((prev) => (prev + 1) % ads.length);
-    }, 2500);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [ads.length]);
