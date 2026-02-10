@@ -70,6 +70,20 @@ export const usePushNotifications = () => {
             p256dh: subJson.keys?.p256dh || '',
             auth: subJson.keys?.auth || '',
           }, { onConflict: 'endpoint' });
+
+        // Also store in notification_tokens for FCM compatibility
+        await supabase
+          .from('notification_tokens' as any)
+          .upsert({
+            user_id: user.id,
+            token: sub.endpoint,
+            device_info: {
+              type: 'web-push',
+              user_agent: navigator.userAgent,
+              platform: navigator.platform,
+              registered_at: new Date().toISOString(),
+            },
+          }, { onConflict: 'token' });
       }
 
       return sub;

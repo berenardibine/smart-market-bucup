@@ -813,6 +813,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_tokens: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          id: string
+          token: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          id?: string
+          token: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          id?: string
+          token?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -842,6 +881,57 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      notifications_history: {
+        Row: {
+          body: string
+          clicked: boolean | null
+          delivered: boolean | null
+          id: string
+          sent_at: string | null
+          title: string
+          type: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          clicked?: boolean | null
+          delivered?: boolean | null
+          id?: string
+          sent_at?: string | null
+          title: string
+          type?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          clicked?: boolean | null
+          delivered?: boolean | null
+          id?: string
+          sent_at?: string | null
+          title?: string
+          type?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_analytics: {
         Row: {
