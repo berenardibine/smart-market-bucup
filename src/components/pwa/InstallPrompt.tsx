@@ -8,10 +8,9 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-const FIRST_VISIT_KEY = 'sm-first-visit';
 const INSTALLED_KEY = 'sm-pwa-installed';
 const DISMISSED_KEY = 'sm-install-dismissed';
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DISMISS_COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours — show again on return
 
 const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -19,46 +18,52 @@ const InstallPrompt = () => {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Check if already installed / standalone
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator as any).standalone === true;
     setIsStandalone(standalone);
 
     if (standalone || localStorage.getItem(INSTALLED_KEY)) return;
 
-    // Record first visit
-    if (!localStorage.getItem(FIRST_VISIT_KEY)) {
-      localStorage.setItem(FIRST_VISIT_KEY, Date.now().toString());
-    }
-
-    // Listen for beforeinstallprompt
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
 
-      // Show banner after day 2 (or immediately in dev for testing)
-      const firstVisit = parseInt(localStorage.getItem(FIRST_VISIT_KEY) || '0');
-      const elapsed = Date.now() - firstVisit;
+      // Show immediately — no day-2 delay
       const dismissed = localStorage.getItem(DISMISSED_KEY);
-
-      if (elapsed >= DAY_MS && !dismissed) {
+      if (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN) {
         setShowBanner(true);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Listen for successful install
     window.addEventListener('appinstalled', () => {
       localStorage.setItem(INSTALLED_KEY, 'true');
       setShowBanner(false);
       setDeferredPrompt(null);
     });
 
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  // Re-show on every return visit if dismissed and cooldown passed
+  useEffect(() => {
+    if (isStandalone || localStorage.getItem(INSTALLED_KEY)) return;
+
+    const handleFocus = () => {
+      const dismissed = localStorage.getItem(DISMISSED_KEY);
+      if (deferredPrompt && (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN)) {
+        setShowBanner(true);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') handleFocus();
+    });
+
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [deferredPrompt, isStandalone]);
 
   const handleInstall = useCallback(async () => {
     if (!deferredPrompt) return;
@@ -93,13 +98,13 @@ const InstallPrompt = () => {
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <Smartphone className="h-6 w-6 text-primary" />
+        <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 bg-primary/10 flex items-center justify-center">
+          <img src="/favicon.ico" alt="Smart Market" className="w-10 h-10 object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-sm text-foreground">Install Smart Market</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Get the full app experience — fast, offline, no browser UI!
+            Get instant product alerts & offers — fast, offline, no browser!
           </p>
         </div>
       </div>

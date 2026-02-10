@@ -109,8 +109,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || '/icons/icon-192x192.png',
-    badge: data.badge || '/icons/icon-192x192.png',
+    icon: data.icon || '/favicon.ico',
+    badge: data.badge || '/favicon.ico',
     tag: data.tag || 'smart-market-notification',
     data: { url: data.url || '/' },
     vibrate: [100, 50, 100],
