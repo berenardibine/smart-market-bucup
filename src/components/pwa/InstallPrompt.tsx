@@ -24,7 +24,9 @@ const getDeviceInfo = () => {
 };
 
 const InstallPrompt = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
+    () => (window as any).__pwaInstallPrompt || null
+  );
   const [showBanner, setShowBanner] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -38,6 +40,7 @@ const InstallPrompt = () => {
 
     const handler = (e: Event) => {
       e.preventDefault();
+      (window as any).__pwaInstallPrompt = e;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
@@ -47,6 +50,7 @@ const InstallPrompt = () => {
       localStorage.setItem(INSTALLED_KEY, 'true');
       setShowBanner(false);
       setDeferredPrompt(null);
+      (window as any).__pwaInstallPrompt = null;
     });
 
     const autoShowTimer = setTimeout(() => {

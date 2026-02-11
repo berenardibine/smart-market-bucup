@@ -73,6 +73,14 @@ business growth network" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <script>
+      // Capture install prompt early before React loads
+      window.__pwaInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaInstallPrompt = e;
+      });
+    </script>
     <script src="https://www.google.com/recaptcha/api.js?render=YOUR_SITE_KEY"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
