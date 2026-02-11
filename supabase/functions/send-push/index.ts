@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tbykrulfzhhkmtgjhvjh.supabase.co';
-    const supabase = createClient(
+    const supabase: any = createClient(
       supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
     );
@@ -27,42 +27,83 @@ serve(async (req) => {
       });
     }
 
-    // Get subscriptions from push_subscriptions table
-    let query = supabase.from('push_subscriptions').select('*');
-    if (!broadcast && userId) {
-      query = query.eq('user_id', userId);
-    }
+    const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
+    let sent = 0;
+    let failed = 0;
 
-    const { data: subscriptions, error } = await query;
-    if (error) throw error;
-
-    // Also check notification_tokens table
+    // ── 1. Send via FCM (primary method like Facebook/WhatsApp) ──
     let tokenQuery = supabase.from('notification_tokens').select('*');
     if (!broadcast && userId) {
       tokenQuery = tokenQuery.eq('user_id', userId);
     }
     const { data: tokens } = await tokenQuery;
 
-    const allTargets = [
-      ...(subscriptions || []).map(s => ({ type: 'web-push', data: s })),
-      ...(tokens || []).map(t => ({ type: 'fcm-token', data: t })),
-    ];
+    if (tokens && tokens.length > 0 && fcmServerKey) {
+      for (const tokenRow of tokens) {
+        try {
+          const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `key=${fcmServerKey}`,
+            },
+            body: JSON.stringify({
+              notification: {
+                title,
+                body,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                click_action: url || '/',
+                tag: type || 'smart-market',
+              },
+              data: {
+                url: url || '/',
+                type: type || 'general',
+                title,
+                body,
+              },
+              to: tokenRow.token,
+              priority: 'high',
+              time_to_live: 86400,
+            }),
+          });
 
-    if (allTargets.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, message: 'No subscriptions found' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+          const result = await response.json();
+          if (result.success === 1) {
+            sent++;
+          } else {
+            // Token expired or invalid — clean up
+            if (result.results?.[0]?.error === 'NotRegistered' || result.results?.[0]?.error === 'InvalidRegistration') {
+              await supabase.from('notification_tokens').delete().eq('id', tokenRow.id);
+            }
+            failed++;
+          }
+        } catch (err) {
+          console.error('[FCM] Send failed:', err);
+          failed++;
+        }
+      }
     }
 
-    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
-    const payload = JSON.stringify({ title, body, url: url || '/', icon: '/favicon.ico' });
-    let sent = 0;
-    let failed = 0;
+    // ── 2. Also send via Web Push (VAPID) for browsers without FCM ──
+    let pushQuery = supabase.from('push_subscriptions').select('*');
+    if (!broadcast && userId) {
+      pushQuery = pushQuery.eq('user_id', userId);
+    }
+    const { data: subscriptions } = await pushQuery;
 
-    for (const target of allTargets) {
-      try {
-        if (target.type === 'web-push') {
-          const sub = target.data;
+    if (subscriptions && subscriptions.length > 0) {
+      const payload = JSON.stringify({
+        title,
+        body,
+        url: url || '/',
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: type || 'smart-market-notification',
+      });
+
+      for (const sub of subscriptions) {
+        try {
           const response = await fetch(sub.endpoint, {
             method: 'POST',
             headers: {
@@ -80,21 +121,21 @@ serve(async (req) => {
           } else {
             failed++;
           }
+        } catch (err) {
+          console.error('[WebPush] Send failed:', err);
+          failed++;
         }
-      } catch (err) {
-        console.error(`Failed to send notification:`, err);
-        failed++;
       }
     }
 
-    // Log to notifications_history
-    const historyEntries = [];
+    const totalTargets = (tokens?.length || 0) + (subscriptions?.length || 0);
+
+    // ── 3. Log to notifications_history ──
+    const historyEntries: any[] = [];
     if (broadcast) {
-      // Get all unique user_ids
       const userIds = new Set<string>();
-      allTargets.forEach(t => {
-        if (t.data.user_id) userIds.add(t.data.user_id);
-      });
+      (tokens || []).forEach((t: any) => { if (t.user_id) userIds.add(t.user_id); });
+      (subscriptions || []).forEach((s: any) => { if (s.user_id) userIds.add(s.user_id); });
       userIds.forEach(uid => {
         historyEntries.push({
           user_id: uid,
@@ -105,7 +146,6 @@ serve(async (req) => {
           delivered: sent > 0,
         });
       });
-      // Also create in-app notification
       await supabase.from('notifications').insert({
         title,
         message: body,
@@ -133,7 +173,7 @@ serve(async (req) => {
       await supabase.from('notifications_history').insert(historyEntries);
     }
 
-    return new Response(JSON.stringify({ sent, failed, total: allTargets.length }), {
+    return new Response(JSON.stringify({ sent, failed, total: totalTargets }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err: unknown) {

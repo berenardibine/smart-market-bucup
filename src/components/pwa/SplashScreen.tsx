@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import splashIcon from '/icons/icon-512x512.png';
 
 const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [phase, setPhase] = useState<'zoom' | 'fade-out' | 'done'>('zoom');
 
   useEffect(() => {
-    // Check if splash already shown this session
     if (sessionStorage.getItem('sm-splash-shown')) {
       onComplete();
       return;
@@ -35,7 +33,6 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         transition: 'opacity 0.4s ease-out',
       }}
     >
-      {/* Logo with zoom animation */}
       <div
         className="flex flex-col items-center"
         style={{
@@ -43,7 +40,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         }}
       >
         <img
-          src={splashIcon}
+          src="/favicon.ico"
           alt="Smart Market"
           className="w-28 h-28 rounded-[28px] shadow-2xl mb-6"
           style={{
@@ -61,7 +58,6 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
         </p>
       </div>
 
-      {/* Developer credit */}
       <div
         className="absolute bottom-12 text-center"
         style={{

@@ -13,57 +13,49 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tbykrulfzhhkmtgjhvjh.supabase.co';
-    const supabase = createClient(
+    // Use 'any' to avoid strict type checking with dynamic table operations
+    const supabase: any = createClient(
       supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
     );
 
     const { action } = await req.json();
-
     const results: Record<string, number> = {};
 
-    // 1. New Product Alerts - notify users about new products in their area
+    // 1. New Product Alerts
     if (!action || action === 'new_products') {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const { data: newProducts } = await supabase
         .from('products')
-        .select('id, title, country, category, seller_id')
+        .select('id, title, country, category, seller_id, slug')
         .gte('created_at', oneHourAgo)
         .eq('status', 'active')
         .limit(10);
 
       if (newProducts && newProducts.length > 0) {
-        // Get users with push subscriptions (excluding sellers of these products)
-        const sellerIds = newProducts.map(p => p.seller_id);
+        const sellerIds = newProducts.map((p: any) => p.seller_id);
         const { data: subscribers } = await supabase
           .from('push_subscriptions')
           .select('user_id')
           .not('user_id', 'in', `(${sellerIds.join(',')})`)
           .limit(100);
 
-        const notified = new Set<string>();
         for (const product of newProducts.slice(0, 3)) {
-          if (subscribers) {
-            for (const sub of subscribers) {
-              if (sub.user_id && !notified.has(sub.user_id)) {
-                notified.add(sub.user_id);
-              }
-            }
-          }
-          // Send a broadcast-style notification for the newest product
-          await sendInternalNotification(supabase, {
+          await sendPushViaFCM({
             title: '🛒 New Product Near You',
             body: `Check out "${product.title}" just listed!`,
-            url: `/product/${product.id}`,
+            url: `/product/${product.slug || product.id}`,
             type: 'new_product',
             broadcast: true,
+            supabase,
+            subscribers,
           });
         }
         results.new_products = newProducts.length;
       }
     }
 
-    // 2. Seller View Milestones - "Your product got X views!"
+    // 2. Seller View Milestones
     if (!action || action === 'seller_views') {
       const { data: topViewed } = await supabase
         .from('products')
@@ -79,11 +71,9 @@ serve(async (req) => {
 
         for (const product of topViewed) {
           const views = product.views || 0;
-          // Find the highest milestone reached
-          const milestone = milestones.filter(m => views >= m).pop();
+          const milestone = milestones.filter((m: number) => views >= m).pop();
           if (!milestone) continue;
 
-          // Check if we already notified for this milestone
           const { data: existing } = await supabase
             .from('notifications_history')
             .select('id')
@@ -94,12 +84,13 @@ serve(async (req) => {
 
           if (existing && existing.length > 0) continue;
 
-          await sendInternalNotification(supabase, {
+          await sendPushViaFCM({
             title: '📈 Your Product is Trending!',
             body: `"${product.title}" reached ${milestone} views — keep sharing!`,
             url: `/seller-dashboard`,
             type: 'seller_views',
             userId: product.seller_id,
+            supabase,
           });
           sellerNotifs++;
         }
@@ -107,7 +98,7 @@ serve(async (req) => {
       }
     }
 
-    // 3. Re-engagement - "A product you viewed is still available"
+    // 3. Re-engagement
     if (!action || action === 'reengagement') {
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -130,16 +121,14 @@ serve(async (req) => {
 
         let reengaged = 0;
         for (const [userId, productId] of uniqueUsers) {
-          // Check product still active
           const { data: product } = await supabase
             .from('products')
-            .select('title, status')
+            .select('title, status, slug')
             .eq('id', productId)
             .maybeSingle();
 
           if (!product || product.status !== 'active') continue;
 
-          // Check we haven't sent reengagement recently
           const { data: recent } = await supabase
             .from('notifications_history')
             .select('id')
@@ -150,12 +139,13 @@ serve(async (req) => {
 
           if (recent && recent.length > 0) continue;
 
-          await sendInternalNotification(supabase, {
+          await sendPushViaFCM({
             title: '🔔 Still Available!',
             body: `"${product.title}" you viewed is still up for grabs.`,
-            url: `/product/${productId}`,
+            url: `/product/${product.slug || productId}`,
             type: 'reengagement',
             userId,
+            supabase,
           });
           reengaged++;
         }
@@ -176,18 +166,73 @@ serve(async (req) => {
   }
 });
 
-async function sendInternalNotification(
-  supabase: ReturnType<typeof createClient>,
-  opts: {
-    title: string;
-    body: string;
-    url?: string;
-    type?: string;
-    userId?: string;
-    broadcast?: boolean;
+// Send push notification via FCM and log it
+async function sendPushViaFCM(opts: {
+  title: string;
+  body: string;
+  url?: string;
+  type?: string;
+  userId?: string;
+  broadcast?: boolean;
+  supabase: any;
+  subscribers?: any[];
+}) {
+  const { title, body, url, type, userId, broadcast, supabase, subscribers } = opts;
+  const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
+
+  // Get tokens for targeted or broadcast delivery
+  let tokens: string[] = [];
+
+  if (broadcast) {
+    const { data } = await supabase.from('notification_tokens').select('token');
+    tokens = (data || []).map((t: any) => t.token);
+  } else if (userId) {
+    const { data } = await supabase.from('notification_tokens').select('token').eq('user_id', userId);
+    tokens = (data || []).map((t: any) => t.token);
   }
-) {
-  const { title, body, url, type, userId, broadcast } = opts;
+
+  // Send via FCM
+  if (fcmServerKey && tokens.length > 0) {
+    for (const token of tokens) {
+      try {
+        await fetch('https://fcm.googleapis.com/fcm/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `key=${fcmServerKey}`,
+          },
+          body: JSON.stringify({
+            notification: {
+              title,
+              body,
+              icon: '/favicon.ico',
+              click_action: url || '/',
+            },
+            data: { url: url || '/', type: type || 'ai' },
+            to: token,
+          }),
+        });
+      } catch (err) {
+        console.error('[FCM] Send failed:', err);
+      }
+    }
+  }
+
+  // Also send via Web Push to push_subscriptions
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tbykrulfzhhkmtgjhvjh.supabase.co';
+  const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ title, body, url, userId, broadcast, type }),
+    });
+  } catch (err) {
+    console.error('[send-push] Call failed:', err);
+  }
 
   // Create in-app notification
   await supabase.from('notifications').insert({
@@ -205,7 +250,7 @@ async function sendInternalNotification(
       body,
       type: type || 'ai',
       url: url || '/',
-      delivered: true,
+      delivered: tokens.length > 0,
     });
   }
 }
