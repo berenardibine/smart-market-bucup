@@ -11,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 const INSTALLED_KEY = 'sm-pwa-installed';
 const DISMISSED_KEY = 'sm-install-dismissed';
 const DISMISS_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours — aggressive like WhatsApp
+const INITIAL_DELAY = 5000; // 5 seconds before showing prompt
 
 const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -24,15 +25,12 @@ const InstallPrompt = () => {
 
     if (standalone || localStorage.getItem(INSTALLED_KEY)) return;
 
+    let capturedPrompt: BeforeInstallPromptEvent | null = null;
+
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-
-      // Show immediately on first visit
-      const dismissed = localStorage.getItem(DISMISSED_KEY);
-      if (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN) {
-        setShowBanner(true);
-      }
+      capturedPrompt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(capturedPrompt);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -43,14 +41,13 @@ const InstallPrompt = () => {
       setDeferredPrompt(null);
     });
 
-    // Also show banner after short delay if beforeinstallprompt already fired
+    // Show install prompt after 5 seconds
     const autoShowTimer = setTimeout(() => {
       const dismissed = localStorage.getItem(DISMISSED_KEY);
-      if (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN) {
-        // If we have deferred prompt, show it
-        setShowBanner(prev => prev || !!deferredPrompt);
+      if (capturedPrompt && (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN)) {
+        setShowBanner(true);
       }
-    }, 3000);
+    }, INITIAL_DELAY);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
