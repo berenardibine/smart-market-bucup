@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Download, Smartphone } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -10,7 +10,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 const INSTALLED_KEY = 'sm-pwa-installed';
 const DISMISSED_KEY = 'sm-install-dismissed';
-const DISMISS_COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours — show again on return
+const DISMISS_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours — aggressive like WhatsApp
 
 const InstallPrompt = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -28,7 +28,7 @@ const InstallPrompt = () => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
 
-      // Show immediately — no day-2 delay
+      // Show immediately on first visit
       const dismissed = localStorage.getItem(DISMISSED_KEY);
       if (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN) {
         setShowBanner(true);
@@ -43,7 +43,19 @@ const InstallPrompt = () => {
       setDeferredPrompt(null);
     });
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    // Also show banner after short delay if beforeinstallprompt already fired
+    const autoShowTimer = setTimeout(() => {
+      const dismissed = localStorage.getItem(DISMISSED_KEY);
+      if (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN) {
+        // If we have deferred prompt, show it
+        setShowBanner(prev => prev || !!deferredPrompt);
+      }
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      clearTimeout(autoShowTimer);
+    };
   }, []);
 
   // Re-show on every return visit if dismissed and cooldown passed
@@ -58,11 +70,15 @@ const InstallPrompt = () => {
     };
 
     window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', () => {
+    const visHandler = () => {
       if (document.visibilityState === 'visible') handleFocus();
-    });
+    };
+    document.addEventListener('visibilitychange', visHandler);
 
-    return () => window.removeEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', visHandler);
+    };
   }, [deferredPrompt, isStandalone]);
 
   const handleInstall = useCallback(async () => {
