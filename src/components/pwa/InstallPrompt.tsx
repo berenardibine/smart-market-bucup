@@ -10,7 +10,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 const INSTALLED_KEY = 'sm-pwa-installed';
 const DISMISSED_KEY = 'sm-install-dismissed';
-const DISMISS_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours — aggressive like WhatsApp
+const DISMISS_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours
 const INITIAL_DELAY = 5000; // 5 seconds before showing prompt
 
 const InstallPrompt = () => {
@@ -25,12 +25,9 @@ const InstallPrompt = () => {
 
     if (standalone || localStorage.getItem(INSTALLED_KEY)) return;
 
-    let capturedPrompt: BeforeInstallPromptEvent | null = null;
-
     const handler = (e: Event) => {
       e.preventDefault();
-      capturedPrompt = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(capturedPrompt);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -41,10 +38,10 @@ const InstallPrompt = () => {
       setDeferredPrompt(null);
     });
 
-    // Show install prompt after 5 seconds
+    // Always show banner after 5 seconds for ALL users/guests
     const autoShowTimer = setTimeout(() => {
       const dismissed = localStorage.getItem(DISMISSED_KEY);
-      if (capturedPrompt && (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN)) {
+      if (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN) {
         setShowBanner(true);
       }
     }, INITIAL_DELAY);
@@ -61,7 +58,7 @@ const InstallPrompt = () => {
 
     const handleFocus = () => {
       const dismissed = localStorage.getItem(DISMISSED_KEY);
-      if (deferredPrompt && (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN)) {
+      if (!dismissed || Date.now() - parseInt(dismissed) >= DISMISS_COOLDOWN) {
         setShowBanner(true);
       }
     };
@@ -76,17 +73,22 @@ const InstallPrompt = () => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', visHandler);
     };
-  }, [deferredPrompt, isStandalone]);
+  }, [isStandalone]);
 
   const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        localStorage.setItem(INSTALLED_KEY, 'true');
+      }
+      setDeferredPrompt(null);
+      setShowBanner(false);
+    } else {
+      // Fallback: guide user to install manually via browser menu
+      setShowBanner(false);
       localStorage.setItem(INSTALLED_KEY, 'true');
     }
-    setDeferredPrompt(null);
-    setShowBanner(false);
   }, [deferredPrompt]);
 
   const handleDismiss = () => {
