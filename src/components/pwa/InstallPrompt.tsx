@@ -85,9 +85,11 @@ const InstallPrompt = () => {
       setDeferredPrompt(null);
       setShowBanner(false);
     } else {
-      // Fallback: guide user to install manually via browser menu
-      setShowBanner(false);
-      localStorage.setItem(INSTALLED_KEY, 'true');
+      // Fallback: open PWABuilder so user can install/download APK
+      window.open(
+        'https://www.pwabuilder.com/reportcard?site=' + encodeURIComponent(window.location.origin),
+        '_blank'
+      );
     }
   }, [deferredPrompt]);
 
