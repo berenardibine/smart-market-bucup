@@ -59,19 +59,20 @@ export const usePushNotifications = () => {
       setSubscription(sub);
       setIsSubscribed(true);
 
-      // Store subscription in Supabase
-      if (user) {
-        const subJson = sub.toJSON();
-        await supabase
-          .from('push_subscriptions')
-          .upsert({
-            user_id: user.id,
-            endpoint: sub.endpoint,
-            p256dh: subJson.keys?.p256dh || '',
-            auth: subJson.keys?.auth || '',
-          }, { onConflict: 'endpoint' });
+      // Store subscription in Supabase — works for both logged-in users and guests
+      const subJson = sub.toJSON();
+      
+      await supabase
+        .from('push_subscriptions')
+        .upsert({
+          user_id: user?.id || null,
+          endpoint: sub.endpoint,
+          p256dh: subJson.keys?.p256dh || '',
+          auth: subJson.keys?.auth || '',
+        }, { onConflict: 'endpoint' });
 
-        // Also store in notification_tokens for FCM compatibility
+      // Also store in notification_tokens for FCM compatibility
+      if (user) {
         await supabase
           .from('notification_tokens' as any)
           .upsert({
@@ -99,12 +100,10 @@ export const usePushNotifications = () => {
     try {
       await subscription.unsubscribe();
 
-      if (user) {
-        await supabase
-          .from('push_subscriptions')
-          .delete()
-          .eq('endpoint', subscription.endpoint);
-      }
+      await supabase
+        .from('push_subscriptions')
+        .delete()
+        .eq('endpoint', subscription.endpoint);
 
       setSubscription(null);
       setIsSubscribed(false);
@@ -113,9 +112,9 @@ export const usePushNotifications = () => {
     }
   }, [subscription, user]);
 
-  // Auto-subscribe when user logs in and notifications are granted
+  // Auto-subscribe when notifications are granted (works for guests too)
   useEffect(() => {
-    if (user && isSupported && !isSubscribed && Notification.permission === 'granted') {
+    if (isSupported && !isSubscribed && 'Notification' in window && Notification.permission === 'granted') {
       subscribe();
     }
   }, [user, isSupported, isSubscribed, subscribe]);

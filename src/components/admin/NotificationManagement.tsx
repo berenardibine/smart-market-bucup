@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { 
-  Bell, Send, Users, Store, User, Plus, Trash2, MoreVertical
+  Bell, Send, Users, Store, User, Globe, Plus, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,9 +40,10 @@ const NotificationManagement = () => {
   const [formData, setFormData] = useState({
     title: '',
     message: '',
-    targetGroup: 'all',
+    targetGroup: 'all_push',
   });
   const [sending, setSending] = useState(false);
+  const [stats, setStats] = useState({ tokens: 0, subscriptions: 0, users: 0 });
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -56,63 +57,121 @@ const NotificationManagement = () => {
     setLoading(false);
   };
 
+  const fetchStats = async () => {
+    const [tokensRes, subsRes, usersRes] = await Promise.all([
+      supabase.from('notification_tokens' as any).select('id', { count: 'exact', head: true }),
+      supabase.from('push_subscriptions').select('id', { count: 'exact', head: true }),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    ]);
+    setStats({
+      tokens: tokensRes.count || 0,
+      subscriptions: subsRes.count || 0,
+      users: usersRes.count || 0,
+    });
+  };
+
   useEffect(() => {
     fetchNotifications();
+    fetchStats();
   }, []);
 
-  const handleSendNotification = async () => {
+  const handleSendPushNotification = async () => {
     if (!formData.title.trim() || !formData.message.trim()) {
       toast({ title: "Title and message are required", variant: "destructive" });
       return;
     }
 
     setSending(true);
-    
-    // Get target users based on selection
-    let query = supabase.from('profiles').select('id');
-    
-    if (formData.targetGroup === 'sellers') {
-      query = query.eq('user_type', 'seller');
-    } else if (formData.targetGroup === 'buyers') {
-      query = query.eq('user_type', 'buyer');
-    }
 
-    const { data: users, error: usersError } = await query;
+    try {
+      // Send push notification via edge function
+      const pushPayload: any = {
+        title: formData.title,
+        body: formData.message,
+        url: '/',
+        type: 'admin',
+      };
 
-    if (usersError || !users) {
-      toast({ title: "Failed to get users", variant: "destructive" });
-      setSending(false);
-      return;
-    }
+      if (formData.targetGroup === 'all_push') {
+        // Send to ALL push subscribers (including guests)
+        pushPayload.broadcast = true;
+      } else if (formData.targetGroup === 'sellers') {
+        // Get seller IDs and send individually
+        const { data: sellers } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_type', 'seller');
+        
+        if (sellers) {
+          for (const seller of sellers) {
+            await supabase.functions.invoke('send-push', {
+              body: { ...pushPayload, userId: seller.id, broadcast: false },
+            });
+          }
+        }
+        
+        toast({ title: `Push sent to ${sellers?.length || 0} sellers!` });
+        fetchNotifications();
+        setFormData({ title: '', message: '', targetGroup: 'all_push' });
+        setShowAddDialog(false);
+        setSending(false);
+        return;
+      } else if (formData.targetGroup === 'buyers') {
+        const { data: buyers } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_type', 'buyer');
+        
+        if (buyers) {
+          for (const buyer of buyers) {
+            await supabase.functions.invoke('send-push', {
+              body: { ...pushPayload, userId: buyer.id, broadcast: false },
+            });
+          }
+        }
 
-    // Create notifications for all target users
-    const notificationsToInsert = users.map(user => ({
-      user_id: user.id,
-      title: formData.title,
-      message: formData.message,
-      type: 'admin',
-    }));
+        toast({ title: `Push sent to ${buyers?.length || 0} buyers!` });
+        fetchNotifications();
+        setFormData({ title: '', message: '', targetGroup: 'all_push' });
+        setShowAddDialog(false);
+        setSending(false);
+        return;
+      }
 
-    const { error } = await supabase
-      .from('notifications')
-      .insert(notificationsToInsert);
+      // Broadcast to all
+      const { data: result, error } = await supabase.functions.invoke('send-push', {
+        body: pushPayload,
+      });
 
-    if (error) {
-      toast({ title: "Failed to send notifications", variant: "destructive" });
-    } else {
-      toast({ title: `Notification sent to ${users.length} users!` });
-      fetchNotifications();
-      setFormData({ title: '', message: '', targetGroup: 'all' });
-      setShowAddDialog(false);
+      if (error) {
+        toast({ title: "Failed to send push", description: error.message, variant: "destructive" });
+      } else {
+        toast({ 
+          title: `Push notification sent!`,
+          description: `Delivered: ${result?.sent || 0}, Failed: ${result?.failed || 0}`,
+        });
+        fetchNotifications();
+        fetchStats();
+        setFormData({ title: '', message: '', targetGroup: 'all_push' });
+        setShowAddDialog(false);
+      }
+    } catch (err: any) {
+      toast({ title: "Error sending notification", description: err.message, variant: "destructive" });
     }
     
     setSending(false);
   };
 
   const targetGroups = [
-    { value: 'all', label: 'All Users', icon: Users },
+    { value: 'all_push', label: 'All Devices (incl. guests)', icon: Globe },
     { value: 'sellers', label: 'Sellers Only', icon: Store },
     { value: 'buyers', label: 'Buyers Only', icon: User },
+  ];
+
+  const statCards = [
+    { label: 'FCM Tokens', value: stats.tokens, icon: Bell, color: 'text-blue-600' },
+    { label: 'Push Subs', value: stats.subscriptions, icon: Globe, color: 'text-green-600' },
+    { label: 'Users', value: stats.users, icon: Users, color: 'text-purple-600' },
   ];
 
   return (
@@ -120,25 +179,25 @@ const NotificationManagement = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold text-lg">Notifications</h3>
+          <h3 className="font-semibold text-lg">Push Notifications</h3>
           <p className="text-sm text-muted-foreground">
-            Send announcements to your users
+            Send push notifications to all users & guests
           </p>
         </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
             <Button className="gap-2 bg-primary hover:bg-primary/90">
               <Send className="h-4 w-4" />
-              Send Notification
+              Send Push
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-white">
+          <DialogContent className="bg-card">
             <DialogHeader>
-              <DialogTitle>Send Notification</DialogTitle>
+              <DialogTitle>Send Push Notification</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Target Group</label>
+                <label className="text-sm font-medium mb-2 block">Target</label>
                 <Select
                   value={formData.targetGroup}
                   onValueChange={(value) => setFormData({ ...formData, targetGroup: value })}
@@ -146,7 +205,7 @@ const NotificationManagement = () => {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white">
+                  <SelectContent className="bg-card">
                     {targetGroups.map(group => (
                       <SelectItem key={group.value} value={group.value}>
                         <span className="flex items-center gap-2">
@@ -176,12 +235,12 @@ const NotificationManagement = () => {
                 />
               </div>
               <Button 
-                onClick={handleSendNotification} 
+                onClick={handleSendPushNotification} 
                 className="w-full gap-2"
                 disabled={sending}
               >
                 <Send className="h-4 w-4" />
-                {sending ? 'Sending...' : 'Send to All'}
+                {sending ? 'Sending...' : 'Send Push Notification'}
               </Button>
             </div>
           </DialogContent>
@@ -190,20 +249,20 @@ const NotificationManagement = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        {targetGroups.map(group => (
-          <div key={group.value} className="bg-white rounded-xl p-4 border">
-            <div className="flex items-center gap-2 text-blue-600 mb-1">
-              <group.icon className="h-4 w-4" />
-              <span className="text-xs font-medium">{group.label}</span>
+        {statCards.map(card => (
+          <div key={card.label} className="bg-card rounded-xl p-4 border">
+            <div className={`flex items-center gap-2 ${card.color} mb-1`}>
+              <card.icon className="h-4 w-4" />
+              <span className="text-xs font-medium">{card.label}</span>
             </div>
-            <p className="text-xl font-bold">-</p>
+            <p className="text-xl font-bold">{card.value}</p>
           </div>
         ))}
       </div>
 
       {/* Recent Notifications */}
-      <div className="bg-white rounded-2xl border overflow-hidden">
-        <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-white">
+      <div className="bg-card rounded-2xl border overflow-hidden">
+        <div className="p-4 border-b">
           <h3 className="font-semibold">Recent Notifications</h3>
         </div>
         <div className="divide-y max-h-[400px] overflow-y-auto">
@@ -220,10 +279,10 @@ const NotificationManagement = () => {
             </div>
           ) : (
             notifications.slice(0, 20).map(notification => (
-              <div key={notification.id} className="p-4 hover:bg-gray-50 transition-colors">
+              <div key={notification.id} className="p-4 hover:bg-muted/50 transition-colors">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <Bell className="h-5 w-5 text-blue-600" />
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Bell className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
                     <p className="font-medium">{notification.title}</p>

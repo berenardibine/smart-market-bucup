@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
@@ -31,7 +31,7 @@ serve(async (req) => {
     let sent = 0;
     let failed = 0;
 
-    // ── 1. Send via FCM (primary method like Facebook/WhatsApp) ──
+    // ── 1. Send via FCM to notification_tokens ──
     let tokenQuery = supabase.from('notification_tokens').select('*');
     if (!broadcast && userId) {
       tokenQuery = tokenQuery.eq('user_id', userId);
@@ -72,7 +72,6 @@ serve(async (req) => {
           if (result.success === 1) {
             sent++;
           } else {
-            // Token expired or invalid — clean up
             if (result.results?.[0]?.error === 'NotRegistered' || result.results?.[0]?.error === 'InvalidRegistration') {
               await supabase.from('notification_tokens').delete().eq('id', tokenRow.id);
             }
@@ -85,37 +84,41 @@ serve(async (req) => {
       }
     }
 
-    // ── 2. Also send via Web Push (VAPID) for browsers without FCM ──
+    // ── 2. Send via Web Push to push_subscriptions (ALL including guests) ──
     let pushQuery = supabase.from('push_subscriptions').select('*');
     if (!broadcast && userId) {
       pushQuery = pushQuery.eq('user_id', userId);
     }
+    // For broadcast, we get ALL subscriptions including those with null user_id (guests)
     const { data: subscriptions } = await pushQuery;
 
     if (subscriptions && subscriptions.length > 0) {
-      const payload = JSON.stringify({
-        title,
-        body,
-        url: url || '/',
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: type || 'smart-market-notification',
-      });
-
       for (const sub of subscriptions) {
         try {
+          // Web Push requires VAPID signing for proper delivery
+          // For now, we attempt direct push to the endpoint
+          const pushPayload = JSON.stringify({
+            title,
+            body,
+            url: url || '/',
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: type || 'smart-market-notification',
+          });
+
           const response = await fetch(sub.endpoint, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/octet-stream',
               'TTL': '86400',
             },
-            body: payload,
+            body: pushPayload,
           });
 
           if (response.ok || response.status === 201) {
             sent++;
           } else if (response.status === 410 || response.status === 404) {
+            // Subscription expired, clean up
             await supabase.from('push_subscriptions').delete().eq('id', sub.id);
             failed++;
           } else {
@@ -130,12 +133,14 @@ serve(async (req) => {
 
     const totalTargets = (tokens?.length || 0) + (subscriptions?.length || 0);
 
-    // ── 3. Log to notifications_history ──
+    // ── 3. Log to notifications_history & notifications ──
     const historyEntries: any[] = [];
     if (broadcast) {
+      // Collect unique user IDs from tokens and subscriptions
       const userIds = new Set<string>();
       (tokens || []).forEach((t: any) => { if (t.user_id) userIds.add(t.user_id); });
       (subscriptions || []).forEach((s: any) => { if (s.user_id) userIds.add(s.user_id); });
+      
       userIds.forEach(uid => {
         historyEntries.push({
           user_id: uid,
@@ -146,12 +151,17 @@ serve(async (req) => {
           delivered: sent > 0,
         });
       });
-      await supabase.from('notifications').insert({
+
+      // Also create in-app notification for logged-in users
+      const notifInserts = Array.from(userIds).map(uid => ({
         title,
         message: body,
         type: 'push',
-        user_id: null,
-      });
+        user_id: uid,
+      }));
+      if (notifInserts.length > 0) {
+        await supabase.from('notifications').insert(notifInserts);
+      }
     } else if (userId) {
       historyEntries.push({
         user_id: userId,
@@ -172,6 +182,8 @@ serve(async (req) => {
     if (historyEntries.length > 0) {
       await supabase.from('notifications_history').insert(historyEntries);
     }
+
+    console.log(`[send-push] Sent: ${sent}, Failed: ${failed}, Total targets: ${totalTargets}`);
 
     return new Response(JSON.stringify({ sent, failed, total: totalTargets }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
