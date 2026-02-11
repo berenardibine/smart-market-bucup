@@ -9,12 +9,12 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
       return;
     }
 
-    const zoomTimer = setTimeout(() => setPhase('fade-out'), 2200);
+    const zoomTimer = setTimeout(() => setPhase('fade-out'), 4500);
     const completeTimer = setTimeout(() => {
       sessionStorage.setItem('sm-splash-shown', 'true');
       setPhase('done');
       onComplete();
-    }, 2800);
+    }, 5000);
 
     return () => {
       clearTimeout(zoomTimer);
