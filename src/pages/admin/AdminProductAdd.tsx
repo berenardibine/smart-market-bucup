@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { compressImage, isFileSizeAcceptable, formatFileSize } from '@/lib/imageCompressor';
 import { useCategories } from '@/hooks/useCategories';
 import { useLocations } from '@/hooks/useLocations';
 import { useToast } from '@/hooks/use-toast';
@@ -109,13 +110,27 @@ const AdminProductAdd = () => {
     });
 
     for (const file of Array.from(files)) {
+      // Compress image before upload
+      let uploadFile: File | Blob = file;
+      try {
+        const result = await compressImage(file, { maxSizeKB: 100, maxDimension: 512, forceSquare: false });
+        if (!isFileSizeAcceptable(result.blob)) {
+          toast({ title: "File too large after optimization", description: "Please upload a smaller image.", variant: "destructive" });
+          continue;
+        }
+        uploadFile = result.blob;
+        toast({ title: `📦 Compressed: ${formatFileSize(file.size)} → ${formatFileSize(result.compressedSize)}` });
+      } catch (err) {
+        console.error('Compression failed, uploading original:', err);
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = `admin/${fileName}`;
 
       const { error } = await supabase.storage
         .from('product-images')
-        .upload(filePath, file);
+        .upload(filePath, uploadFile);
 
       if (!error) {
         const { data: { publicUrl } } = supabase.storage

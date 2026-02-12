@@ -62,7 +62,7 @@ export const usePushNotifications = () => {
       // Store subscription in Supabase — works for both logged-in users and guests
       const subJson = sub.toJSON();
       
-      await supabase
+      const { error: pushError } = await supabase
         .from('push_subscriptions')
         .upsert({
           user_id: user?.id || null,
@@ -70,6 +70,10 @@ export const usePushNotifications = () => {
           p256dh: subJson.keys?.p256dh || '',
           auth: subJson.keys?.auth || '',
         }, { onConflict: 'endpoint' });
+      
+      if (pushError) {
+        console.error('[Push] Failed to store subscription:', pushError);
+      }
 
       // Also store in notification_tokens for FCM compatibility
       if (user) {
