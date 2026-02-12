@@ -264,17 +264,20 @@ serve(async (req) => {
     // ── 3. Log to notifications_history & notifications ──
     const historyEntries: any[] = [];
     if (broadcast) {
+      // Always create a global notification record for broadcast
+      await supabase.from('notifications').insert({ 
+        title, message: body, type: 'push', user_id: null 
+      });
+
       const userIds = new Set<string>();
       (subscriptions || []).forEach((s: any) => { if (s.user_id) userIds.add(s.user_id); });
 
       userIds.forEach(uid => {
         historyEntries.push({ user_id: uid, title, body, type: type || 'broadcast', url: url || '/', delivered: sent > 0 });
       });
-
-      const notifInserts = Array.from(userIds).map(uid => ({ title, message: body, type: 'push', user_id: uid }));
-      if (notifInserts.length > 0) {
-        await supabase.from('notifications').insert(notifInserts);
-      }
+      
+      // Also add a null-user history entry for tracking
+      historyEntries.push({ user_id: null, title, body, type: type || 'broadcast', url: url || '/', delivered: sent > 0 });
     } else if (userId) {
       historyEntries.push({ user_id: userId, title, body, type: type || 'direct', url: url || '/', delivered: sent > 0 });
       await supabase.from('notifications').insert({ title, message: body, type: 'push', user_id: userId });
