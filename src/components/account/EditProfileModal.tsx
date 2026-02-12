@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Camera, Loader2 } from "lucide-react";
+import { compressImage, isFileSizeAcceptable, formatFileSize } from "@/lib/imageCompressor";
 
 interface EditProfileModalProps {
   open: boolean;
@@ -77,13 +78,30 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
 
     setLoading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
+      // Client-side compression to ≤100KB
+      const compressed = await compressImage(file, {
+        maxSizeKB: 100,
+        maxDimension: 400,
+        forceSquare: true,
+        format: 'image/webp',
+      });
+
+      if (!isFileSizeAcceptable(compressed.blob, 100)) {
+        toast({
+          title: "File too large after optimization",
+          description: "Please upload a smaller or compressed version.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      const fileName = `${profile.id}-${Date.now()}.webp`;
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file);
+        .upload(filePath, compressed.blob, { contentType: compressed.format });
 
       if (uploadError) throw uploadError;
 
@@ -99,7 +117,7 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
       await refreshProfile();
       toast({
         title: "Photo updated",
-        description: "Your profile photo has been updated!",
+        description: `Compressed ${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)}`,
       });
     } catch (err: any) {
       toast({
