@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCategories } from "@/hooks/useCategories";
 import { useToast } from "@/hooks/use-toast";
 import { useFileOptimization } from "@/hooks/useFileOptimization";
+import { compressImage, isFileSizeAcceptable, formatFileSize } from "@/lib/imageCompressor";
 
 interface ProductFormProps {
   product?: any;
@@ -89,34 +90,55 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
 
     toast({ 
       title: "🧠 AI Processing Image", 
-      description: "Smart optimization & background detection..."
+      description: "Compressing, resizing & optimizing..."
     });
 
     for (const file of Array.from(files)) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `${user?.id}/${fileName}`;
+      try {
+        // Step 1: Client-side compression to ≤100KB, 512x512, 1:1
+        const compressed = await compressImage(file, {
+          maxSizeKB: 100,
+          maxDimension: 512,
+          forceSquare: true,
+          format: 'image/webp',
+        });
 
-      const { error } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file);
+        if (!isFileSizeAcceptable(compressed.blob, 100)) {
+          toast({
+            title: "File too large after optimization",
+            description: "Please upload a smaller or compressed version.",
+            variant: "destructive",
+          });
+          continue;
+        }
 
-      if (!error) {
+        const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.webp`;
+        const filePath = `${user?.id}/${fileName}`;
+
+        const { error } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, compressed.blob, {
+            contentType: compressed.format,
+          });
+
+        if (error) {
+          console.error('Upload error:', error);
+          continue;
+        }
+
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
           .getPublicUrl(filePath);
-        
-        // Add original image first with processing indicator
+
         const currentIndex = images.length;
         setImages(prev => [...prev, publicUrl]);
         setProcessingImages(prev => new Set(prev).add(currentIndex));
-        
-        // Step 1: Smart AI background processing
+
+        // Step 2: Smart AI background processing
         const bgResult = await processBackground(publicUrl);
         let processedUrl = bgResult.url;
-        
-        // Update with background-processed image
-        setImages(prev => prev.map((img, idx) => 
+
+        setImages(prev => prev.map((img, idx) =>
           idx === currentIndex ? processedUrl : img
         ));
         setProcessingImages(prev => {
@@ -125,41 +147,42 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
           return newSet;
         });
 
-        // Step 2: AI File Optimization (compress, resize, enhance)
+        // Step 3: Server-side AI optimization (enhance quality)
         setOptimizingImages(prev => new Set(prev).add(currentIndex));
-        
+
         const optimizeResult = await optimizeFile(processedUrl, 'product_card', true);
-        
+
         if (optimizeResult && optimizeResult.optimizedUrl !== processedUrl) {
           processedUrl = optimizeResult.optimizedUrl;
-          setImages(prev => prev.map((img, idx) => 
+          setImages(prev => prev.map((img, idx) =>
             idx === currentIndex ? processedUrl : img
           ));
-          
-          toast({ 
-            title: "✨ Image Optimized", 
-            description: `Reduced by ${optimizeResult.compressionRatio}%${optimizeResult.wasEnhanced ? ' + Enhanced' : ''}`
-          });
         }
-        
+
         setOptimizingImages(prev => {
           const newSet = new Set(prev);
           newSet.delete(currentIndex);
           return newSet;
         });
 
-        // Show background processing result
+        toast({
+          title: "✨ Image Optimized",
+          description: `Compressed ${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)} (${compressed.compressionRatio}% saved)`,
+        });
+
         if (bgResult.decision === 'removed') {
-          toast({ 
-            title: "✨ Background Cleaned", 
-            description: "Product photo optimized with white background"
-          });
-        } else if (bgResult.decision === 'keep') {
-          toast({ 
-            title: "🌈 Background Preserved", 
-            description: bgResult.message || "Background kept to preserve visual context"
+          toast({
+            title: "✨ Background Cleaned",
+            description: "Product photo optimized with white background",
           });
         }
+      } catch (err) {
+        console.error('Image processing error:', err);
+        toast({
+          title: "Upload failed",
+          description: "Could not process this image. Try a different one.",
+          variant: "destructive",
+        });
       }
     }
   };

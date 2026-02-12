@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFileOptimization } from "@/hooks/useFileOptimization";
 import { useToast } from "@/hooks/use-toast";
+import { compressImage, isFileSizeAcceptable, formatFileSize } from "@/lib/imageCompressor";
 
 interface ShopFormProps {
   shop?: any;
@@ -34,36 +35,56 @@ const ShopForm = ({ shop, onSubmit, onCancel }: ShopFormProps) => {
     if (!file) return;
 
     setIsProcessingLogo(true);
-    toast({ title: "🧠 AI Optimizing Logo", description: "Processing your shop logo..." });
+    toast({ title: "🧠 AI Optimizing Logo", description: "Compressing & processing..." });
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `shop-logos/${fileName}`;
+    try {
+      // Client-side compression first
+      const compressed = await compressImage(file, {
+        maxSizeKB: 100,
+        maxDimension: 400,
+        forceSquare: true,
+        format: 'image/webp',
+      });
 
-    const { error } = await supabase.storage
-      .from('profile-images')
-      .upload(filePath, file);
+      if (!isFileSizeAcceptable(compressed.blob, 100)) {
+        toast({
+          title: "File too large after optimization",
+          description: "Please upload a smaller or compressed version.",
+          variant: "destructive",
+        });
+        setIsProcessingLogo(false);
+        return;
+      }
 
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage
+      const fileName = `${Date.now()}.webp`;
+      const filePath = `shop-logos/${fileName}`;
+
+      const { error } = await supabase.storage
         .from('profile-images')
-        .getPublicUrl(filePath);
-      
-      // Optimize the logo
-      const optimizeResult = await optimizeFile(publicUrl, 'profile', true);
-      const finalUrl = optimizeResult?.optimizedUrl || publicUrl;
-      
-      setFormData(prev => ({ ...prev, logo_url: finalUrl }));
-      setLogoPreview(finalUrl);
-      
-      if (optimizeResult && optimizeResult.compressionRatio > 0) {
-        toast({ 
-          title: "✨ Logo Optimized", 
-          description: `Reduced by ${optimizeResult.compressionRatio}%` 
+        .upload(filePath, compressed.blob, { contentType: compressed.format });
+
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(filePath);
+
+        // Server-side AI enhancement
+        const optimizeResult = await optimizeFile(publicUrl, 'profile', true);
+        const finalUrl = optimizeResult?.optimizedUrl || publicUrl;
+
+        setFormData(prev => ({ ...prev, logo_url: finalUrl }));
+        setLogoPreview(finalUrl);
+
+        toast({
+          title: "✨ Logo Optimized",
+          description: `Compressed ${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)}`,
         });
       }
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      toast({ title: "Upload failed", variant: "destructive" });
     }
-    
+
     setIsProcessingLogo(false);
   };
 

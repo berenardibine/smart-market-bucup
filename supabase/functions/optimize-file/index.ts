@@ -6,13 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Size configurations for different use cases
+// Size configurations - all targets ≤100KB output
 const SIZE_CONFIG = {
-  product_card: { width: 600, height: 600, quality: 90, format: 'webp' },
-  product_detail: { width: 1000, height: 1000, quality: 85, format: 'webp' },
-  profile: { width: 400, height: 400, quality: 90, format: 'jpeg' },
-  banner: { width: 1200, height: 400, quality: 80, format: 'jpeg' },
-  thumbnail: { width: 300, height: 300, quality: 85, format: 'webp' },
+  product_card: { width: 512, height: 512, quality: 85, format: 'webp', maxSizeKB: 100 },
+  product_detail: { width: 800, height: 800, quality: 80, format: 'webp', maxSizeKB: 100 },
+  profile: { width: 400, height: 400, quality: 85, format: 'webp', maxSizeKB: 100 },
+  banner: { width: 1200, height: 400, quality: 75, format: 'webp', maxSizeKB: 100 },
+  thumbnail: { width: 300, height: 300, quality: 80, format: 'webp', maxSizeKB: 100 },
 } as const;
 
 interface OptimizationRequest {

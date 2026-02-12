@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
   HardDrive, Zap, Image, TrendingDown, RefreshCw, 
-  CheckCircle, AlertCircle, Loader2, Sparkles, FileImage
+  CheckCircle, AlertCircle, Loader2, Sparkles, FileImage,
+  Clock, Trophy, Timer
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFileOptimization } from "@/hooks/useFileOptimization";
@@ -55,13 +56,16 @@ const FileOptimizationDashboard = () => {
     avgCompression: 0,
     filesEnhanced: 0,
     unoptimizedProducts: 0,
-    optimizedProducts: 0
+    optimizedProducts: 0,
+    largestFileSaved: 0,
+    lastRunTime: '',
   });
   const [recentLogs, setRecentLogs] = useState<OptimizationLog[]>([]);
   const [batchJobs, setBatchJobs] = useState<BatchJob[]>([]);
   const [productFiles, setProductFiles] = useState<ProductFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [optimizingSingle, setOptimizingSingle] = useState<string | null>(null);
+  const [runningAutoOptimize, setRunningAutoOptimize] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'files' | 'logs'>('overview');
 
   const fetchData = async () => {
@@ -113,13 +117,33 @@ const FileOptimizationDashboard = () => {
       setProductFiles(allFiles);
 
       if (statsResult) {
+        // Find largest single file saving
+        const { data: largestLog } = await supabase
+          .from('file_optimization_logs')
+          .select('original_size, optimized_size')
+          .order('original_size', { ascending: false })
+          .limit(1);
+
+        const largestSaved = largestLog?.[0] 
+          ? (largestLog[0].original_size - largestLog[0].optimized_size) 
+          : 0;
+
+        // Find last batch run time
+        const { data: lastJob } = await supabase
+          .from('batch_optimization_jobs')
+          .select('created_at')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
         setStats({
           totalFiles: statsResult.totalFilesProcessed,
           spaceSaved: statsResult.totalSpaceSaved,
           avgCompression: statsResult.averageCompression,
           filesEnhanced: statsResult.filesEnhanced,
           unoptimizedProducts: unoptimizedCount,
-          optimizedProducts: optimizedCount
+          optimizedProducts: optimizedCount,
+          largestFileSaved: largestSaved,
+          lastRunTime: lastJob?.[0]?.created_at || '',
         });
       } else {
         setStats(prev => ({ 
@@ -215,6 +239,41 @@ const FileOptimizationDashboard = () => {
     }
   };
 
+  const handleRunAutoOptimize = async () => {
+    setRunningAutoOptimize(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-optimize`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      const result = await response.json();
+      if (response.ok) {
+        toast({
+          title: "🚀 Auto-Optimization Complete",
+          description: `Processed ${result.processed} files, ${result.remaining} remaining`,
+        });
+        fetchData();
+      } else {
+        throw new Error(result.error || 'Failed');
+      }
+    } catch (err) {
+      toast({
+        title: "Auto-optimization failed",
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: "destructive",
+      });
+    } finally {
+      setRunningAutoOptimize(false);
+    }
+  };
+
   const handleOptimizeAll = async () => {
     const result = await runBatchOptimization(100, 100000, false);
     if (result) {
@@ -268,10 +327,18 @@ const FileOptimizationDashboard = () => {
             Compress, optimize, and enhance all media files
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={fetchData}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
+          </Button>
+          <Button variant="outline" onClick={handleRunAutoOptimize} disabled={runningAutoOptimize}>
+            {runningAutoOptimize ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Timer className="h-4 w-4 mr-2" />
+            )}
+            Auto-Optimize
           </Button>
           <Button onClick={handleOptimizeAll} disabled={isOptimizing}>
             {isOptimizing ? (
@@ -279,7 +346,7 @@ const FileOptimizationDashboard = () => {
             ) : (
               <Zap className="h-4 w-4 mr-2" />
             )}
-            Optimize All Files
+            Optimize All
           </Button>
         </div>
       </div>
@@ -369,6 +436,51 @@ const FileOptimizationDashboard = () => {
               </div>
               <p className="text-xl font-bold">{stats.unoptimizedProducts}</p>
               <p className="text-xs text-muted-foreground">Unoptimized</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Extra Stats Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Trophy className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">{formatBytes(stats.largestFileSaved)}</p>
+                <p className="text-xs text-muted-foreground">Largest File Compressed</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">
+                  {stats.lastRunTime ? formatDate(stats.lastRunTime) : 'Never'}
+                </p>
+                <p className="text-xs text-muted-foreground">Last Optimization Run</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Timer className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold">≤ 100KB</p>
+                <p className="text-xs text-muted-foreground">Max File Size Target</p>
+              </div>
             </div>
           </CardContent>
         </Card>
