@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, X, Plus, Video, Loader2, Sparkles, Zap } from "lucide-react";
+import { ArrowLeft, X, Plus, Loader2, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -83,8 +83,8 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
     const files = e.target.files;
     if (!files) return;
 
-    if (images.length + files.length > 8) {
-      toast({ title: "Maximum 8 images allowed", variant: "destructive" });
+    if (images.length + files.length > 5) {
+      toast({ title: "Maximum 5 images allowed", variant: "destructive" });
       return;
     }
 
@@ -97,13 +97,13 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
       try {
         // Step 1: Client-side compression to ≤100KB, 512x512, 1:1
         const compressed = await compressImage(file, {
-          maxSizeKB: 100,
+          maxSizeKB: 20,
           maxDimension: 512,
           forceSquare: true,
           format: 'image/webp',
         });
 
-        if (!isFileSizeAcceptable(compressed.blob, 100)) {
+        if (!isFileSizeAcceptable(compressed.blob, 20)) {
           toast({
             title: "File too large after optimization",
             description: "Please upload a smaller or compressed version.",
@@ -303,7 +303,7 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
       <form onSubmit={handleSubmit} className="p-4 space-y-6">
         {/* Image Upload */}
         <div className="space-y-3">
-          <Label>Product Images (Max 8) *</Label>
+          <Label>Product Images (Max 5) *</Label>
           <div className="grid grid-cols-4 gap-2">
             {images.map((img, idx) => (
               <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
@@ -336,7 +336,7 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
                 </button>
               </div>
             ))}
-            {images.length < 8 && (
+            {images.length < 5 && (
               <label className="aspect-square rounded-xl border-2 border-dashed border-primary/50 flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5 transition-colors">
                 <Plus className="h-6 w-6 text-primary/50 mb-1" />
                 <span className="text-xs text-muted-foreground">Add</span>
@@ -352,36 +352,6 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
           </div>
         </div>
 
-        {/* Video Upload */}
-        <div className="space-y-2">
-          <Label>Product Video (Optional)</Label>
-          {videoUrl ? (
-            <div className="relative rounded-xl overflow-hidden bg-muted">
-              <video src={videoUrl} controls className="w-full aspect-video" />
-              <button
-                type="button"
-                onClick={() => setVideoUrl('')}
-                className="absolute top-2 right-2 w-8 h-8 bg-destructive rounded-full flex items-center justify-center text-destructive-foreground"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          ) : (
-            <label className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-muted-foreground/30 cursor-pointer hover:bg-muted/50 transition-colors">
-              <Video className="h-8 w-8 text-muted-foreground" />
-              <div>
-                <p className="font-medium">Upload Video</p>
-                <p className="text-sm text-muted-foreground">Add a video to showcase your product</p>
-              </div>
-              <input
-                type="file"
-                accept="video/*"
-                onChange={handleVideoUpload}
-                className="hidden"
-              />
-            </label>
-          )}
-        </div>
 
         {/* Product Name */}
         <div className="space-y-2">

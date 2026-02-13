@@ -24,12 +24,12 @@ export interface CompressionResult {
 }
 
 const DEFAULT_OPTIONS: Required<CompressionOptions> = {
-  maxSizeKB: 100,
+  maxSizeKB: 20,
   maxDimension: 512,
   forceSquare: true,
   format: 'image/webp',
-  initialQuality: 0.85,
-  minQuality: 0.3,
+  initialQuality: 0.7,
+  minQuality: 0.2,
 };
 
 /**
@@ -181,7 +181,7 @@ export async function compressImage(
  * Check if a file exceeds the max size after compression attempt.
  * Returns true if the file is acceptable.
  */
-export function isFileSizeAcceptable(blob: Blob, maxSizeKB: number = 100): boolean {
+export function isFileSizeAcceptable(blob: Blob, maxSizeKB: number = 20): boolean {
   return blob.size <= maxSizeKB * 1024;
 }
 
