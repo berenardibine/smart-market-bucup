@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-const VAPID_PUBLIC_KEY = 'BH0zQAYeJGyqymXCisO53dcWBoDDpF9hykI4MzsP-OrKyquldTsCKN1iup1gQODxaRNa-d5qSoNrWUfG981ZDssO';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BH0zQAYeJGyqymXCisO53dcWBoDDpF9hykI4MzsP-OrKyquldTsCKN1iup1gQODxaRNa-d5qSoNrWUfG981ZDssO';
 
 function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -58,6 +58,21 @@ export const usePushNotifications = () => {
 
       setSubscription(sub);
       setIsSubscribed(true);
+
+      // Show a silent welcome notification to create the notification channel
+      // This fixes Android "app has not posted any notifications" issue
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        await registration.showNotification('Smart Market', {
+          body: '🎉 Notifications enabled! You\'ll get alerts for deals & orders.',
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          tag: 'welcome-notification',
+          silent: false,
+        });
+      } catch (e) {
+        console.warn('[Push] Welcome notification failed:', e);
+      }
 
       // Store subscription in Supabase — works for both logged-in users and guests
       const subJson = sub.toJSON();
