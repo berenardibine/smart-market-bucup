@@ -41,6 +41,8 @@ const NotificationManagement = () => {
     title: '',
     message: '',
     targetGroup: 'all_push',
+    url: '/',
+    imageUrl: '',
   });
   const [sending, setSending] = useState(false);
   const [stats, setStats] = useState({ tokens: 0, subscriptions: 0, users: 0 });
@@ -88,7 +90,7 @@ const NotificationManagement = () => {
       const pushPayload: any = {
         title: formData.title,
         body: formData.message,
-        url: '/',
+        url: formData.url || '/',
         type: 'admin',
       };
 
@@ -112,7 +114,7 @@ const NotificationManagement = () => {
         
         toast({ title: `Push sent to ${sellers?.length || 0} sellers!` });
         fetchNotifications();
-        setFormData({ title: '', message: '', targetGroup: 'all_push' });
+        setFormData({ title: '', message: '', targetGroup: 'all_push', url: '/', imageUrl: '' });
         setShowAddDialog(false);
         setSending(false);
         return;
@@ -132,7 +134,7 @@ const NotificationManagement = () => {
 
         toast({ title: `Push sent to ${buyers?.length || 0} buyers!` });
         fetchNotifications();
-        setFormData({ title: '', message: '', targetGroup: 'all_push' });
+        setFormData({ title: '', message: '', targetGroup: 'all_push', url: '/', imageUrl: '' });
         setShowAddDialog(false);
         setSending(false);
         return;
@@ -152,7 +154,7 @@ const NotificationManagement = () => {
         });
         fetchNotifications();
         fetchStats();
-        setFormData({ title: '', message: '', targetGroup: 'all_push' });
+        setFormData({ title: '', message: '', targetGroup: 'all_push', url: '/', imageUrl: '' });
         setShowAddDialog(false);
       }
     } catch (err: any) {
@@ -232,6 +234,14 @@ const NotificationManagement = () => {
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   rows={4}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Link URL (optional)</label>
+                <Input
+                  placeholder="e.g. /products or https://..."
+                  value={formData.url}
+                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                 />
               </div>
               <Button 

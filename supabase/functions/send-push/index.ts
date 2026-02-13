@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const VAPID_PUBLIC_KEY = 'BJQLmyHGaCpq_n_BhNqefS1x1MoK4DqjkAC793XzKEhaA3OmVOOx1OyjjB-HI7XqsCqarTmncXH4B_v4mGKJecw';
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || 'BH0zQAYeJGyqymXCisO53dcWBoDDpF9hykI4MzsP-OrKyquldTsCKN1iup1gQODxaRNa-d5qSoNrWUfG981ZDssO';
 const VAPID_SUBJECT = 'mailto:admin@smart-market.com';
 
 // ── VAPID JWT Generation ──
@@ -210,7 +210,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tbykrulfzhhkmtgjhvjh.supabase.co';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabase: any = createClient(
       supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',

@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tbykrulfzhhkmtgjhvjh.supabase.co';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     // Use 'any' to avoid strict type checking with dynamic table operations
     const supabase: any = createClient(
       supabaseUrl,
@@ -219,7 +219,7 @@ async function sendPushViaFCM(opts: {
   }
 
   // Also send via Web Push to push_subscriptions
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://tbykrulfzhhkmtgjhvjh.supabase.co';
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
   const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
   try {
     await fetch(`${supabaseUrl}/functions/v1/send-push`, {
