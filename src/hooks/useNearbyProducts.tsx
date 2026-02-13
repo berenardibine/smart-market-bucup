@@ -63,7 +63,7 @@ export const useNearbyProducts = ({
 
       if (error) throw error;
 
-      let results = (data || []) as NearbyProduct[];
+      let results = (data || []) as unknown as NearbyProduct[];
 
       // Filter by product type if specified
       if (productType) {
