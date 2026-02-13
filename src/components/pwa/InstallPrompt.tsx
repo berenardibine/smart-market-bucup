@@ -90,15 +90,27 @@ const InstallPrompt = () => {
 
   const handleInstall = useCallback(async () => {
     if (deferredPrompt) {
+      // Directly trigger the browser's native install dialog
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         localStorage.setItem(INSTALLED_KEY, 'true');
+      } else {
+        // User dismissed — set cooldown so we don't nag immediately
+        localStorage.setItem(DISMISSED_KEY, Date.now().toString());
       }
       setDeferredPrompt(null);
+      (window as any).__pwaInstallPrompt = null;
       setShowBanner(false);
     } else {
-      setShowInstructions(true);
+      const { isIOS } = getDeviceInfo();
+      if (isIOS) {
+        // iOS Safari doesn't support beforeinstallprompt — show manual steps
+        setShowInstructions(true);
+      } else {
+        // Non-iOS but no prompt available — dismiss silently
+        handleDismiss();
+      }
     }
   }, [deferredPrompt]);
 
