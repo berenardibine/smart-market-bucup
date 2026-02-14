@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingProfile) {
-      // Update existing profile - user already completed profile before
+      // Update existing profile
       const updateData: any = {
         last_active: new Date().toISOString(),
         detected_ip,
@@ -135,7 +135,18 @@ Deno.serve(async (req) => {
         details: { provider: user.app_metadata?.provider || "email", ip: detected_ip },
       });
 
-      return new Response(JSON.stringify({ needsProfile: false }), {
+      // Check if phone numbers are missing - redirect to complete profile
+      const needsProfile = !existingProfile.call_number || !existingProfile.whatsapp_number;
+
+      return new Response(JSON.stringify({ 
+        needsProfile,
+        metadata: needsProfile ? {
+          fullName,
+          email: userEmail,
+          profileImage,
+          geo: geoData,
+        } : undefined,
+      }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -166,13 +177,61 @@ Deno.serve(async (req) => {
         })
         .eq("id", emailProfile.id);
 
-      return new Response(JSON.stringify({ needsProfile: false, merged: true }), {
+      const needsProfile = !emailProfile.call_number || !emailProfile.whatsapp_number;
+      return new Response(JSON.stringify({ 
+        needsProfile, 
+        merged: true,
+        metadata: needsProfile ? {
+          fullName,
+          email: userEmail,
+          profileImage,
+          geo: geoData,
+        } : undefined,
+      }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // NEW: Do NOT create profile here. Return metadata so frontend can show Complete Profile form.
+    // AUTO-CREATE profile for new users (no profile exists at all)
+    const { error: insertError } = await adminClient
+      .from("profiles")
+      .insert({
+        id: userId,
+        email: userEmail!,
+        full_name: fullName,
+        profile_image: profileImage,
+        user_type: "seller",
+        status: "active",
+        detected_ip,
+        country: geoData.country || null,
+        country_code: geoData.country_code || null,
+        city: geoData.city || null,
+        region: geoData.region || null,
+        currency_code: geoData.currency_code || null,
+        currency_symbol: geoData.currency_symbol || null,
+        lat: geoData.lat || null,
+        lng: geoData.lng || null,
+        last_active: new Date().toISOString(),
+        last_location_update: geoData.lat ? new Date().toISOString() : null,
+        auto_location_enabled: true,
+      });
+
+    if (insertError) {
+      console.error("auth-sync: profile insert error:", insertError);
+      return new Response(JSON.stringify({ error: "Failed to create profile" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    await adminClient.from("admin_audit_log").insert({
+      event_type: "profile_auto_created",
+      user_id: userId,
+      details: { provider: user.app_metadata?.provider || "email", ip: detected_ip, email: userEmail },
+    });
+
+    // New user always needs to complete phone numbers
     return new Response(JSON.stringify({
       needsProfile: true,
       metadata: {
