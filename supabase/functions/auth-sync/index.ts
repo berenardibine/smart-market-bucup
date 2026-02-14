@@ -49,29 +49,23 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify user with anon client
-    const anonClient = createClient(supabaseUrl, supabaseAnon, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (claimsError || !claimsData?.claims) {
+    // Use service role client to verify user from JWT
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.error("auth-sync: user verification failed", userError);
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
-    const userEmail = claimsData.claims.email;
-
-    // Get full user data for metadata
-    const { data: userData } = await anonClient.auth.getUser();
-    const user = userData?.user;
-
-    // Admin client for DB writes
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const userId = user.id;
+    const userEmail = user.email;
 
     // Detect IP
     const forwarded = req.headers.get("x-forwarded-for");
@@ -89,7 +83,7 @@ Deno.serve(async (req) => {
     // Fetch IP geolocation as fallback
     const ipGeo = await fetchIPGeolocation(detected_ip);
 
-    // Determine geo values: prefer client-sent, fallback to IP
+    // Determine geo values
     const geoData = {
       country: clientGeo.country || ipGeo.country,
       country_code: clientGeo.country_code || ipGeo.country_code,
@@ -102,16 +96,16 @@ Deno.serve(async (req) => {
     };
 
     const fullName =
-      user?.user_metadata?.full_name ||
-      user?.user_metadata?.name ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
       userEmail?.split("@")[0] ||
       "User";
     const profileImage =
-      user?.user_metadata?.avatar_url ||
-      user?.user_metadata?.picture ||
+      user.user_metadata?.avatar_url ||
+      user.user_metadata?.picture ||
       null;
 
-    // Check if profile exists
+    // Check if profile exists by ID
     const { data: existingProfile } = await adminClient
       .from("profiles")
       .select("id, call_number, whatsapp_number, country")
@@ -124,7 +118,6 @@ Deno.serve(async (req) => {
         last_active: new Date().toISOString(),
         detected_ip,
       };
-      // Only update geo if not already set
       if (!existingProfile.country && geoData.country) {
         updateData.country = geoData.country;
         updateData.country_code = geoData.country_code;
@@ -144,11 +137,10 @@ Deno.serve(async (req) => {
 
       const needsPhone = !existingProfile.call_number || !existingProfile.whatsapp_number;
 
-      // Log to audit
       await adminClient.from("admin_audit_log").insert({
         event_type: "auth_sync_update",
         user_id: userId,
-        details: { provider: user?.app_metadata?.provider || "email", ip: detected_ip },
+        details: { provider: user.app_metadata?.provider || "email", ip: detected_ip },
       });
 
       return new Response(JSON.stringify({ needsPhone, isNew: false }), {
@@ -164,7 +156,6 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (emailProfile) {
-        // Merge: update existing profile's id to auth user id
         await adminClient
           .from("profiles")
           .update({
@@ -211,11 +202,10 @@ Deno.serve(async (req) => {
         auto_location_enabled: true,
       });
 
-      // Log to audit
       await adminClient.from("admin_audit_log").insert({
         event_type: "auth_sync_create",
         user_id: userId,
-        details: { provider: user?.app_metadata?.provider || "email", ip: detected_ip },
+        details: { provider: user.app_metadata?.provider || "email", ip: detected_ip },
       });
 
       return new Response(JSON.stringify({ needsPhone: true, isNew: true }), {
