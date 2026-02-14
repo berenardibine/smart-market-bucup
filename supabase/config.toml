@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.remove-background]
 verify_jwt = false
+
+[functions.auth-sync]
+verify_jwt = false
+
+[functions.complete-profile]
+verify_jwt = false
