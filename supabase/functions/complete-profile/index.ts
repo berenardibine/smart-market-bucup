@@ -11,6 +11,10 @@ function isValidPhone(phone: string): boolean {
   return /^\+?\d{7,15}$/.test(cleaned);
 }
 
+function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-\(\)]/g, "").trim();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -72,6 +76,42 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check phone uniqueness - call_number
+    const normalizedCall = normalizePhone(call_number);
+    const { data: existingCall } = await adminClient
+      .from("profiles")
+      .select("id")
+      .neq("id", userId)
+      .or(`call_number.eq.${normalizedCall},call_number.eq.${call_number.trim()},phone_number.eq.${normalizedCall}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingCall) {
+      return new Response(
+        JSON.stringify({ error: "This call number is already used by another account" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check phone uniqueness - whatsapp_number
+    const normalizedWhatsapp = normalizePhone(whatsapp_number);
+    if (normalizedWhatsapp !== normalizedCall) {
+      const { data: existingWhatsapp } = await adminClient
+        .from("profiles")
+        .select("id")
+        .neq("id", userId)
+        .eq("whatsapp_number", normalizedWhatsapp)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingWhatsapp) {
+        return new Response(
+          JSON.stringify({ error: "This WhatsApp number is already used by another account" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Detect IP
     const forwarded = req.headers.get("x-forwarded-for");
     const detected_ip = forwarded ? forwarded.split(",")[0].trim() : "unknown";
@@ -89,9 +129,9 @@ Deno.serve(async (req) => {
         .from("profiles")
         .update({
           full_name: full_name.trim(),
-          call_number: call_number.trim(),
-          whatsapp_number: whatsapp_number.trim(),
-          phone_number: call_number.trim(),
+          call_number: normalizedCall,
+          whatsapp_number: normalizedWhatsapp,
+          phone_number: normalizedCall,
           country: country || null,
           country_code: country_code || null,
           city: city || null,
@@ -122,9 +162,9 @@ Deno.serve(async (req) => {
           profile_image: profile_image || user.user_metadata?.avatar_url || null,
           user_type: "seller",
           status: "active",
-          call_number: call_number.trim(),
-          whatsapp_number: whatsapp_number.trim(),
-          phone_number: call_number.trim(),
+          call_number: normalizedCall,
+          whatsapp_number: normalizedWhatsapp,
+          phone_number: normalizedCall,
           detected_ip,
           country: country || null,
           country_code: country_code || null,
