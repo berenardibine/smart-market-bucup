@@ -28,6 +28,8 @@ import BlockedPage from "./pages/BlockedPage";
 import SellerMonetization from "./pages/SellerMonetization";
 import ShopPage from "./pages/ShopPage";
 import NotFound from "./pages/NotFound";
+import AuthCallback from "./pages/AuthCallback";
+import CompleteProfilePhone from "./pages/CompleteProfilePhone";
 
 // Menu Pages
 import AccountPage from "./pages/AccountPage";
@@ -91,6 +93,8 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/complete-profile/phone" element={<CompleteProfilePhone />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
