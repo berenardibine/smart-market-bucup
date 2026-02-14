@@ -49,13 +49,11 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Use service role client to verify user from JWT
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    
+
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
-    
+
     if (userError || !user) {
       console.error("auth-sync: user verification failed", userError);
       return new Response(JSON.stringify({ error: "Invalid token" }), {
@@ -83,7 +81,6 @@ Deno.serve(async (req) => {
     // Fetch IP geolocation as fallback
     const ipGeo = await fetchIPGeolocation(detected_ip);
 
-    // Determine geo values
     const geoData = {
       country: clientGeo.country || ipGeo.country,
       country_code: clientGeo.country_code || ipGeo.country_code,
@@ -113,7 +110,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingProfile) {
-      // Update existing profile
+      // Update existing profile - user already completed profile before
       const updateData: any = {
         last_active: new Date().toISOString(),
         detected_ip,
@@ -129,13 +126,8 @@ Deno.serve(async (req) => {
         updateData.currency_symbol = geoData.currency_symbol;
         updateData.last_location_update = new Date().toISOString();
       }
-      if (profileImage && !existingProfile.call_number) {
-        updateData.profile_image = profileImage;
-      }
 
       await adminClient.from("profiles").update(updateData).eq("id", userId);
-
-      const needsPhone = !existingProfile.call_number || !existingProfile.whatsapp_number;
 
       await adminClient.from("admin_audit_log").insert({
         event_type: "auth_sync_update",
@@ -143,76 +135,56 @@ Deno.serve(async (req) => {
         details: { provider: user.app_metadata?.provider || "email", ip: detected_ip },
       });
 
-      return new Response(JSON.stringify({ needsPhone, isNew: false }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } else {
-      // Check by email for profile merge
-      const { data: emailProfile } = await adminClient
-        .from("profiles")
-        .select("id, call_number, whatsapp_number")
-        .eq("email", userEmail)
-        .maybeSingle();
-
-      if (emailProfile) {
-        await adminClient
-          .from("profiles")
-          .update({
-            id: userId,
-            last_active: new Date().toISOString(),
-            detected_ip,
-            profile_image: profileImage || undefined,
-            country: geoData.country || undefined,
-            country_code: geoData.country_code || undefined,
-            lat: geoData.lat || undefined,
-            lng: geoData.lng || undefined,
-            city: geoData.city || undefined,
-            region: geoData.region || undefined,
-            last_location_update: new Date().toISOString(),
-          })
-          .eq("id", emailProfile.id);
-
-        const needsPhone = !emailProfile.call_number || !emailProfile.whatsapp_number;
-        return new Response(JSON.stringify({ needsPhone, isNew: false, merged: true }), {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Create new profile
-      await adminClient.from("profiles").insert({
-        id: userId,
-        email: userEmail,
-        full_name: fullName,
-        profile_image: profileImage,
-        user_type: "seller",
-        status: "active",
-        detected_ip,
-        country: geoData.country,
-        country_code: geoData.country_code,
-        lat: geoData.lat,
-        lng: geoData.lng,
-        city: geoData.city,
-        region: geoData.region,
-        currency_code: geoData.currency_code,
-        currency_symbol: geoData.currency_symbol,
-        last_active: new Date().toISOString(),
-        last_location_update: geoData.lat ? new Date().toISOString() : null,
-        auto_location_enabled: true,
-      });
-
-      await adminClient.from("admin_audit_log").insert({
-        event_type: "auth_sync_create",
-        user_id: userId,
-        details: { provider: user.app_metadata?.provider || "email", ip: detected_ip },
-      });
-
-      return new Response(JSON.stringify({ needsPhone: true, isNew: true }), {
+      return new Response(JSON.stringify({ needsProfile: false }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Check by email for existing profile (merge case)
+    const { data: emailProfile } = await adminClient
+      .from("profiles")
+      .select("id, call_number, whatsapp_number")
+      .eq("email", userEmail)
+      .maybeSingle();
+
+    if (emailProfile) {
+      await adminClient
+        .from("profiles")
+        .update({
+          id: userId,
+          last_active: new Date().toISOString(),
+          detected_ip,
+          profile_image: profileImage || undefined,
+          country: geoData.country || undefined,
+          country_code: geoData.country_code || undefined,
+          lat: geoData.lat || undefined,
+          lng: geoData.lng || undefined,
+          city: geoData.city || undefined,
+          region: geoData.region || undefined,
+          last_location_update: new Date().toISOString(),
+        })
+        .eq("id", emailProfile.id);
+
+      return new Response(JSON.stringify({ needsProfile: false, merged: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // NEW: Do NOT create profile here. Return metadata so frontend can show Complete Profile form.
+    return new Response(JSON.stringify({
+      needsProfile: true,
+      metadata: {
+        fullName,
+        email: userEmail,
+        profileImage,
+        geo: geoData,
+      },
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("auth-sync error:", error);
     return new Response(JSON.stringify({ error: "Internal error" }), {
