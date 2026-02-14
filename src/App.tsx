@@ -30,6 +30,7 @@ import ShopPage from "./pages/ShopPage";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import CompleteProfilePhone from "./pages/CompleteProfilePhone";
+import CompleteProfile from "./pages/CompleteProfile";
 
 // Menu Pages
 import AccountPage from "./pages/AccountPage";
@@ -95,6 +96,7 @@ const App = () => {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/complete-profile/phone" element={<CompleteProfilePhone />} />
+                <Route path="/complete-profile" element={<CompleteProfile />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
