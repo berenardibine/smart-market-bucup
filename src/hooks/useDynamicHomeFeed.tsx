@@ -144,7 +144,7 @@ export const useDynamicHomeFeed = (userCountry?: string | null) => {
         setAllProducts(products);
       }
 
-      // Build category sections (only categories with products)
+      // Build category sections (ALL categories with products)
       const sections: CategorySection[] = [];
       const categoriesWithProducts = cats.filter(cat => 
         products.some(p => p.category === cat.slug)
@@ -153,12 +153,12 @@ export const useDynamicHomeFeed = (userCountry?: string | null) => {
       // Shuffle categories for variety
       const shuffledCats = shuffleArray(categoriesWithProducts);
 
-      shuffledCats.slice(0, 8).forEach((cat, index) => {
+      shuffledCats.forEach((cat, index) => {
         const categoryProducts = products
           .filter(p => p.category === cat.slug)
-          .slice(0, 8);
+          .slice(0, 12);
         
-        if (categoryProducts.length >= 2) {
+        if (categoryProducts.length >= 1) {
           sections.push({
             category: {
               ...cat,

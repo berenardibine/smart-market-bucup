@@ -12,8 +12,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useCategories } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Hidden category types (shown as dedicated sections on home, not in menu)
-const HIDDEN_CATEGORY_TYPES = ['asset', 'agriculture', 'rent'];
+// All categories are now shown in menu
 
 const MenuPage = () => {
   const navigate = useNavigate();
@@ -23,10 +22,8 @@ const MenuPage = () => {
   const { unreadCount } = useNotifications();
   const { categories, loading: categoriesLoading } = useCategories();
 
-  // Filter out hidden categories and get visible ones
-  const visibleCategories = categories.filter(
-    cat => !HIDDEN_CATEGORY_TYPES.includes(cat.type || '')
-  );
+  // Show all categories
+  const visibleCategories = categories;
 
   // Authenticated-only menu items
   const authMenuItems = [
@@ -157,7 +154,7 @@ const MenuPage = () => {
             visibleCategories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => navigate(`/?category=${cat.slug}`)}
+                onClick={() => navigate(`/category/${cat.slug}`)}
                 className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border hover:shadow-md transition-all group"
               >
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary/10 text-xl">
