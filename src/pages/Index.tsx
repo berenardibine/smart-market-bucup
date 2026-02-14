@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Sparkles, Globe, Car, Wheat, Wrench
+  Sparkles, Globe
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import SearchModal from "@/components/layout/SearchModal";
@@ -42,9 +42,7 @@ const Index = () => {
   const { 
     dynamicFeed,
     newArrivals,
-    assetProducts,
-    agricultureProducts,
-    rentProducts,
+    categorySections,
     loading,
   } = useDynamicHomeFeed(showGlobalProducts ? null : country);
 
@@ -117,7 +115,7 @@ const Index = () => {
         <section className="animate-fade-up">
           <HomeAds />
         </section>
-        {/* New Arrivals Section */}
+        {/* New Arrivals */}
         {newArrivals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
             <AutoScrollCarousel
@@ -125,53 +123,25 @@ const Index = () => {
               icon="✨"
               color="from-blue-500 to-cyan-400"
               products={newArrivals}
-              viewAllLink="/new-arrivals"
+              viewAllLink="/category/new-arrivals"
               autoScrollInterval={3000}
             />
           </section>
         )}
 
-        {/* Asset Products Section */}
-        {assetProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.22s" }}>
+        {/* Category Sections - each category with products gets its own carousel */}
+        {!loading && categorySections.map((section, idx) => (
+          <section key={section.category.slug} className="animate-fade-up" style={{ animationDelay: `${0.22 + idx * 0.02}s` }}>
             <AutoScrollCarousel
-              title="Assets & Properties"
-              icon="🏠"
-              color="from-blue-500 to-cyan-500"
-              products={assetProducts}
-              viewAllLink="/assets"
-              autoScrollInterval={3500}
+              title={section.category.name}
+              icon={section.category.icon || '📦'}
+              color={section.color}
+              products={section.products}
+              viewAllLink={`/category/${section.category.slug}`}
+              autoScrollInterval={3000 + idx * 500}
             />
           </section>
-        )}
-
-        {/* Agriculture Products Section */}
-        {agricultureProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.24s" }}>
-            <AutoScrollCarousel
-              title="Agriculture Products"
-              icon="🌾"
-              color="from-green-500 to-emerald-500"
-              products={agricultureProducts}
-              viewAllLink="/agriculture"
-              autoScrollInterval={4000}
-            />
-          </section>
-        )}
-
-        {/* Equipment for Rent Section */}
-        {rentProducts.length > 0 && (
-          <section className="animate-fade-up" style={{ animationDelay: "0.26s" }}>
-            <AutoScrollCarousel
-              title="Equipment for Rent"
-              icon="🔧"
-              color="from-purple-500 to-violet-500"
-              products={rentProducts}
-              viewAllLink="/rent"
-              autoScrollInterval={4500}
-            />
-          </section>
-        )}
+        ))}
 
         {/* Products Near You */}
         <section className="animate-fade-up" style={{ animationDelay: "0.28s" }}>

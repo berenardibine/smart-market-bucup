@@ -23,6 +23,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AssetPage from "./pages/AssetPage";
 import AgriculturePage from "./pages/AgriculturePage";
 import RentPage from "./pages/RentPage";
+import CategoryPage from "./pages/CategoryPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import BlockedPage from "./pages/BlockedPage";
 import SellerMonetization from "./pages/SellerMonetization";
@@ -129,6 +130,7 @@ const App = () => {
                 <Route path="/assets" element={<AssetPage />} />
                 <Route path="/agriculture" element={<AgriculturePage />} />
                 <Route path="/rent" element={<RentPage />} />
+                <Route path="/category/:slug" element={<CategoryPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/blocked" element={<BlockedPage />} />
                 <Route path="/seller-monetization" element={<SellerMonetization />} />
