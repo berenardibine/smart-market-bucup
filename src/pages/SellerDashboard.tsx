@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Store, Package, Plus, MessageSquare, Bell,
-  Eye, Heart, Settings, ChevronRight, Phone,
-  Users, DollarSign, Sparkles, Menu, X, Home, Gift,
-  ShoppingBag, TrendingUp, BarChart3, Zap, Star, Link2, MousePointerClick
+  Eye, Settings, ChevronRight, Phone,
+  Users, Menu, X, Home, Gift,
+  TrendingUp, BarChart3, Zap, Link2, MousePointerClick,
+  Sparkles, Crown, Layers, Rocket
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyShop } from "@/hooks/useShops";
 import { useMyProducts } from "@/hooks/useProducts";
@@ -24,7 +24,6 @@ import LinkAnalytics from "@/components/seller/LinkAnalytics";
 import SellerReferralTab from "@/components/seller/SellerReferralTab";
 import SellerProductAnalytics from "@/components/seller/SellerProductAnalytics";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
@@ -33,34 +32,27 @@ const SellerDashboard = () => {
   const { shop, loading: shopLoading, createShop, updateShop } = useMyShop();
   const { products, loading: productsLoading, refetch: refetchProducts } = useMyProducts();
   const { requests, loading: requestsLoading, updateRequestStatus } = useProductRequests();
-  const { stats: viewsStats, loading: viewsLoading } = useSellerViewsStats(user?.id);
-  const isMobile = useIsMobile();
+  const { stats: viewsStats } = useSellerViewsStats(user?.id);
   
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeModule, setActiveModule] = useState<string | null>(null);
   const [showShopForm, setShowShopForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [connectorsCount, setConnectorsCount] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
-  const totalLikes = products.reduce((sum, p) => sum + (p.likes || 0), 0);
 
-  // Fetch connectors count
   useEffect(() => {
-    if (user) {
-      fetchConnectorsCount();
-    }
+    if (user) fetchConnectorsCount();
   }, [user]);
 
   const fetchConnectorsCount = async () => {
     if (!user) return;
-    
     const { count } = await (supabase as any)
       .from('seller_connections')
       .select('*', { count: 'exact', head: true })
       .eq('seller_id', user.id);
-    
     setConnectorsCount(count || 0);
   };
 
@@ -93,12 +85,12 @@ const SellerDashboard = () => {
 
   if (!profile || profile.user_type !== 'seller') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary/5 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-3xl shadow-elevated max-w-md mx-4">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center mx-auto mb-6 shadow-orange">
-            <Store className="h-10 w-10 text-white" />
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+        <div className="text-center p-8 bg-card rounded-3xl shadow-xl max-w-md mx-4 border">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <Store className="h-10 w-10 text-primary-foreground" />
           </div>
-          <h2 className="text-2xl font-bold mb-2 text-slate-800">Seller Access Only</h2>
+          <h2 className="text-2xl font-bold mb-2">Seller Access Only</h2>
           <p className="text-muted-foreground mb-6">You need a seller account to access this dashboard.</p>
           <Button onClick={() => navigate('/')} className="gap-2 rounded-xl px-6">
             <Home className="h-4 w-4" />
@@ -133,390 +125,381 @@ const SellerDashboard = () => {
     );
   }
 
-  const stats = [
-    { label: 'Views', value: viewsStats.totalViews, icon: Eye, color: 'from-blue-500 to-cyan-400', bg: 'from-blue-500/10 to-cyan-500/10' },
-    { label: 'Impressions', value: viewsStats.totalImpressions, icon: MousePointerClick, color: 'from-green-500 to-emerald-400', bg: 'from-green-500/10 to-emerald-500/10' },
-    { label: 'Requests', value: requests.length, icon: MessageSquare, color: 'from-orange-500 to-amber-400', bg: 'from-orange-500/10 to-amber-500/10' },
-    { label: 'Connectors', value: connectorsCount, icon: Users, color: 'from-purple-500 to-violet-400', bg: 'from-purple-500/10 to-violet-500/10' },
+  const modules = [
+    { id: 'products', label: 'Products', icon: Package, color: 'from-orange-500 to-amber-500', bg: 'bg-orange-50 dark:bg-orange-950/30', description: 'Manage listings' },
+    { id: 'shop', label: 'My Shop', icon: Store, color: 'from-purple-500 to-violet-500', bg: 'bg-purple-50 dark:bg-purple-950/30', description: 'Shop settings' },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'from-cyan-500 to-teal-500', bg: 'bg-cyan-50 dark:bg-cyan-950/30', description: 'Performance stats' },
+    { id: 'links', label: 'Links', icon: Link2, color: 'from-teal-500 to-emerald-500', bg: 'bg-teal-50 dark:bg-teal-950/30', description: 'Traffic tracking' },
+    { id: 'referrals', label: 'Referrals', icon: Gift, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', description: 'Earn rewards' },
+    { id: 'requests', label: 'Requests', icon: MessageSquare, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', description: `${pendingRequests.length} pending` },
   ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary/5 pb-20">
-      {/* Modern Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b">
-        <div className="flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
+  // Render module content
+  const renderModule = () => {
+    switch (activeModule) {
+      case 'products':
+        return (
+          <div className="space-y-4">
+            <Button 
+              onClick={() => shop ? setShowProductForm(true) : toast({ title: "Create a shop first" })}
+              className="w-full gap-2 rounded-xl h-12 bg-gradient-to-r from-primary to-primary/80"
+              disabled={!shop}
             >
-              <ArrowLeft className="h-5 w-5 text-slate-600" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center shadow-orange">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg text-slate-800">Seller Dashboard</h1>
-                <p className="text-xs text-muted-foreground">{profile.full_name}</p>
-              </div>
-            </div>
+              <Plus className="h-4 w-4" /> Add New Product
+            </Button>
+            <ProductList 
+              products={products} 
+              loading={productsLoading}
+              onEdit={(product) => setEditingProduct(product)}
+              onRefresh={refetchProducts}
+            />
           </div>
-          
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => navigate('/notifications')}
-              className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors relative"
-            >
-              <Bell className="h-5 w-5 text-slate-600" />
-              {pendingRequests.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-medium">
-                  {pendingRequests.length}
-                </span>
-              )}
-            </button>
-            <button 
-              onClick={() => navigate('/')}
-              className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
-            >
-              <Home className="h-5 w-5 text-slate-600" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Shop Status - Create Shop CTA */}
-      {!shop && !shopLoading && (
-        <div className="m-4 p-6 bg-gradient-to-br from-primary/10 via-orange-50 to-amber-50 rounded-3xl border border-primary/20 shadow-soft">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center shadow-orange shrink-0">
-              <Store className="h-7 w-7 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-lg text-slate-800 mb-1">Create Your Shop</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Set up your shop to start selling products on Smart Market.
-              </p>
-              <Button onClick={() => setShowShopForm(true)} className="gap-2 rounded-xl">
-                <Plus className="h-4 w-4" />
-                Create Shop
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stats Grid */}
-      {shop && (
-        <div className="p-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {stats.map((stat, index) => (
-              <div 
-                key={stat.label}
-                className={cn(
-                  "bg-gradient-to-br rounded-2xl p-4 border shadow-soft",
-                  stat.bg
-                )}
-              >
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br",
-                  stat.color
-                )}>
-                  <stat.icon className="h-5 w-5 text-white" />
-                </div>
-                <p className="text-2xl font-bold text-slate-800">{stat.value}</p>
-                <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4">
-        <TabsList className="w-full grid grid-cols-6 h-12 bg-white rounded-xl border shadow-soft p-1">
-          <TabsTrigger value="overview" className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg">
-            <BarChart3 className="h-4 w-4" />
-          </TabsTrigger>
-          <TabsTrigger value="shop" className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg">
-            <Store className="h-4 w-4" />
-          </TabsTrigger>
-          <TabsTrigger value="products" className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg">
-            <Package className="h-4 w-4" />
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg">
-            <Link2 className="h-4 w-4" />
-          </TabsTrigger>
-          <TabsTrigger value="referrals" className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg">
-            <Gift className="h-4 w-4" />
-          </TabsTrigger>
-          <TabsTrigger value="requests" className="text-xs rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-lg relative">
-            <MessageSquare className="h-4 w-4" />
-            {pendingRequests.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-                {pendingRequests.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="mt-4 space-y-4">
-          {shop && (
-            <div className="bg-white rounded-2xl p-4 border shadow-soft">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center overflow-hidden shadow-orange">
+        );
+      case 'shop':
+        return shop ? (
+          <div className="space-y-4">
+            <div className="bg-card rounded-3xl overflow-hidden border shadow-sm">
+              <div className="h-28 bg-gradient-to-r from-primary via-primary/80 to-primary/60" />
+              <div className="p-4 -mt-14">
+                <div className="w-24 h-24 rounded-2xl bg-card border-4 border-card flex items-center justify-center overflow-hidden shadow-lg">
                   {shop.logo_url ? (
                     <img src={shop.logo_url} alt={shop.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Store className="h-8 w-8 text-white" />
+                    <Store className="h-12 w-12 text-primary" />
                   )}
+                </div>
+                <h2 className="text-xl font-bold mt-3">{shop.name}</h2>
+                {shop.description && <p className="text-muted-foreground text-sm mt-1">{shop.description}</p>}
+              </div>
+            </div>
+            <div className="bg-card rounded-2xl p-4 border space-y-3">
+              <h3 className="font-semibold">Contact Information</h3>
+              {shop.contact_phone && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950/30 flex items-center justify-center">
+                    <Phone className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span className="text-sm font-medium">{shop.contact_phone}</span>
+                </div>
+              )}
+              {shop.whatsapp && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-950/30 flex items-center justify-center">
+                    <MessageSquare className="h-5 w-5 text-green-600" />
+                  </div>
+                  <span className="text-sm font-medium">{shop.whatsapp}</span>
+                </div>
+              )}
+            </div>
+            <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-2xl p-5 border">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center shadow-lg">
+                  <Users className="h-7 w-7 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-lg text-slate-800">{shop.name}</h3>
-                  <p className="text-sm text-muted-foreground">{shop.trading_center || 'No location set'}</p>
+                  <h3 className="font-semibold">Your Connectors</h3>
+                  <p className="text-sm text-muted-foreground">People following your products</p>
                 </div>
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setShowShopForm(true)}>
-                  <Settings className="h-4 w-4" />
-                </Button>
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-purple-600">{connectorsCount}</p>
+                  <p className="text-xs text-muted-foreground">followers</p>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Monetization Card 
-          <div 
-            onClick={() => navigate('/seller-monetization')}
-            className="bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-red-500/10 rounded-2xl p-5 border border-amber-500/20 cursor-pointer hover:shadow-lg transition-all group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <DollarSign className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-bold text-lg text-slate-800">Monetization</h3>
-                  <Badge variant="secondary" className="text-[10px] bg-amber-500/20 text-amber-700 border-amber-200">
-                    <Sparkles className="h-2.5 w-2.5 mr-1" />
-                    
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Earn from your sales activity 
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-            </div>
-          </div> */}
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-2xl p-4 border shadow-soft">
-            <h3 className="font-semibold mb-3 flex items-center gap-2 text-slate-800">
-              <Zap className="h-4 w-4 text-primary" />
-              Quick Actions
-            </h3>
-            <div className="space-y-2">
-              <button 
-                onClick={() => shop ? setShowProductForm(true) : toast({ title: "Create a shop first" })}
-                className="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 via-orange-50 to-amber-50 hover:from-primary/10 hover:to-amber-100 transition-all border border-primary/10"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center shadow-orange">
-                  <Plus className="h-6 w-6 text-white" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-semibold text-slate-800">Add New Product</p>
-                  <p className="text-xs text-muted-foreground">List a new item for sale</p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </button>
-              
-              <button 
-                onClick={() => setActiveTab('requests')}
-                className="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center shadow-lg">
-                  <MessageSquare className="h-6 w-6 text-white" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-semibold text-slate-800">View Requests</p>
-                  <p className="text-xs text-muted-foreground">{pendingRequests.length} pending requests</p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </div>
-          </div>
-
-          {/* Recent Products */}
-          {products.length > 0 && (
-            <div className="bg-white rounded-2xl p-4 border shadow-soft">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold flex items-center gap-2 text-slate-800">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  Recent Products
-                </h3>
-                <button 
-                  onClick={() => setActiveTab('products')}
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  View All
-                </button>
-              </div>
-              <div className="space-y-2">
-                {products.slice(0, 3).map(product => (
-                  <div key={product.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <img 
-                      src={product.images?.[0] || '/placeholder.svg'} 
-                      alt={product.title}
-                      className="w-14 h-14 rounded-xl object-cover shadow-soft"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate text-slate-800">{product.title}</p>
-                      <p className="text-xs text-primary font-bold">
-                        {new Intl.NumberFormat('en-RW', { style: 'currency', currency: 'RWF', minimumFractionDigits: 0 }).format(product.price)}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-xs shrink-0">
-                      <Eye className="h-3 w-3 mr-1" />
-                      {product.views || 0}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Shop Tab */}
-        <TabsContent value="shop" className="mt-4">
-          {shop ? (
-            <div className="space-y-4">
-              <div className="bg-white rounded-3xl overflow-hidden border shadow-soft">
-                <div className="h-28 bg-gradient-to-r from-primary via-orange-400 to-amber-400" />
-                <div className="p-4 -mt-14">
-                  <div className="w-24 h-24 rounded-2xl bg-white border-4 border-white flex items-center justify-center overflow-hidden shadow-elevated">
-                    {shop.logo_url ? (
-                      <img src={shop.logo_url} alt={shop.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Store className="h-12 w-12 text-primary" />
-                    )}
-                  </div>
-                  <h2 className="text-xl font-bold mt-3 text-slate-800">{shop.name}</h2>
-                  {shop.description && (
-                    <p className="text-muted-foreground text-sm mt-1">{shop.description}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-4 border shadow-soft space-y-3">
-                <h3 className="font-semibold text-slate-800">Contact Information</h3>
-                {shop.contact_phone && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                      <Phone className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <span className="text-sm font-medium">{shop.contact_phone}</span>
-                  </div>
-                )}
-                {shop.whatsapp && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                      <MessageSquare className="h-5 w-5 text-green-600" />
-                    </div>
-                    <span className="text-sm font-medium">{shop.whatsapp}</span>
-                  </div>
-                )}
-                {shop.trading_center && (
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-                    <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                      <Store className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <span className="text-sm font-medium">{shop.trading_center}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Connectors Info */}
-              <div className="bg-gradient-to-br from-purple-500/10 via-violet-50 to-purple-50 rounded-2xl p-5 border border-purple-500/20 shadow-soft">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-400 flex items-center justify-center shadow-lg">
-                    <Users className="h-7 w-7 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-800">Your Connectors</h3>
-                    <p className="text-sm text-muted-foreground">People following your products</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold text-purple-600">{connectorsCount}</p>
-                    <p className="text-xs text-muted-foreground">followers</p>
-                  </div>
-                </div>
-              </div>
-
-              <Button onClick={() => setShowShopForm(true)} className="w-full gap-2 rounded-xl h-12">
-                <Settings className="h-4 w-4" />
-                Edit Shop Details
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-white rounded-2xl border shadow-soft">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-orange-100 flex items-center justify-center mx-auto mb-4">
-                <Store className="h-10 w-10 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2 text-slate-800">No Shop Yet</h3>
-              <p className="text-muted-foreground text-sm mb-4">Create your shop to start selling</p>
-              <Button onClick={() => setShowShopForm(true)} className="gap-2 rounded-xl">
-                <Plus className="h-4 w-4" />
-                Create Shop
-              </Button>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Products Tab */}
-        <TabsContent value="products" className="mt-4">
-          <div className="mb-4">
-            <Button 
-              onClick={() => shop ? setShowProductForm(true) : toast({ title: "Create a shop first" })}
-              className="w-full gap-2 rounded-xl h-12 bg-gradient-to-r from-primary to-orange-400 hover:opacity-90"
-              disabled={!shop}
-            >
-              <Plus className="h-4 w-4" />
-              Add New Product
+            <Button onClick={() => setShowShopForm(true)} className="w-full gap-2 rounded-xl h-12">
+              <Settings className="h-4 w-4" /> Edit Shop Details
             </Button>
           </div>
-          <ProductList 
-            products={products} 
-            loading={productsLoading}
-            onEdit={(product) => setEditingProduct(product)}
-            onRefresh={refetchProducts}
-          />
-        </TabsContent>
-
-        {/* Analytics Tab - Combined Link Analytics and Product Performance */}
-        <TabsContent value="analytics" className="mt-4 space-y-6">
-          {/* Product Views & Impressions Analytics */}
-          <SellerProductAnalytics />
-          
-          {/* Link Click Analytics */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">Link Click Analytics</h3>
-            <LinkAnalytics />
+        ) : (
+          <div className="text-center py-12 bg-card rounded-2xl border">
+            <Store className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">No Shop Yet</h3>
+            <p className="text-muted-foreground text-sm mb-4">Create your shop to start selling</p>
+            <Button onClick={() => setShowShopForm(true)} className="gap-2 rounded-xl">
+              <Plus className="h-4 w-4" /> Create Shop
+            </Button>
           </div>
-        </TabsContent>
-
-        {/* Referrals Tab */}
-        <TabsContent value="referrals" className="mt-4">
-          <SellerReferralTab />
-        </TabsContent>
-
-        {/* Requests Tab */}
-        <TabsContent value="requests" className="mt-4">
+        );
+      case 'analytics':
+        return <SellerProductAnalytics />;
+      case 'links':
+        return <LinkAnalytics />;
+      case 'referrals':
+        return <SellerReferralTab />;
+      case 'requests':
+        return (
           <RequestList 
             requests={requests}
             loading={requestsLoading}
             onUpdateStatus={updateRequestStatus}
           />
-        </TabsContent>
-      </Tabs>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (activeModule) {
+    const mod = modules.find(m => m.id === activeModule);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
+        <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b">
+          <div className="flex items-center justify-between h-14 px-4">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setActiveModule(null)} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <h1 className="font-bold text-lg">{mod?.label}</h1>
+            </div>
+            <button onClick={() => navigate('/')} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+              <Home className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+        <div className="p-4">{renderModule()}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b">
+        <div className="flex items-center justify-between h-16 px-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+              <Zap className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="font-bold text-base flex items-center gap-1">
+                Seller Dashboard
+                <Sparkles className="h-4 w-4 text-primary" />
+              </h1>
+              <p className="text-xs text-muted-foreground">{profile.full_name}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/notifications')} className="rounded-xl relative">
+              <Bell className="h-5 w-5" />
+              {pendingRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive rounded-full text-xs text-destructive-foreground flex items-center justify-center font-medium">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="rounded-xl">
+              <Home className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-6">
+        {/* Welcome Banner */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-3xl p-6 text-primary-foreground shadow-xl">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Rocket className="h-5 w-5" />
+              <span className="text-sm font-medium opacity-90">Welcome back!</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-1">{profile.full_name}</h2>
+            <p className="text-sm opacity-80">{shop ? shop.name : 'Set up your shop to start selling'}</p>
+          </div>
+        </div>
+
+        {/* Create Shop CTA */}
+        {!shop && !shopLoading && (
+          <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl p-5 border border-primary/20">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shrink-0">
+                <Store className="h-7 w-7 text-primary-foreground" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg mb-1">Create Your Shop</h3>
+                <p className="text-muted-foreground text-sm mb-4">Set up your shop to start selling products.</p>
+                <Button onClick={() => setShowShopForm(true)} className="gap-2 rounded-xl">
+                  <Plus className="h-4 w-4" /> Create Shop
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card rounded-2xl p-4 border shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-3 shadow-lg">
+              <Eye className="h-6 w-6 text-white" />
+            </div>
+            <p className="text-3xl font-bold">{viewsStats.totalViews.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">Total Views</p>
+          </div>
+          <div className="bg-card rounded-2xl p-4 border shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-3 shadow-lg">
+              <MousePointerClick className="h-6 w-6 text-white" />
+            </div>
+            <p className="text-3xl font-bold">{viewsStats.totalImpressions.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">Impressions</p>
+          </div>
+          <div className="bg-card rounded-2xl p-4 border shadow-sm">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
+                <Package className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold">{products.length}</p>
+            <p className="text-sm text-muted-foreground">Products</p>
+          </div>
+          <div className="bg-card rounded-2xl p-4 border shadow-sm">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center shadow-lg">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              {pendingRequests.length > 0 && (
+                <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full font-medium">
+                  {pendingRequests.length} new
+                </span>
+              )}
+            </div>
+            <p className="text-3xl font-bold">{requests.length}</p>
+            <p className="text-sm text-muted-foreground">Requests</p>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="h-5 w-5 text-primary" />
+            <h2 className="font-bold">Quick Actions</h2>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 rounded-2xl border-2 hover:border-primary hover:bg-primary/5 transition-all"
+              onClick={() => shop ? setShowProductForm(true) : toast({ title: "Create a shop first" })}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                <Plus className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-xs font-medium">Add</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 rounded-2xl border-2 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all"
+              onClick={() => setActiveModule('referrals')}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center">
+                <Gift className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xs font-medium">Refer</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 rounded-2xl border-2 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 transition-all"
+              onClick={() => setActiveModule('analytics')}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xs font-medium">Stats</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 rounded-2xl border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all relative"
+              onClick={() => setActiveModule('requests')}
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xs font-medium">Inbox</span>
+              {pendingRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive rounded-full text-[10px] text-destructive-foreground flex items-center justify-center">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* All Modules Grid */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Layers className="h-5 w-5 text-primary" />
+            <h2 className="font-bold">All Modules</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {modules.map((module) => (
+              <button
+                key={module.id}
+                onClick={() => setActiveModule(module.id)}
+                className={cn(
+                  "p-4 rounded-2xl border-2 hover:shadow-lg transition-all text-left group",
+                  module.bg,
+                  "border-transparent hover:border-current/20"
+                )}
+              >
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br shadow-md group-hover:scale-110 transition-transform",
+                  module.color
+                )}>
+                  <module.icon className="h-6 w-6 text-white" />
+                </div>
+                <p className="font-semibold text-sm mb-0.5">{module.label}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1">{module.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Products */}
+        {products.length > 0 && (
+          <div className="bg-card rounded-2xl p-4 border shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Recent Products
+              </h3>
+              <button 
+                onClick={() => setActiveModule('products')}
+                className="text-sm text-primary hover:underline font-medium"
+              >
+                View All
+              </button>
+            </div>
+            <div className="space-y-2">
+              {products.slice(0, 3).map(product => (
+                <div key={product.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                  <img 
+                    src={product.images?.[0] || '/placeholder.svg'} 
+                    alt={product.title}
+                    className="w-14 h-14 rounded-xl object-cover shadow-sm"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{product.title}</p>
+                    <p className="text-xs text-primary font-bold">
+                      {(product as any).currency_symbol || '$'}{product.price?.toLocaleString()}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-xs shrink-0">
+                    <Eye className="h-3 w-3 mr-1" />
+                    {product.views || 0}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="text-center py-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10">
+            <Zap className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Smart Market Seller</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
