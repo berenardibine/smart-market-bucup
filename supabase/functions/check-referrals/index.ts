@@ -31,27 +31,23 @@ Deno.serve(async (req) => {
     for (const referral of pendingReferrals || []) {
       if (!referral.referred_user_id) continue;
 
-      // Check referee's profile and products
       const [profileRes, productsRes] = await Promise.all([
-        supabase.from('profiles').select('created_at, last_active, status').eq('id', referral.referred_user_id).single(),
+        supabase.from('profiles').select('created_at, last_active, status, full_name').eq('id', referral.referred_user_id).single(),
         supabase.from('products').select('id', { count: 'exact', head: true }).eq('seller_id', referral.referred_user_id).eq('status', 'active'),
       ]);
 
       const profile = profileRes.data;
       const productCount = productsRes.count || 0;
-
       if (!profile) continue;
 
-      // Calculate account age
       const accountAge = Math.floor((Date.now() - new Date(profile.created_at || 0).getTime()) / (1000 * 60 * 60 * 24));
 
-      // Update progress tracking
       await supabase.from('referrals').update({
         referee_products_count: productCount,
         referee_account_age_days: accountAge,
       }).eq('id', referral.id);
 
-      // Check activation conditions: 3+ products AND 7+ days
+      // Check activation: 3+ products AND 7+ days
       if (productCount >= 3 && accountAge >= 7) {
         await supabase.from('referrals').update({
           status: 'active',
@@ -60,7 +56,6 @@ Deno.serve(async (req) => {
 
         // Award rewards to referrer
         if (referral.referrer_id) {
-          // Add points to user_rewards
           const { data: existingReward } = await supabase
             .from('user_rewards')
             .select('*')
@@ -74,7 +69,6 @@ Deno.serve(async (req) => {
             }).eq('id', existingReward.id);
           }
 
-          // Log the reward
           await supabase.from('referral_rewards').insert({
             user_id: referral.referrer_id,
             referral_id: referral.id,
@@ -84,11 +78,11 @@ Deno.serve(async (req) => {
             credited_at: new Date().toISOString(),
           });
 
-          // Create notification for referrer
+          // Notify referrer about activation
           await supabase.from('notifications').insert({
             user_id: referral.referrer_id,
             title: 'Referral Activated! 🎉',
-            message: `Your referral has been activated. You earned 50 points and 10 coins!`,
+            message: `${profile.full_name || 'Your referral'} has completed all requirements and is now active! You earned 50 points and 10 coins.`,
             type: 'reward',
           });
         }
@@ -104,7 +98,7 @@ Deno.serve(async (req) => {
         activated++;
       }
 
-      // Anti-fraud: check for suspicious patterns
+      // Anti-fraud checks
       if (referral.ip_address) {
         const { count: sameIpCount } = await supabase
           .from('referrals')
@@ -131,7 +125,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Check for quick-delete accounts
       if (profile.status === 'blocked' || profile.status === 'banned') {
         await supabase.from('invalid_referrals').insert({
           referral_id: referral.id,
@@ -142,6 +135,12 @@ Deno.serve(async (req) => {
         flagged++;
       }
     }
+
+    // Check pending redemptions - auto-validate task requirements
+    const { data: pendingRedemptions } = await supabase
+      .from('reward_redemptions')
+      .select('*, task:reward_tasks(*)')
+      .eq('status', 'pending');
 
     // Clean up expired featured products
     await supabase

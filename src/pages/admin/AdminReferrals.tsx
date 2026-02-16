@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Home, Users, CheckCircle2, Clock, XCircle,
-  Star, AlertTriangle, Shield, Gift, MoreVertical, Plus
+  Star, AlertTriangle, Shield, Gift, MoreVertical, Plus,
+  Download, Trophy, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,11 +21,16 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const AdminReferrals = () => {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useAdmin();
-  const { referrals, invalidReferrals, stats, loading, updateReferralStatus, reviewInvalidReferral, addFeaturedProduct } = useAdminReferrals();
+  const {
+    referrals, invalidReferrals, redemptions, stats, loading,
+    updateReferralStatus, reviewInvalidReferral,
+    addFeaturedProduct, approveRedemption, rejectRedemption, exportCSV,
+  } = useAdminReferrals();
   const { toast } = useToast();
   const [actionDialog, setActionDialog] = useState<{ type: string; id: string } | null>(null);
   const [reason, setReason] = useState('');
@@ -32,6 +38,17 @@ const AdminReferrals = () => {
   const [featuredProductId, setFeaturedProductId] = useState('');
   const [featuredDays, setFeaturedDays] = useState('7');
   const [featuredReason, setFeaturedReason] = useState('');
+  const [rejectDialog, setRejectDialog] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [approveDialog, setApproveDialog] = useState<any>(null);
+  const [approveProductId, setApproveProductId] = useState('');
+  // Task creation
+  const [taskDialog, setTaskDialog] = useState(false);
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDesc, setTaskDesc] = useState('');
+  const [taskRequirement, setTaskRequirement] = useState('20');
+  const [taskDuration, setTaskDuration] = useState('7');
+  const [taskRewardType, setTaskRewardType] = useState('featured');
 
   if (adminLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>;
   if (!isAdmin) { navigate('/'); return null; }
@@ -53,9 +70,45 @@ const AdminReferrals = () => {
     setFeaturedReason('');
   };
 
+  const handleCreateTask = async () => {
+    if (!taskTitle) return;
+    const { supabase } = await import('@/integrations/supabase/client');
+    await supabase.from('reward_tasks').insert({
+      title: taskTitle,
+      description: taskDesc,
+      task_type: 'referral',
+      requirement_count: parseInt(taskRequirement),
+      reward_points: 0,
+      reward_coins: 0,
+      reward_type: taskRewardType,
+      featured_duration_days: parseInt(taskDuration),
+      featured_product_count: 1,
+      is_active: true,
+      category: 'referral',
+    });
+    toast({ title: 'Referral task created' });
+    setTaskDialog(false);
+    setTaskTitle(''); setTaskDesc(''); setTaskRequirement('20'); setTaskDuration('7');
+  };
+
+  const handleApprove = async () => {
+    if (!approveDialog) return;
+    await approveRedemption(approveDialog.id, approveProductId || undefined);
+    toast({ title: 'Redemption approved' });
+    setApproveDialog(null);
+    setApproveProductId('');
+  };
+
+  const handleReject = async () => {
+    if (!rejectDialog) return;
+    await rejectRedemption(rejectDialog, rejectReason);
+    toast({ title: 'Redemption rejected' });
+    setRejectDialog(null);
+    setRejectReason('');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-20">
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b">
         <div className="flex items-center justify-between h-14 px-4">
           <div className="flex items-center gap-3">
@@ -65,8 +118,11 @@ const AdminReferrals = () => {
             <h1 className="font-bold text-lg">Referral Management</h1>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" className="rounded-xl gap-1" onClick={() => setFeaturedDialog(true)}>
-              <Plus className="h-4 w-4" /> Feature
+            <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={exportCSV}>
+              <Download className="h-4 w-4" /> CSV
+            </Button>
+            <Button size="sm" className="rounded-xl gap-1" onClick={() => setTaskDialog(true)}>
+              <Plus className="h-4 w-4" /> Task
             </Button>
             <button onClick={() => navigate('/')} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
               <Home className="h-4 w-4" />
@@ -77,29 +133,39 @@ const AdminReferrals = () => {
 
       <div className="p-4 space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {[
             { label: 'Total', value: stats.total, icon: Users, color: 'from-blue-500 to-cyan-500' },
             { label: 'Active', value: stats.active, icon: CheckCircle2, color: 'from-green-500 to-emerald-500' },
             { label: 'Pending', value: stats.pending, icon: Clock, color: 'from-amber-500 to-orange-500' },
+            { label: 'Invalid', value: stats.invalid, icon: XCircle, color: 'from-red-500 to-rose-500' },
             { label: 'Featured', value: stats.featuredCount, icon: Star, color: 'from-purple-500 to-violet-500' },
+            { label: 'Requests', value: stats.pendingRedemptions, icon: Trophy, color: 'from-pink-500 to-rose-500' },
           ].map(s => (
-            <div key={s.label} className="bg-card rounded-2xl p-3 border">
-              <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center mb-2", s.color)}>
-                <s.icon className="h-4 w-4 text-white" />
+            <div key={s.label} className="bg-card rounded-xl p-2.5 border">
+              <div className={cn("w-7 h-7 rounded-lg bg-gradient-to-br flex items-center justify-center mb-1.5", s.color)}>
+                <s.icon className="h-3.5 w-3.5 text-white" />
               </div>
-              <p className="text-xl font-bold">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-lg font-bold">{s.value}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
             </div>
           ))}
         </div>
 
         <Tabs defaultValue="all">
-          <TabsList className="w-full grid grid-cols-3 h-10 rounded-xl">
+          <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
             <TabsTrigger value="all" className="text-xs rounded-lg">All</TabsTrigger>
             <TabsTrigger value="pending" className="text-xs rounded-lg">Pending</TabsTrigger>
+            <TabsTrigger value="redemptions" className="text-xs rounded-lg relative">
+              Requests
+              {redemptions.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-pink-500 rounded-full text-[9px] text-white flex items-center justify-center">
+                  {redemptions.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="fraud" className="text-xs rounded-lg relative">
-              Fraud Queue
+              Fraud
               {invalidReferrals.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center">
                   {invalidReferrals.length}
@@ -170,6 +236,39 @@ const AdminReferrals = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="redemptions" className="mt-3 space-y-2">
+            {redemptions.length === 0 ? (
+              <div className="text-center py-8">
+                <Trophy className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No pending reward requests</p>
+              </div>
+            ) : (
+              redemptions.map((r: any) => (
+                <div key={r.id} className="bg-card rounded-xl p-3 border">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center">
+                      <Trophy className="h-5 w-5 text-pink-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{r.profile?.full_name || 'Unknown'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Task: {r.task?.title || 'Unknown'} • {r.reward_type}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-13">
+                    <Button size="sm" className="text-xs rounded-lg gap-1 flex-1" onClick={() => setApproveDialog(r)}>
+                      <ThumbsUp className="h-3 w-3" /> Approve
+                    </Button>
+                    <Button size="sm" variant="destructive" className="text-xs rounded-lg gap-1 flex-1" onClick={() => setRejectDialog(r.id)}>
+                      <ThumbsDown className="h-3 w-3" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </TabsContent>
+
           <TabsContent value="fraud" className="mt-3 space-y-2">
             {invalidReferrals.length === 0 ? (
               <div className="text-center py-8">
@@ -215,9 +314,7 @@ const AdminReferrals = () => {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(null)}>Cancel</Button>
-            <Button onClick={handleAction} className={actionDialog?.type === 'invalid' ? 'bg-red-600 hover:bg-red-700' : ''}>
-              Confirm
-            </Button>
+            <Button onClick={handleAction} className={actionDialog?.type === 'invalid' ? 'bg-red-600 hover:bg-red-700' : ''}>Confirm</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -225,9 +322,7 @@ const AdminReferrals = () => {
       {/* Add Featured Dialog */}
       <Dialog open={featuredDialog} onOpenChange={setFeaturedDialog}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Featured Product</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Add Featured Product</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
               <Label>Product ID</Label>
@@ -245,6 +340,75 @@ const AdminReferrals = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setFeaturedDialog(false)}>Cancel</Button>
             <Button onClick={handleAddFeatured}>Add Featured</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Task Dialog */}
+      <Dialog open={taskDialog} onOpenChange={setTaskDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Create Referral Task</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Task Title</Label>
+              <Input value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} placeholder="e.g. Get 20 active referrals" />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={taskDesc} onChange={(e) => setTaskDesc(e.target.value)} placeholder="Get 20 active referrals and your product will be featured for 1 week" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Required Referrals</Label>
+                <Input type="number" value={taskRequirement} onChange={(e) => setTaskRequirement(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Featured Duration (days)</Label>
+                <Input type="number" value={taskDuration} onChange={(e) => setTaskDuration(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTaskDialog(false)}>Cancel</Button>
+            <Button onClick={handleCreateTask}>Create Task</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Redemption Dialog */}
+      <Dialog open={!!approveDialog} onOpenChange={() => setApproveDialog(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Approve Reward Request</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm">Approve {approveDialog?.reward_type} reward for {approveDialog?.profile?.full_name}?</p>
+            {approveDialog?.reward_type === 'featured' && approveDialog?.product_id && (
+              <p className="text-xs text-muted-foreground">Product ID: {approveDialog.product_id}</p>
+            )}
+            {approveDialog?.reward_type === 'featured' && !approveDialog?.product_id && (
+              <div className="space-y-2">
+                <Label>Product ID (optional)</Label>
+                <Input value={approveProductId} onChange={(e) => setApproveProductId(e.target.value)} placeholder="Product UUID" />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveDialog(null)}>Cancel</Button>
+            <Button onClick={handleApprove}>Approve</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Redemption Dialog */}
+      <Dialog open={!!rejectDialog} onOpenChange={() => setRejectDialog(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reject Reward Request</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>Reason</Label>
+            <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Enter rejection reason..." />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialog(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReject}>Reject</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

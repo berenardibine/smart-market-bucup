@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, User, Phone, Globe, MapPin, CheckCircle } from 'lucide-react';
+import { ShoppingBag, User, Phone, Globe, MapPin, CheckCircle, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useSessionReferral, useReferral } from '@/hooks/useReferral';
 
 interface ProfileMetadata {
   fullName?: string;
@@ -37,6 +38,9 @@ const CompleteProfile = () => {
   const [sameNumber, setSameNumber] = useState(true);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [referralCodeInput, setReferralCodeInput] = useState('');
+  const { sessionCode, referrerName: sessionReferrerName } = useSessionReferral();
+  const { applyReferralCode } = useReferral();
 
   // Redirect if not logged in
   useEffect(() => {
@@ -66,13 +70,17 @@ const CompleteProfile = () => {
       // Fallback to user metadata
     }
 
-    // Fallback: use auth user metadata
     if (user?.user_metadata) {
       if (!fullName) {
         setFullName(user.user_metadata.full_name || user.user_metadata.name || '');
       }
     }
-  }, [user]);
+
+    // Pre-fill referral code from session
+    if (sessionCode && !referralCodeInput) {
+      setReferralCodeInput(sessionCode);
+    }
+  }, [user, sessionCode]);
 
   const handleCallChange = (value: string) => {
     setCallNumber(value);
@@ -126,6 +134,10 @@ const CompleteProfile = () => {
 
       if (data?.success) {
         sessionStorage.removeItem('sm-profile-metadata');
+        // Apply referral code if provided
+        if (referralCodeInput.trim()) {
+          await applyReferralCode(referralCodeInput.trim());
+        }
         toast({ title: 'Profile created!', description: 'Welcome to Smart Market.' });
         window.location.href = '/';
       } else {
@@ -272,6 +284,26 @@ const CompleteProfile = () => {
                 className="pl-10 h-12"
               />
             </div>
+          </div>
+
+          {/* Referral Code */}
+          <div className="space-y-2">
+            <Label htmlFor="referralCode">Referral Code (optional)</Label>
+            <div className="relative">
+              <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="referralCode"
+                type="text"
+                placeholder="Enter referral code"
+                value={referralCodeInput}
+                onChange={(e) => setReferralCodeInput(e.target.value)}
+                className="pl-10 h-12"
+                disabled={!!(profile as any)?.referred_by}
+              />
+            </div>
+            {sessionReferrerName && referralCodeInput && (
+              <p className="text-xs text-primary">✓ Referred by {sessionReferrerName}</p>
+            )}
           </div>
 
           <Button

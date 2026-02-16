@@ -2052,6 +2052,51 @@ export type Database = {
           },
         ]
       }
+      reward_redemptions: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          id: string
+          product_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reward_details: Json | null
+          reward_type: string
+          status: string
+          task_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reward_details?: Json | null
+          reward_type: string
+          status?: string
+          task_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reward_details?: Json | null
+          reward_type?: string
+          status?: string
+          task_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       reward_tasks: {
         Row: {
           category: string | null
@@ -2060,6 +2105,8 @@ export type Database = {
           created_by: string | null
           description: string
           expires_at: string | null
+          featured_duration_days: number | null
+          featured_product_count: number | null
           icon: string | null
           id: string
           is_active: boolean | null
@@ -2067,6 +2114,7 @@ export type Database = {
           requires_evidence: boolean | null
           reward_coins: number
           reward_points: number
+          reward_type: string | null
           task_type: string
           title: string
         }
@@ -2077,6 +2125,8 @@ export type Database = {
           created_by?: string | null
           description: string
           expires_at?: string | null
+          featured_duration_days?: number | null
+          featured_product_count?: number | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
@@ -2084,6 +2134,7 @@ export type Database = {
           requires_evidence?: boolean | null
           reward_coins?: number
           reward_points?: number
+          reward_type?: string | null
           task_type: string
           title: string
         }
@@ -2094,6 +2145,8 @@ export type Database = {
           created_by?: string | null
           description?: string
           expires_at?: string | null
+          featured_duration_days?: number | null
+          featured_product_count?: number | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
@@ -2101,6 +2154,7 @@ export type Database = {
           requires_evidence?: boolean | null
           reward_coins?: number
           reward_points?: number
+          reward_type?: string | null
           task_type?: string
           title?: string
         }
