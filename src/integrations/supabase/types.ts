@@ -496,6 +496,50 @@ export type Database = {
           },
         ]
       }
+      featured_products: {
+        Row: {
+          created_at: string | null
+          end_at: string
+          id: string
+          is_active: boolean | null
+          issued_by: string
+          product_id: string
+          reason: string | null
+          referrer_id: string | null
+          start_at: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_at: string
+          id?: string
+          is_active?: boolean | null
+          issued_by?: string
+          product_id: string
+          reason?: string | null
+          referrer_id?: string | null
+          start_at?: string
+        }
+        Update: {
+          created_at?: string | null
+          end_at?: string
+          id?: string
+          is_active?: boolean | null
+          issued_by?: string
+          product_id?: string
+          reason?: string | null
+          referrer_id?: string | null
+          start_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       file_optimization_logs: {
         Row: {
           compression_ratio: number
@@ -639,6 +683,56 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invalid_referrals: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          detected_by: string | null
+          id: string
+          reason: string
+          referral_code: string
+          referral_id: string | null
+          review_action: string | null
+          reviewed: boolean | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          detected_by?: string | null
+          id?: string
+          reason: string
+          referral_code: string
+          referral_id?: string | null
+          review_action?: string | null
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          detected_by?: string | null
+          id?: string
+          reason?: string
+          referral_code?: string
+          referral_id?: string | null
+          review_action?: string | null
+          reviewed?: boolean | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invalid_referrals_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
             referencedColumns: ["id"]
           },
         ]
@@ -1749,37 +1843,141 @@ export type Database = {
           },
         ]
       }
-      referrals: {
+      referral_rewards: {
         Row: {
+          amount: number
+          created_at: string | null
+          credited_at: string | null
+          expires_at: string | null
+          id: string
+          referral_id: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          reward_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          credited_at?: string | null
+          expires_at?: string | null
+          id?: string
+          referral_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          reward_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          credited_at?: string | null
+          expires_at?: string | null
+          id?: string
+          referral_id?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          reward_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_shares: {
+        Row: {
+          channel: string
           created_at: string | null
           id: string
+          ip_address: string | null
+          referral_code: string
+          share_url: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          referral_code: string
+          share_url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          referral_code?: string
+          share_url?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          activated_at: string | null
+          created_at: string | null
+          id: string
+          invalid_reason: string | null
+          ip_address: string | null
           is_seller_referral: boolean | null
           is_valid: boolean | null
+          metadata: Json | null
+          referee_account_age_days: number | null
+          referee_products_count: number | null
           referral_code: string
           referred_user_id: string | null
           referrer_id: string | null
+          source_link: string | null
           status: string | null
           validated_at: string | null
         }
         Insert: {
+          activated_at?: string | null
           created_at?: string | null
           id?: string
+          invalid_reason?: string | null
+          ip_address?: string | null
           is_seller_referral?: boolean | null
           is_valid?: boolean | null
+          metadata?: Json | null
+          referee_account_age_days?: number | null
+          referee_products_count?: number | null
           referral_code: string
           referred_user_id?: string | null
           referrer_id?: string | null
+          source_link?: string | null
           status?: string | null
           validated_at?: string | null
         }
         Update: {
+          activated_at?: string | null
           created_at?: string | null
           id?: string
+          invalid_reason?: string | null
+          ip_address?: string | null
           is_seller_referral?: boolean | null
           is_valid?: boolean | null
+          metadata?: Json | null
+          referee_account_age_days?: number | null
+          referee_products_count?: number | null
           referral_code?: string
           referred_user_id?: string | null
           referrer_id?: string | null
+          source_link?: string | null
           status?: string | null
           validated_at?: string | null
         }

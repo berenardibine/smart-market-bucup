@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Mail, User, Phone, Store, ArrowLeft, Globe, Loader2 } from 'lucide-react';
+import { ShoppingBag, Mail, User, Phone, Store, ArrowLeft, Globe, Loader2, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,6 +32,13 @@ const Auth = () => {
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [callNumber, setCallNumber] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+
+  // Load referral code from session
+  useEffect(() => {
+    const stored = sessionStorage.getItem('sm-referral-code');
+    if (stored) setReferralCode(stored);
+  }, []);
 
   // Auto-select detected country
   useEffect(() => {
@@ -412,6 +419,25 @@ const Auth = () => {
               showRequirements={true}
               id="signup-password"
             />
+
+            {/* Referral Code */}
+            <div className="space-y-2">
+              <Label htmlFor="referralCode">Referral Code (optional)</Label>
+              <div className="relative">
+                <Gift className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="referralCode"
+                  type="text"
+                  placeholder="Enter referral code"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  className="pl-10 h-12"
+                />
+              </div>
+              {referralCode && (
+                <p className="text-xs text-primary">✓ Referral code will be applied after signup</p>
+              )}
+            </div>
 
             <Button
               type="submit"

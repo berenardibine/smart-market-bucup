@@ -28,6 +28,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import BlockedPage from "./pages/BlockedPage";
 import SellerMonetization from "./pages/SellerMonetization";
 import ShopPage from "./pages/ShopPage";
+import ReferralLanding from "./pages/ReferralLanding";
 import NotFound from "./pages/NotFound";
 import AuthCallback from "./pages/AuthCallback";
 import CompleteProfilePhone from "./pages/CompleteProfilePhone";
@@ -64,6 +65,7 @@ import {
   AdminFileOptimization,
   AdminViewsAnalytics,
 } from "./pages/admin";
+import AdminReferrals from "./pages/admin/AdminReferrals";
 import MenuPage from "./pages/MenuPage";
 
 const queryClient = new QueryClient();
@@ -105,6 +107,7 @@ const App = () => {
                 <Route path="/seller-dashboard" element={<SellerDashboard />} />
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/shop/:shopId" element={<ShopPage />} />
+                <Route path="/r/:code" element={<ReferralLanding />} />
 
                 {/* Admin Routes */}
                 <Route path="/admin/products" element={<AdminProducts />} />
@@ -124,6 +127,7 @@ const App = () => {
                 <Route path="/admin/challenges" element={<AdminChallenges />} />
                 <Route path="/admin/file-optimization" element={<AdminFileOptimization />} />
                 <Route path="/admin/views-analytics" element={<AdminViewsAnalytics />} />
+                <Route path="/admin/referrals" element={<AdminReferrals />} />
 
                 <Route path="/menu" element={<MenuPage />} />
 
