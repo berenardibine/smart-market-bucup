@@ -106,6 +106,7 @@ const AdminDashboard = () => {
     { id: 'notifications', label: 'Notify', icon: Bell, color: 'from-yellow-500 to-orange-500', bg: 'bg-yellow-50 dark:bg-yellow-950/30', path: '/admin/notifications', description: 'Push alerts' },
     { id: 'messages', label: 'Messages', icon: MessageSquare, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', path: '/admin/messages', description: 'User inbox' },
     { id: 'ads', label: 'Ads', icon: Megaphone, color: 'from-red-500 to-rose-500', bg: 'bg-red-50 dark:bg-red-950/30', path: '/admin/ads', description: 'Smart ads' },
+    { id: 'referrals', label: 'Referrals', icon: Users, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', path: '/admin/referrals', description: 'Referral system' },
   ];
 
   return (

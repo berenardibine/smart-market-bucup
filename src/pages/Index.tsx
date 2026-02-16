@@ -14,6 +14,8 @@ import FloatingProductCard from "@/components/home/FloatingProductCard";
 import AutoScrollCarousel from "@/components/home/AutoScrollCarousel";
 import ShopNearMe from "@/components/home/ShopNearMe";
 import NearbyProducts from "@/components/home/NearbyProducts";
+import FeaturedProducts from "@/components/home/FeaturedProducts";
+import ReferralBanner from "@/components/referral/ReferralBanner";
 import SectionHeader from "@/components/home/SectionHeader";
 import CategoryCarousel from "@/components/home/CategoryCarousel";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,10 +113,16 @@ const Index = () => {
           </section>
         )}
 
+        {/* Referral Banner */}
+        <ReferralBanner />
+
         {/* Smart Ads */}
         <section className="animate-fade-up">
           <HomeAds />
         </section>
+
+        {/* Featured Products */}
+        <FeaturedProducts userCountry={showGlobalProducts ? null : country} />
         {/* New Arrivals */}
         {newArrivals.length > 0 && (
           <section className="animate-fade-up" style={{ animationDelay: "0.2s" }}>

@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.complete-profile]
 verify_jwt = false
+
+[functions.check-referrals]
+verify_jwt = false
