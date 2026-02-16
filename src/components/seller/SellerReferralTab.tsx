@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useReferral, useSellerRedemptions } from '@/hooks/useReferral';
 import { useTasks } from '@/hooks/useRewards';
-import { useAuth } from '@/hooks/useAuth';
 import { useMyProducts } from '@/hooks/useProducts';
 import ShareReferral from '@/components/referral/ShareReferral';
 import { cn } from '@/lib/utils';
@@ -18,7 +17,7 @@ import {
 } from '@/components/ui/select';
 
 const SellerReferralTab = () => {
-  const { referralCode, referrals, stats, loading } = useReferral();
+  const { referralCode, referrals, stats, loading, getShareUrl } = useReferral();
   const { tasks } = useTasks();
   const { redemptions, redeemTask } = useSellerRedemptions();
   const { products } = useMyProducts();
@@ -26,6 +25,7 @@ const SellerReferralTab = () => {
   const [redeemDialog, setRedeemDialog] = useState<any>(null);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [redeeming, setRedeeming] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const handleRedeem = async () => {
     if (!redeemDialog) return;
@@ -45,6 +45,14 @@ const SellerReferralTab = () => {
     setRedeeming(false);
   };
 
+  const copyCode = async () => {
+    if (!referralCode) return;
+    await navigator.clipboard.writeText(referralCode);
+    setCopied(true);
+    toast({ title: 'Referral code copied!' });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   // Filter tasks relevant to referrals
   const referralTasks = tasks.filter(t => 
     t.task_type === 'referral' || t.title.toLowerCase().includes('referral')
@@ -52,25 +60,78 @@ const SellerReferralTab = () => {
 
   return (
     <div className="space-y-4">
+      {/* Referral Code & Link Card */}
+      <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl p-5 border border-primary/20">
+        <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+          <Gift className="h-5 w-5 text-primary" />
+          Your Referral
+        </h3>
+        
+        {referralCode ? (
+          <div className="space-y-3">
+            {/* Code display */}
+            <div className="bg-card rounded-xl p-4 border text-center">
+              <p className="text-xs text-muted-foreground mb-1">Your Referral Code</p>
+              <div className="flex items-center justify-center gap-2">
+                <p className="text-3xl font-mono font-bold text-primary tracking-wider">{referralCode}</p>
+                <button onClick={copyCode} className="p-2 rounded-lg hover:bg-muted transition-colors">
+                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-muted-foreground" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Share link */}
+            <div className="bg-card rounded-xl p-3 border">
+              <p className="text-xs text-muted-foreground mb-2">Your Referral Link</p>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-muted/50 rounded-lg px-3 py-2 text-xs text-muted-foreground truncate border">
+                  {getShareUrl()}
+                </div>
+                <Button 
+                  size="sm" 
+                  className="rounded-lg shrink-0"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(getShareUrl());
+                    toast({ title: 'Link copied!' });
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No referral code yet. Complete your profile to get one.</p>
+        )}
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-2xl p-4 border">
-          <Users className="h-5 w-5 text-blue-600 mb-2" />
+        <div className="bg-card rounded-2xl p-4 border shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-2 shadow-md">
+            <Users className="h-5 w-5 text-white" />
+          </div>
           <p className="text-2xl font-bold">{stats.totalReferrals}</p>
           <p className="text-xs text-muted-foreground">Total Referrals</p>
         </div>
-        <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl p-4 border">
-          <CheckCircle2 className="h-5 w-5 text-green-600 mb-2" />
+        <div className="bg-card rounded-2xl p-4 border shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-2 shadow-md">
+            <CheckCircle2 className="h-5 w-5 text-white" />
+          </div>
           <p className="text-2xl font-bold">{stats.activeReferrals}</p>
           <p className="text-xs text-muted-foreground">Active</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-2xl p-4 border">
-          <Clock className="h-5 w-5 text-amber-600 mb-2" />
+        <div className="bg-card rounded-2xl p-4 border shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-2 shadow-md">
+            <Clock className="h-5 w-5 text-white" />
+          </div>
           <p className="text-2xl font-bold">{stats.pendingReferrals}</p>
           <p className="text-xs text-muted-foreground">Pending</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-2xl p-4 border">
-          <Gift className="h-5 w-5 text-purple-600 mb-2" />
+        <div className="bg-card rounded-2xl p-4 border shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center mb-2 shadow-md">
+            <Gift className="h-5 w-5 text-white" />
+          </div>
           <p className="text-2xl font-bold">{stats.totalRewards}</p>
           <p className="text-xs text-muted-foreground">Points Earned</p>
         </div>
@@ -85,37 +146,28 @@ const SellerReferralTab = () => {
         <ShareReferral />
       </div>
 
-      {/* Available Tasks / Rewards to Redeem */}
+      {/* Active Tasks */}
       {referralTasks.length > 0 && (
         <div className="bg-card rounded-2xl p-4 border shadow-sm">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-500" />
-            Referral Tasks
+            Active Tasks
           </h3>
           <div className="space-y-2">
             {referralTasks.map(task => {
               const alreadyRedeemed = redemptions.some((r: any) => r.task_id === task.id);
               const meetsRequirement = stats.activeReferrals >= task.requirement_count;
+              const progress = Math.min(stats.activeReferrals / task.requirement_count * 100, 100);
               
               return (
-                <div key={task.id} className="p-3 rounded-xl bg-muted/30 border">
-                  <div className="flex items-start justify-between gap-2">
+                <div key={task.id} className="p-4 rounded-xl bg-muted/30 border">
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{task.title}</p>
+                      <p className="text-sm font-semibold">{task.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                          {stats.activeReferrals}/{task.requirement_count} referrals
-                        </div>
-                        {(task as any).reward_type === 'featured' && (
-                          <div className="text-xs bg-amber-500/10 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Star className="h-3 w-3" /> Featured {(task as any).featured_duration_days || 7}d
-                          </div>
-                        )}
-                      </div>
                     </div>
                     {alreadyRedeemed ? (
-                      <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200 shrink-0">
+                      <Badge variant="outline" className="text-[10px] bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 shrink-0">
                         Redeemed
                       </Badge>
                     ) : meetsRequirement ? (
@@ -126,6 +178,28 @@ const SellerReferralTab = () => {
                       <Badge variant="outline" className="text-[10px] shrink-0">
                         <Clock className="h-3 w-3 mr-1" /> In progress
                       </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Progress bar */}
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">{stats.activeReferrals}/{task.requirement_count} referrals</span>
+                      <span className="font-medium text-primary">{Math.round(progress)}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    {(task as any).reward_type === 'featured' && (
+                      <div className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Star className="h-3 w-3" /> Featured {(task as any).featured_duration_days || 7}d
+                      </div>
                     )}
                   </div>
                 </div>

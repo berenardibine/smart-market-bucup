@@ -49,6 +49,59 @@ const AuthCallback = () => {
         console.log('[SmartMarket] Session established for', session.user.email);
         setStatus('Checking your profile...');
 
+        // Check for referral code in session storage and apply it
+        const referralCode = sessionStorage.getItem('sm-referral-code');
+        if (referralCode) {
+          try {
+            // Check if user already has a referral applied
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('referred_by')
+              .eq('id', session.user.id)
+              .maybeSingle();
+
+            if (profileData && !profileData.referred_by) {
+              // Validate the referral code
+              const { data: referrer } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .eq('referral_code', referralCode)
+                .maybeSingle();
+
+              if (referrer && referrer.id !== session.user.id) {
+                // Apply referral
+                await supabase.from('referrals').insert({
+                  referrer_id: referrer.id,
+                  referred_user_id: session.user.id,
+                  referral_code: referralCode,
+                  status: 'pending',
+                  is_valid: true,
+                });
+
+                await supabase
+                  .from('profiles')
+                  .update({ referred_by: referralCode })
+                  .eq('id', session.user.id);
+
+                // Notify referrer
+                await supabase.from('notifications').insert({
+                  user_id: referrer.id,
+                  title: 'New Referral! 🎉',
+                  message: `Someone used your referral code "${referralCode}" via Google sign-in. Waiting for activation requirements.`,
+                  type: 'referral',
+                });
+
+                console.log('[SmartMarket] Referral code applied:', referralCode);
+              }
+            }
+            // Clear the session referral code
+            sessionStorage.removeItem('sm-referral-code');
+            sessionStorage.removeItem('sm-referrer-name');
+          } catch (refErr) {
+            console.error('[SmartMarket] Referral apply error:', refErr);
+          }
+        }
+
         // Get client-side geolocation
         let clientGeo: any = {};
         try {
@@ -76,7 +129,6 @@ const AuthCallback = () => {
           console.log('[SmartMarket] Auth sync result:', data);
 
           if (data?.needsProfile) {
-            // Store metadata in sessionStorage for the Complete Profile page
             sessionStorage.setItem('sm-profile-metadata', JSON.stringify(data.metadata || {}));
             navigate('/complete-profile');
           } else {

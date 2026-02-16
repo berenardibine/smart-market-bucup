@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Home, Users, CheckCircle2, Clock, XCircle,
   Star, AlertTriangle, Shield, Gift, MoreVertical, Plus,
-  Download, Trophy, ThumbsUp, ThumbsDown
+  Download, Trophy, ThumbsUp, ThumbsDown, Trash2, Edit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { useAdminReferrals } from '@/hooks/useReferral';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
@@ -30,6 +31,7 @@ const AdminReferrals = () => {
     referrals, invalidReferrals, redemptions, stats, loading,
     updateReferralStatus, reviewInvalidReferral,
     addFeaturedProduct, approveRedemption, rejectRedemption, exportCSV,
+    refetch,
   } = useAdminReferrals();
   const { toast } = useToast();
   const [actionDialog, setActionDialog] = useState<{ type: string; id: string } | null>(null);
@@ -42,13 +44,28 @@ const AdminReferrals = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [approveDialog, setApproveDialog] = useState<any>(null);
   const [approveProductId, setApproveProductId] = useState('');
-  // Task creation
+  // Task management
   const [taskDialog, setTaskDialog] = useState(false);
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskRequirement, setTaskRequirement] = useState('20');
   const [taskDuration, setTaskDuration] = useState('7');
   const [taskRewardType, setTaskRewardType] = useState('featured');
+  const [existingTasks, setExistingTasks] = useState<any[]>([]);
+  const [editingTask, setEditingTask] = useState<any>(null);
+
+  useEffect(() => {
+    if (isAdmin) fetchTasks();
+  }, [isAdmin]);
+
+  const fetchTasks = async () => {
+    const { data } = await supabase
+      .from('reward_tasks')
+      .select('*')
+      .eq('task_type', 'referral')
+      .order('created_at', { ascending: false });
+    setExistingTasks(data || []);
+  };
 
   if (adminLoading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>;
   if (!isAdmin) { navigate('/'); return null; }
@@ -70,10 +87,9 @@ const AdminReferrals = () => {
     setFeaturedReason('');
   };
 
-  const handleCreateTask = async () => {
+  const handleCreateOrUpdateTask = async () => {
     if (!taskTitle) return;
-    const { supabase } = await import('@/integrations/supabase/client');
-    await supabase.from('reward_tasks').insert({
+    const payload = {
       title: taskTitle,
       description: taskDesc,
       task_type: 'referral',
@@ -85,10 +101,35 @@ const AdminReferrals = () => {
       featured_product_count: 1,
       is_active: true,
       category: 'referral',
-    });
-    toast({ title: 'Referral task created' });
+    };
+
+    if (editingTask) {
+      await supabase.from('reward_tasks').update(payload).eq('id', editingTask.id);
+      toast({ title: 'Task updated' });
+    } else {
+      await supabase.from('reward_tasks').insert(payload);
+      toast({ title: 'Task created' });
+    }
     setTaskDialog(false);
+    setEditingTask(null);
     setTaskTitle(''); setTaskDesc(''); setTaskRequirement('20'); setTaskDuration('7');
+    fetchTasks();
+  };
+
+  const deleteTask = async (id: string) => {
+    await supabase.from('reward_tasks').update({ is_active: false }).eq('id', id);
+    toast({ title: 'Task deactivated' });
+    fetchTasks();
+  };
+
+  const openEditTask = (task: any) => {
+    setEditingTask(task);
+    setTaskTitle(task.title);
+    setTaskDesc(task.description || '');
+    setTaskRequirement(String(task.requirement_count || 20));
+    setTaskDuration(String(task.featured_duration_days || 7));
+    setTaskRewardType(task.reward_type || 'featured');
+    setTaskDialog(true);
   };
 
   const handleApprove = async () => {
@@ -121,9 +162,6 @@ const AdminReferrals = () => {
             <Button size="sm" variant="outline" className="rounded-xl gap-1" onClick={exportCSV}>
               <Download className="h-4 w-4" /> CSV
             </Button>
-            <Button size="sm" className="rounded-xl gap-1" onClick={() => setTaskDialog(true)}>
-              <Plus className="h-4 w-4" /> Task
-            </Button>
             <button onClick={() => navigate('/')} className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
               <Home className="h-4 w-4" />
             </button>
@@ -153,9 +191,10 @@ const AdminReferrals = () => {
         </div>
 
         <Tabs defaultValue="all">
-          <TabsList className="w-full grid grid-cols-4 h-10 rounded-xl">
+          <TabsList className="w-full grid grid-cols-5 h-10 rounded-xl">
             <TabsTrigger value="all" className="text-xs rounded-lg">All</TabsTrigger>
             <TabsTrigger value="pending" className="text-xs rounded-lg">Pending</TabsTrigger>
+            <TabsTrigger value="tasks" className="text-xs rounded-lg">Tasks</TabsTrigger>
             <TabsTrigger value="redemptions" className="text-xs rounded-lg relative">
               Requests
               {redemptions.length > 0 && (
@@ -231,6 +270,54 @@ const AdminReferrals = () => {
                   <Button size="sm" variant="outline" className="text-xs rounded-lg" onClick={() => setActionDialog({ type: 'active', id: ref.id })}>
                     Activate
                   </Button>
+                </div>
+              ))
+            )}
+          </TabsContent>
+
+          {/* Tasks Tab */}
+          <TabsContent value="tasks" className="mt-3 space-y-3">
+            <Button size="sm" className="rounded-xl gap-1 w-full" onClick={() => { setEditingTask(null); setTaskTitle(''); setTaskDesc(''); setTaskRequirement('20'); setTaskDuration('7'); setTaskDialog(true); }}>
+              <Plus className="h-4 w-4" /> Create New Task
+            </Button>
+            
+            {existingTasks.length === 0 ? (
+              <div className="text-center py-8">
+                <Trophy className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No referral tasks yet</p>
+              </div>
+            ) : (
+              existingTasks.map((task: any) => (
+                <div key={task.id} className={cn("bg-card rounded-xl p-4 border", !task.is_active && "opacity-50")}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold">{task.title}</p>
+                        {!task.is_active && <Badge variant="outline" className="text-[10px]">Inactive</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{task.description}</p>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                          {task.requirement_count} referrals needed
+                        </span>
+                        {task.reward_type === 'featured' && (
+                          <span className="text-xs bg-amber-500/10 text-amber-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Star className="h-3 w-3" /> Featured {task.featured_duration_days || 7}d
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => openEditTask(task)} className="p-2 rounded-lg hover:bg-muted">
+                        <Edit className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                      {task.is_active && (
+                        <button onClick={() => deleteTask(task.id)} className="p-2 rounded-lg hover:bg-muted">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))
             )}
@@ -344,10 +431,10 @@ const AdminReferrals = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create Task Dialog */}
-      <Dialog open={taskDialog} onOpenChange={setTaskDialog}>
+      {/* Create/Edit Task Dialog */}
+      <Dialog open={taskDialog} onOpenChange={() => { setTaskDialog(false); setEditingTask(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Create Referral Task</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingTask ? 'Edit' : 'Create'} Referral Task</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
               <Label>Task Title</Label>
@@ -369,8 +456,8 @@ const AdminReferrals = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTaskDialog(false)}>Cancel</Button>
-            <Button onClick={handleCreateTask}>Create Task</Button>
+            <Button variant="outline" onClick={() => { setTaskDialog(false); setEditingTask(null); }}>Cancel</Button>
+            <Button onClick={handleCreateOrUpdateTask}>{editingTask ? 'Update' : 'Create'} Task</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
