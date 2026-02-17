@@ -95,14 +95,37 @@ export const useDynamicHomeFeed = (userCountry?: string | null) => {
     return false;
   }, []);
 
+  const isInitialLoad = useRef(true);
+
   useEffect(() => {
-    fetchData();
+    if (isInitialLoad.current) {
+      fetchData();
+    } else {
+      // Don't show loading skeleton on country change refetch
+      fetchDataSilent();
+    }
   }, [userCountry]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchDataSilent = async () => {
     try {
-      // Build products query
+      await fetchDataInternal(false);
+    } catch (error) {
+      console.error('Error fetching home feed:', error);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      await fetchDataInternal(true);
+    } catch (error) {
+      console.error('Error fetching home feed:', error);
+    }
+  };
+
+  const fetchDataInternal = async (showLoading: boolean) => {
+    if (showLoading) setLoading(true);
+    isInitialLoad.current = false;
+    try {
       let productsQuery = supabase
         .from('products')
         .select(`
@@ -115,12 +138,10 @@ export const useDynamicHomeFeed = (userCountry?: string | null) => {
         .order('created_at', { ascending: false })
         .limit(100);
 
-      // Filter by country if specified (for location-based filtering)
       if (userCountry) {
         productsQuery = productsQuery.eq('country', userCountry);
       }
 
-      // Fetch products and categories in parallel
       const [productsRes, categoriesRes] = await Promise.all([
         productsQuery,
         supabase
@@ -134,7 +155,6 @@ export const useDynamicHomeFeed = (userCountry?: string | null) => {
 
       setCategories(cats);
 
-      // Shuffle products on first load or if cache expired
       if (!hasShuffledRef.current || !isCacheValid) {
         const shuffled = shuffleArray(products);
         setAllProducts(shuffled);
@@ -144,13 +164,11 @@ export const useDynamicHomeFeed = (userCountry?: string | null) => {
         setAllProducts(products);
       }
 
-      // Build category sections (ALL categories with products)
       const sections: CategorySection[] = [];
       const categoriesWithProducts = cats.filter(cat => 
         products.some(p => p.category === cat.slug)
       );
 
-      // Shuffle categories for variety
       const shuffledCats = shuffleArray(categoriesWithProducts);
 
       shuffledCats.forEach((cat, index) => {
@@ -171,8 +189,6 @@ export const useDynamicHomeFeed = (userCountry?: string | null) => {
       });
 
       setCategorySections(sections);
-    } catch (error) {
-      console.error('Error fetching home feed:', error);
     } finally {
       setLoading(false);
     }
