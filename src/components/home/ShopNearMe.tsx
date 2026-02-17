@@ -44,7 +44,18 @@ const ShopNearMe = ({ userCountry }: ShopNearMeProps) => {
       }
 
       const { data } = await query;
-      setShops(data || []);
+      
+      // Fallback: if no shops found in user's country, show all shops
+      if ((!data || data.length === 0) && userCountry) {
+        const { data: allShops } = await supabase
+          .from('shops')
+          .select('id, name, logo_url, trading_center, seller_id, country')
+          .eq('is_active', true)
+          .limit(20);
+        setShops(allShops || []);
+      } else {
+        setShops(data || []);
+      }
     } catch (error) {
       console.error('Error fetching shops:', error);
     } finally {
