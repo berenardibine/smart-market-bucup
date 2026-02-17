@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Store, Package, Plus, MessageSquare, Bell,
-  Eye, Settings, ChevronRight, Phone,
-  Users, Menu, X, Home, Gift,
-  TrendingUp, BarChart3, Zap, Link2, MousePointerClick,
-  Sparkles, Crown, Layers, Rocket
+  Settings, ChevronRight, Phone,
+  Menu, X, Home, Gift,
+  Zap,
+  Sparkles, Rocket
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +14,11 @@ import { useMyShop } from "@/hooks/useShops";
 import { useMyProducts } from "@/hooks/useProducts";
 import { useProductRequests } from "@/hooks/useProductRequests";
 import { useToast } from "@/hooks/use-toast";
-import { useSellerViewsStats } from "@/hooks/useProductViews";
-import { supabase } from "@/integrations/supabase/client";
 import ShopForm from "@/components/seller/ShopForm";
 import ProductForm from "@/components/seller/ProductForm";
 import ProductList from "@/components/seller/ProductList";
 import RequestList from "@/components/seller/RequestList";
-import LinkAnalytics from "@/components/seller/LinkAnalytics";
 import SellerReferralTab from "@/components/seller/SellerReferralTab";
-import SellerProductAnalytics from "@/components/seller/SellerProductAnalytics";
 import { cn } from "@/lib/utils";
 
 const SellerDashboard = () => {
@@ -32,29 +28,14 @@ const SellerDashboard = () => {
   const { shop, loading: shopLoading, createShop, updateShop } = useMyShop();
   const { products, loading: productsLoading, refetch: refetchProducts } = useMyProducts();
   const { requests, loading: requestsLoading, updateRequestStatus } = useProductRequests();
-  const { stats: viewsStats } = useSellerViewsStats(user?.id);
   
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [showShopForm, setShowShopForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [connectorsCount, setConnectorsCount] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
-
-  useEffect(() => {
-    if (user) fetchConnectorsCount();
-  }, [user]);
-
-  const fetchConnectorsCount = async () => {
-    if (!user) return;
-    const { count } = await (supabase as any)
-      .from('seller_connections')
-      .select('*', { count: 'exact', head: true })
-      .eq('seller_id', user.id);
-    setConnectorsCount(count || 0);
-  };
 
   const handleCreateShop = async (data: any) => {
     try {
@@ -128,8 +109,6 @@ const SellerDashboard = () => {
   const modules = [
     { id: 'products', label: 'Products', icon: Package, color: 'from-orange-500 to-amber-500', bg: 'bg-orange-50 dark:bg-orange-950/30', description: 'Manage listings' },
     { id: 'shop', label: 'My Shop', icon: Store, color: 'from-purple-500 to-violet-500', bg: 'bg-purple-50 dark:bg-purple-950/30', description: 'Shop settings' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'from-cyan-500 to-teal-500', bg: 'bg-cyan-50 dark:bg-cyan-950/30', description: 'Performance stats' },
-    { id: 'links', label: 'Links', icon: Link2, color: 'from-teal-500 to-emerald-500', bg: 'bg-teal-50 dark:bg-teal-950/30', description: 'Traffic tracking' },
     { id: 'referrals', label: 'Referrals', icon: Gift, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', description: 'Earn rewards' },
     { id: 'requests', label: 'Requests', icon: MessageSquare, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', description: `${pendingRequests.length} pending` },
   ];
@@ -191,21 +170,6 @@ const SellerDashboard = () => {
                 </div>
               )}
             </div>
-            <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 rounded-2xl p-5 border">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center shadow-lg">
-                  <Users className="h-7 w-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold">Your Connectors</h3>
-                  <p className="text-sm text-muted-foreground">People following your products</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-purple-600">{connectorsCount}</p>
-                  <p className="text-xs text-muted-foreground">followers</p>
-                </div>
-              </div>
-            </div>
             <Button onClick={() => setShowShopForm(true)} className="w-full gap-2 rounded-xl h-12">
               <Settings className="h-4 w-4" /> Edit Shop Details
             </Button>
@@ -220,10 +184,6 @@ const SellerDashboard = () => {
             </Button>
           </div>
         );
-      case 'analytics':
-        return <SellerProductAnalytics />;
-      case 'links':
-        return <LinkAnalytics />;
       case 'referrals':
         return <SellerReferralTab />;
       case 'requests':
@@ -327,22 +287,7 @@ const SellerDashboard = () => {
           </div>
         )}
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-card rounded-2xl p-4 border shadow-sm">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-3 shadow-lg">
-              <Eye className="h-6 w-6 text-white" />
-            </div>
-            <p className="text-3xl font-bold">{viewsStats.totalViews.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">Total Views</p>
-          </div>
-          <div className="bg-card rounded-2xl p-4 border shadow-sm">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-3 shadow-lg">
-              <MousePointerClick className="h-6 w-6 text-white" />
-            </div>
-            <p className="text-3xl font-bold">{viewsStats.totalImpressions.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">Impressions</p>
-          </div>
           <div className="bg-card rounded-2xl p-4 border shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
@@ -355,7 +300,7 @@ const SellerDashboard = () => {
           <div className="bg-card rounded-2xl p-4 border shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center shadow-lg">
-                <Users className="h-6 w-6 text-white" />
+                <MessageSquare className="h-6 w-6 text-white" />
               </div>
               {pendingRequests.length > 0 && (
                 <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-1 rounded-full font-medium">
@@ -397,16 +342,6 @@ const SellerDashboard = () => {
             </Button>
             <Button 
               variant="outline" 
-              className="h-auto py-4 flex-col gap-2 rounded-2xl border-2 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 transition-all"
-              onClick={() => setActiveModule('analytics')}
-            >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xs font-medium">Stats</span>
-            </Button>
-            <Button 
-              variant="outline" 
               className="h-auto py-4 flex-col gap-2 rounded-2xl border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-all relative"
               onClick={() => setActiveModule('requests')}
             >
@@ -426,7 +361,7 @@ const SellerDashboard = () => {
         {/* All Modules Grid */}
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <Layers className="h-5 w-5 text-primary" />
+            <Package className="h-5 w-5 text-primary" />
             <h2 className="font-bold">All Modules</h2>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -458,7 +393,7 @@ const SellerDashboard = () => {
           <div className="bg-card rounded-2xl p-4 border shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
+                <Package className="h-4 w-4 text-primary" />
                 Recent Products
               </h3>
               <button 
@@ -483,8 +418,7 @@ const SellerDashboard = () => {
                     </p>
                   </div>
                   <Badge variant="outline" className="text-xs shrink-0">
-                    <Eye className="h-3 w-3 mr-1" />
-                    {product.views || 0}
+                    {product.views || 0} views
                   </Badge>
                 </div>
               ))}
