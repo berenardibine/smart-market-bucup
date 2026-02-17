@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { Package, Edit, Trash2, Eye, MoreVertical, MousePointerClick } from "lucide-react";
+import { Package, Edit, Trash2, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -18,44 +17,8 @@ interface ProductListProps {
   onRefresh: () => void;
 }
 
-interface ProductStats {
-  [productId: string]: { views: number; impressions: number };
-}
-
 const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps) => {
   const { toast } = useToast();
-  const [productStats, setProductStats] = useState<ProductStats>({});
-
-  // Fetch real views and impressions data
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (products.length === 0) return;
-
-      const productIds = products.map(p => p.id);
-
-      const [viewsRes, impressionsRes] = await Promise.all([
-        supabase.from('product_views').select('product_id').in('product_id', productIds),
-        supabase.from('product_impressions').select('product_id').in('product_id', productIds)
-      ]);
-
-      const stats: ProductStats = {};
-      productIds.forEach(id => {
-        stats[id] = { views: 0, impressions: 0 };
-      });
-
-      (viewsRes.data || []).forEach(v => {
-        if (stats[v.product_id]) stats[v.product_id].views++;
-      });
-
-      (impressionsRes.data || []).forEach(i => {
-        if (stats[i.product_id]) stats[i.product_id].impressions++;
-      });
-
-      setProductStats(stats);
-    };
-
-    fetchStats();
-  }, [products]);
 
   const handleDelete = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
@@ -146,14 +109,6 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
             </p>
             
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="text-xs">
-                <Eye className="h-3 w-3 mr-1" />
-                {productStats[product.id]?.views || 0}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                <MousePointerClick className="h-3 w-3 mr-1" />
-                {productStats[product.id]?.impressions || 0}
-              </Badge>
               <Badge variant="outline" className="text-xs">
                 Qty: {product.quantity}
               </Badge>
