@@ -15,6 +15,7 @@ import { useProductBySlug } from "@/hooks/useProductBySlug";
 import { useLinkAnalytics } from "@/hooks/useLinkAnalytics";
 import { useProductViewTracking } from "@/hooks/useProductTracking";
 import ProductMetaTags from "@/components/seo/ProductMetaTags";
+import ProductJsonLd from "@/components/seo/ProductJsonLd";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import ReportModal from "@/components/products/ReportModal";
 import ProductComments from "@/components/products/ProductComments";
@@ -158,6 +159,16 @@ const ProductDetail = () => {
         image={images[0]}
         url={productUrl}
         price={product.price}
+      />
+      <ProductJsonLd
+        title={product.title}
+        description={product.description}
+        image={images[0]}
+        url={productUrl}
+        price={product.price}
+        seller={product.shop?.name || product.seller?.full_name}
+        location={product.location || undefined}
+        category={product.category?.replace(/-/g, ' ')}
       />
       
       {/* Fullscreen Image Lightbox */}

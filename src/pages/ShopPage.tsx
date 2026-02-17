@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import Header from '@/components/layout/Header';
-import BottomNav from '@/components/layout/BottomNav';
 import FloatingProductCard from '@/components/home/FloatingProductCard';
+import ProductJsonLd from '@/components/seo/ProductJsonLd';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Store, MapPin, Phone, MessageCircle, ArrowLeft, Package } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Store, MapPin, Phone, MessageCircle, ArrowLeft, Package,
+  ShieldCheck, ArrowUpDown, Loader2, Globe
+} from 'lucide-react';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select';
+import BottomNav from '@/components/layout/BottomNav';
 
 interface Shop {
   id: string;
@@ -16,6 +23,14 @@ interface Shop {
   trading_center: string | null;
   contact_phone: string | null;
   whatsapp: string | null;
+  seller_id: string;
+}
+
+interface SellerProfile {
+  full_name: string;
+  profile_image: string | null;
+  identity_verified: boolean | null;
+  location: string | null;
 }
 
 interface Product {
@@ -26,92 +41,98 @@ interface Product {
   rental_unit: string | null;
   sponsored: boolean | null;
   is_negotiable: boolean | null;
+  created_at: string | null;
+  views: number | null;
 }
+
+type SortOption = 'newest' | 'popular' | 'price_low' | 'price_high';
 
 const ShopPage = () => {
   const { shopId } = useParams();
   const navigate = useNavigate();
   const [shop, setShop] = useState<Shop | null>(null);
+  const [seller, setSeller] = useState<SellerProfile | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<SortOption>('newest');
+  const [productCount, setProductCount] = useState(0);
   const loaderRef = useRef<HTMLDivElement>(null);
   const LIMIT = 20;
 
   const fetchShop = useCallback(async () => {
     if (!shopId) return;
-    
     try {
       const { data } = await supabase
         .from('shops')
-        .select('id, name, description, logo_url, trading_center, contact_phone, whatsapp')
+        .select('id, name, description, logo_url, trading_center, contact_phone, whatsapp, seller_id')
         .eq('id', shopId)
         .single();
-      
       setShop(data);
+
+      if (data?.seller_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, profile_image, identity_verified, location')
+          .eq('id', data.seller_id)
+          .single();
+        setSeller(profile);
+      }
     } catch (error) {
       console.error('Error fetching shop:', error);
     }
   }, [shopId]);
 
+  const getSortConfig = (s: SortOption) => {
+    switch (s) {
+      case 'newest': return { column: 'created_at', ascending: false };
+      case 'popular': return { column: 'views', ascending: false };
+      case 'price_low': return { column: 'price', ascending: true };
+      case 'price_high': return { column: 'price', ascending: false };
+    }
+  };
+
   const fetchProducts = useCallback(async (pageNum: number, append = false) => {
-    if (!shopId) return;
-    
+    if (!shop?.seller_id) return;
+
     if (pageNum === 0) setLoading(true);
     else setLoadingMore(true);
 
     try {
+      const sortCfg = getSortConfig(sort);
       const { data, count } = await supabase
         .from('products')
-        .select('id, title, price, images, rental_unit, sponsored, is_negotiable', { count: 'exact' })
+        .select('id, title, price, images, rental_unit, sponsored, is_negotiable, created_at, views', { count: 'exact' })
         .eq('status', 'active')
-        .or(`seller_id.eq.${shop?.id}`)
+        .eq('seller_id', shop.seller_id)
         .range(pageNum * LIMIT, (pageNum + 1) * LIMIT - 1)
-        .order('created_at', { ascending: false });
+        .order(sortCfg.column, { ascending: sortCfg.ascending });
 
-      // Actually fetch by shop's seller_id
-      const { data: shopData } = await supabase
-        .from('shops')
-        .select('seller_id')
-        .eq('id', shopId)
-        .single();
-
-      if (shopData?.seller_id) {
-        const { data: productData, count: productCount } = await supabase
-          .from('products')
-          .select('id, title, price, images, rental_unit, sponsored, is_negotiable', { count: 'exact' })
-          .eq('status', 'active')
-          .eq('seller_id', shopData.seller_id)
-          .range(pageNum * LIMIT, (pageNum + 1) * LIMIT - 1)
-          .order('created_at', { ascending: false });
-
-        if (append) {
-          setProducts(prev => [...prev, ...(productData || [])]);
-        } else {
-          setProducts(productData || []);
-        }
-        setHasMore((productCount || 0) > (pageNum + 1) * LIMIT);
+      if (append) {
+        setProducts(prev => [...prev, ...(data || [])]);
+      } else {
+        setProducts(data || []);
       }
+      setProductCount(count || 0);
+      setHasMore((count || 0) > (pageNum + 1) * LIMIT);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [shopId, shop?.id]);
+  }, [shop?.seller_id, sort]);
+
+  useEffect(() => { fetchShop(); }, [fetchShop]);
 
   useEffect(() => {
-    fetchShop();
-  }, [fetchShop]);
-
-  useEffect(() => {
-    if (shopId) {
+    if (shop?.seller_id) {
       setPage(0);
       fetchProducts(0);
     }
-  }, [shopId, fetchProducts]);
+  }, [shop?.seller_id, fetchProducts]);
 
   // Infinite scroll
   useEffect(() => {
@@ -125,127 +146,184 @@ const ShopPage = () => {
       },
       { threshold: 0.1 }
     );
-
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-
+    if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loading, page, fetchProducts]);
 
   const handleWhatsApp = () => {
     if (shop?.whatsapp) {
-      window.open(`https://wa.me/${shop.whatsapp.replace(/[^0-9]/g, '')}`, '_blank');
+      const msg = encodeURIComponent(`Hi! I found your shop on Smart Market.`);
+      window.open(`https://wa.me/${shop.whatsapp.replace(/[^0-9]/g, '')}?text=${msg}`, '_blank');
     }
   };
 
   const handleCall = () => {
-    if (shop?.contact_phone) {
-      window.open(`tel:${shop.contact_phone}`, '_self');
-    }
+    if (shop?.contact_phone) window.open(`tel:${shop.contact_phone}`, '_self');
   };
 
+  // Loading skeleton
   if (loading && !shop) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <div className="p-4">
-          <Skeleton className="h-32 rounded-2xl mb-4" />
-          <Skeleton className="h-8 w-1/2 mb-2" />
-          <Skeleton className="h-4 w-3/4" />
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-48 rounded-3xl" />
+          <Skeleton className="h-6 w-1/2" />
+          <div className="grid grid-cols-2 gap-3">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="aspect-square rounded-2xl" />)}
+          </div>
         </div>
       </div>
     );
   }
 
+  // Not found
   if (!shop) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
-        <Store className="h-16 w-16 text-muted-foreground/50 mb-4" />
-        <h1 className="text-xl font-bold mb-2">Shop Not Found</h1>
-        <p className="text-muted-foreground mb-4">This shop may have been removed.</p>
-        <Button onClick={() => navigate('/')}>Go Home</Button>
+        <div className="text-center max-w-sm bg-card rounded-3xl p-8 border shadow-xl">
+          <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+            <Store className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h1 className="text-xl font-bold mb-2">Shop Not Found</h1>
+          <p className="text-muted-foreground text-sm mb-6">This shop may have been removed or doesn't exist.</p>
+          <Button onClick={() => navigate('/')} className="rounded-xl">Go Home</Button>
+        </div>
       </div>
     );
   }
 
+  const displayName = shop.name;
+  const avatarUrl = shop.logo_url || seller?.profile_image;
+  const isVerified = seller?.identity_verified;
+  const locationText = shop.trading_center || seller?.location;
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
-        <div className="flex items-center gap-3 p-4">
-          <button 
+      {/* SEO */}
+      {shop && (
+        <ProductJsonLd
+          title={`${displayName} — Smart Market Shop`}
+          description={shop.description || `Browse products from ${displayName} on Smart Market`}
+          image={avatarUrl || '/og-image.jpg'}
+          url={`https://smart-market-online.vercel.app/shop/${shop.id}`}
+        />
+      )}
+
+      {/* Header Bar */}
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+        <div className="flex items-center gap-3 h-14 px-4">
+          <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+            className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="font-semibold text-lg flex-1">{shop.name}</h1>
+          <h1 className="font-bold text-base flex-1 truncate">{displayName}</h1>
         </div>
       </div>
 
       {/* Shop Banner */}
-      <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-white shadow-lg flex items-center justify-center overflow-hidden">
-            {shop.logo_url ? (
-              <img src={shop.logo_url} alt={shop.name} className="w-full h-full object-cover" />
-            ) : (
-              <Store className="h-10 w-10 text-primary" />
+      <div className="relative">
+        <div className="h-32 bg-gradient-to-r from-primary via-primary/80 to-primary/60" />
+        <div className="px-4 -mt-12 relative z-10">
+          <div className="flex items-end gap-4">
+            {/* Avatar */}
+            <div className="w-24 h-24 rounded-2xl bg-card border-4 border-background flex items-center justify-center overflow-hidden shadow-xl shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" loading="lazy" />
+              ) : (
+                <Store className="h-10 w-10 text-primary" />
+              )}
+            </div>
+            <div className="flex-1 pb-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl font-bold truncate">{displayName}</h2>
+                {isVerified && (
+                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1 shrink-0">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Verified
+                  </Badge>
+                )}
+              </div>
+              {locationText && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{locationText}</span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          {shop.description && (
+            <p className="text-sm text-muted-foreground mt-4 leading-relaxed">{shop.description}</p>
+          )}
+
+          {/* Contact Buttons */}
+          <div className="flex gap-3 mt-4">
+            {shop.contact_phone && (
+              <Button variant="outline" onClick={handleCall} className="flex-1 gap-2 h-12 rounded-xl border-2">
+                <Phone className="h-4 w-4" />
+                Call
+              </Button>
+            )}
+            {shop.whatsapp && (
+              <Button onClick={handleWhatsApp} className="flex-1 gap-2 h-12 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
+              </Button>
             )}
           </div>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold">{shop.name}</h2>
-            {shop.trading_center && (
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <MapPin className="h-4 w-4" />
-                {shop.trading_center}
-              </p>
-            )}
+
+          {/* Stats Row */}
+          <div className="flex items-center gap-4 mt-4 pb-4 border-b border-border/50">
+            <div className="flex items-center gap-1.5">
+              <Package className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold">{productCount}</span>
+              <span className="text-xs text-muted-foreground">Products</span>
+            </div>
           </div>
-        </div>
-
-        {shop.description && (
-          <p className="mt-4 text-sm text-muted-foreground">{shop.description}</p>
-        )}
-
-        {/* Contact Buttons */}
-        <div className="flex gap-3 mt-4">
-          {shop.contact_phone && (
-            <Button variant="outline" onClick={handleCall} className="flex-1 gap-2">
-              <Phone className="h-4 w-4" />
-              Call
-            </Button>
-          )}
-          {shop.whatsapp && (
-            <Button onClick={handleWhatsApp} className="flex-1 gap-2 bg-emerald-500 hover:bg-emerald-600">
-              <MessageCircle className="h-4 w-4" />
-              WhatsApp
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Products */}
-      <div className="p-4">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Package className="h-5 w-5 text-primary" />
-          Products ({products.length})
-        </h3>
+      {/* Sort + Products */}
+      <div className="px-4 pt-4">
+        {/* Sort Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-base flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            Products
+          </h3>
+          <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
+            <SelectTrigger className="w-[140px] h-9 rounded-xl text-xs">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="popular">Popular</SelectItem>
+              <SelectItem value="price_low">Price: Low</SelectItem>
+              <SelectItem value="price_high">Price: High</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
+        {/* Product Grid */}
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map(i => (
+            {[1,2,3,4,5,6].map(i => (
               <div key={i} className="space-y-3">
-                <Skeleton className="aspect-square rounded-xl" />
+                <Skeleton className="aspect-square rounded-2xl" />
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-5 w-1/2" />
               </div>
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-12 bg-muted/30 rounded-2xl">
-            <Package className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground">No products yet</p>
+          <div className="text-center py-16 bg-muted/30 rounded-3xl">
+            <Package className="h-14 w-14 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="font-semibold text-lg mb-1">No Products Yet</h3>
+            <p className="text-sm text-muted-foreground">This shop hasn't listed any products.</p>
           </div>
         ) : (
           <>
@@ -266,10 +344,10 @@ const ShopPage = () => {
 
             {/* Infinite scroll loader */}
             {hasMore && (
-              <div ref={loaderRef} className="flex justify-center py-4">
+              <div ref={loaderRef} className="flex justify-center py-6">
                 {loadingMore && (
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span className="text-sm">Loading more...</span>
                   </div>
                 )}
