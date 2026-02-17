@@ -7,7 +7,7 @@ import {
   Home, Eye, LogOut, ChevronRight, TrendingUp, Activity,
   MessageSquare, Plus, Settings, Sparkles, Crown, 
   Zap, Target, Layers, PieChart, Rocket, Globe,
-  Calendar, Clock, CheckCircle2, AlertCircle
+  Calendar, Clock, CheckCircle2, AlertCircle, MessageCircle, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -107,6 +107,8 @@ const AdminDashboard = () => {
     { id: 'messages', label: 'Messages', icon: MessageSquare, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', path: '/admin/messages', description: 'User inbox' },
     { id: 'ads', label: 'Ads', icon: Megaphone, color: 'from-red-500 to-rose-500', bg: 'bg-red-50 dark:bg-red-950/30', path: '/admin/ads', description: 'Smart ads' },
     { id: 'referrals', label: 'Referrals', icon: Users, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', path: '/admin/referrals', description: 'Referral system' },
+    { id: 'comments', label: 'Comments', icon: MessageCircle, color: 'from-lime-500 to-green-500', bg: 'bg-lime-50 dark:bg-lime-950/30', path: '/admin/comments', description: 'Moderation' },
+    { id: 'reports', label: 'Reports', icon: Flag, color: 'from-red-600 to-rose-600', bg: 'bg-red-50 dark:bg-red-950/30', path: '/admin/reports', description: 'User reports' },
   ];
 
   return (

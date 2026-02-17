@@ -100,13 +100,13 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("avatars")
+        .from("profie-images")
         .upload(filePath, compressed.blob, { contentType: compressed.format });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
+        .from("profie-images")
         .getPublicUrl(filePath);
 
       await supabase

@@ -123,24 +123,13 @@ const AdsManagement = () => {
       const filePath = `ads/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('ads')
+        .from('ad-image')
         .upload(filePath, file);
 
-      if (uploadError) {
-        // Try to create bucket if it doesn't exist
-        const { error: createError } = await supabase.storage.createBucket('ads', { public: true });
-        if (createError && !createError.message.includes('already exists')) {
-          throw uploadError;
-        }
-        // Retry upload
-        const { error: retryError } = await supabase.storage
-          .from('ads')
-          .upload(filePath, file);
-        if (retryError) throw retryError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('ads')
+        .from('ad-image')
         .getPublicUrl(filePath);
 
       setFormData(prev => ({ ...prev, image_url: urlData.publicUrl }));

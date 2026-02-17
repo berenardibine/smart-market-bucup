@@ -53,8 +53,8 @@ function generateProductHtml(product: any, productUrl: string, baseUrl: string):
 }
 
 function generateReferralHtml(referrerName: string, code: string, baseUrl: string): string {
-  const title = escapeHtml(`Join Smart Market — Support ${referrerName}!`);
-  const description = escapeHtml(`Use referral code ${code} to get priority features. Buy Smart, Live Smart.`);
+  const title = escapeHtml(`${referrerName} invited you to Smart Market!`);
+  const description = escapeHtml(`Join Smart Market today and discover amazing deals near you! Buy, sell & rent products easily. Sign up with code ${code} and start shopping smarter. 🛒✨`);
   const image = `${baseUrl}/og-image.jpg`;
   const url = `${baseUrl}/r/${code}`;
 
