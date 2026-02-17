@@ -49,34 +49,23 @@ const ReportModal = ({ isOpen, onClose, productId, sellerId, productTitle, selle
 
     setLoading(true);
     try {
-      const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl('');
-      const baseUrl = publicUrl.replace('/storage/v1/object/public/products/', '');
-      
-      const response = await fetch(`${baseUrl.replace('.supabase.co', '.supabase.co')}/functions/v1/submit-report`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
-        },
-        body: JSON.stringify({
-          productId: reportType === 'product' ? productId : null,
-          sellerId: reportType === 'seller' ? sellerId : null,
-          reporterName: name,
-          reporterPhone: phone,
-          reporterEmail: email || null,
+      const { error: insertError } = await supabase
+        .from('reports')
+        .insert({
+          product_id: reportType === 'product' ? productId : null,
+          reported_seller_id: reportType === 'seller' ? sellerId : null,
+          reporter_name: name,
+          reporter_phone: phone,
+          reporter_email: email || null,
           reason,
-          details: details || null
-        })
-      });
+          details: details || null,
+          status: 'new',
+        });
 
-      const result = await response.json();
+      if (insertError) throw insertError;
       
-      if (result.success) {
-        setSubmitted(true);
-        toast({ title: 'Report submitted successfully', description: 'We will review it shortly.' });
-      } else {
-        throw new Error(result.error || 'Failed to submit report');
-      }
+      setSubmitted(true);
+      toast({ title: 'Report submitted successfully', description: 'We will review it shortly.' });
     } catch (error: any) {
       toast({ title: 'Failed to submit report', description: error.message, variant: 'destructive' });
     } finally {

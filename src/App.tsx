@@ -66,6 +66,8 @@ import {
   AdminViewsAnalytics,
 } from "./pages/admin";
 import AdminReferrals from "./pages/admin/AdminReferrals";
+import AdminComments from "./pages/admin/AdminComments";
+import AdminReports from "./pages/admin/AdminReports";
 import MenuPage from "./pages/MenuPage";
 
 const queryClient = new QueryClient();
@@ -128,6 +130,8 @@ const App = () => {
                 <Route path="/admin/file-optimization" element={<AdminFileOptimization />} />
                 <Route path="/admin/views-analytics" element={<AdminViewsAnalytics />} />
                 <Route path="/admin/referrals" element={<AdminReferrals />} />
+                <Route path="/admin/comments" element={<AdminComments />} />
+                <Route path="/admin/reports" element={<AdminReports />} />
 
                 <Route path="/menu" element={<MenuPage />} />
 
