@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { 
-  Bell, Send, Users, Store, User, Globe, Plus, Trash2
+  Bell, Send, Users, Store, User, Globe, Code, Type, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -37,6 +38,8 @@ const NotificationManagement = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [isHtmlMode, setIsHtmlMode] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     message: '',
@@ -86,19 +89,17 @@ const NotificationManagement = () => {
     setSending(true);
 
     try {
-      // Send push notification via edge function
       const pushPayload: any = {
         title: formData.title,
         body: formData.message,
         url: formData.url || '/',
         type: 'admin',
+        isHtml: isHtmlMode,
       };
 
       if (formData.targetGroup === 'all_push') {
-        // Send to ALL push subscribers (including guests)
         pushPayload.broadcast = true;
       } else if (formData.targetGroup === 'sellers') {
-        // Get seller IDs and send individually
         const { data: sellers } = await supabase
           .from('profiles')
           .select('id')
@@ -114,6 +115,7 @@ const NotificationManagement = () => {
         
         toast({ title: `Push sent to ${sellers?.length || 0} sellers!` });
         fetchNotifications();
+        fetchStats();
         setFormData({ title: '', message: '', targetGroup: 'all_push', url: '/', imageUrl: '' });
         setShowAddDialog(false);
         setSending(false);
@@ -134,13 +136,13 @@ const NotificationManagement = () => {
 
         toast({ title: `Push sent to ${buyers?.length || 0} buyers!` });
         fetchNotifications();
+        fetchStats();
         setFormData({ title: '', message: '', targetGroup: 'all_push', url: '/', imageUrl: '' });
         setShowAddDialog(false);
         setSending(false);
         return;
       }
 
-      // Broadcast to all
       const { data: result, error } = await supabase.functions.invoke('send-push', {
         body: pushPayload,
       });
@@ -193,7 +195,7 @@ const NotificationManagement = () => {
               Send Push
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-card">
+          <DialogContent className="bg-card max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Send Push Notification</DialogTitle>
             </DialogHeader>
@@ -227,15 +229,68 @@ const NotificationManagement = () => {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
               </div>
+
+              {/* HTML / Text Mode Toggle */}
               <div>
-                <label className="text-sm font-medium mb-2 block">Message *</label>
-                <Textarea
-                  placeholder="Write your message..."
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  rows={4}
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium">Message *</label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 bg-muted rounded-lg p-0.5">
+                      <button
+                        onClick={() => { setIsHtmlMode(false); setShowPreview(false); }}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${!isHtmlMode ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+                      >
+                        <Type className="h-3 w-3" />
+                        Text
+                      </button>
+                      <button
+                        onClick={() => setIsHtmlMode(true)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${isHtmlMode ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'}`}
+                      >
+                        <Code className="h-3 w-3" />
+                        HTML
+                      </button>
+                    </div>
+                    {isHtmlMode && (
+                      <button
+                        onClick={() => setShowPreview(!showPreview)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${showPreview ? 'bg-primary/10 text-primary border-primary/20' : 'text-muted-foreground border-border'}`}
+                      >
+                        <Eye className="h-3 w-3" />
+                        Preview
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {isHtmlMode && showPreview ? (
+                  <div className="rounded-lg border p-4 min-h-[120px] bg-background">
+                    <p className="text-xs text-muted-foreground mb-2 font-medium">Preview:</p>
+                    <div 
+                      className="prose prose-sm max-w-none text-foreground"
+                      dangerouslySetInnerHTML={{ __html: formData.message }} 
+                    />
+                  </div>
+                ) : (
+                  <Textarea
+                    placeholder={isHtmlMode 
+                      ? '<h3>🎉 Big Sale!</h3><p>Get <b>50% off</b> on all products today.</p>' 
+                      : 'Write your message...'
+                    }
+                    value={formData.message}
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    rows={isHtmlMode ? 6 : 4}
+                    className={isHtmlMode ? 'font-mono text-xs' : ''}
+                  />
+                )}
+
+                {isHtmlMode && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use HTML tags like &lt;b&gt;, &lt;h3&gt;, &lt;p&gt;, &lt;a&gt;, &lt;ul&gt; etc.
+                  </p>
+                )}
               </div>
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Link URL (optional)</label>
                 <Input
@@ -296,9 +351,13 @@ const NotificationManagement = () => {
                   </div>
                   <div className="flex-1">
                     <p className="font-medium">{notification.title}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {notification.message}
-                    </p>
+                    <div className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
+                      {notification.message.startsWith('<') ? (
+                        <span dangerouslySetInnerHTML={{ __html: notification.message }} />
+                      ) : (
+                        notification.message
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {notification.created_at && format(new Date(notification.created_at), 'MMM d, yyyy h:mm a')}
                     </p>

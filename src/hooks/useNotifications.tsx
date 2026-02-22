@@ -21,7 +21,8 @@ export const useNotifications = () => {
   useEffect(() => {
     if (user) {
       fetchNotifications();
-      subscribeToNotifications();
+      const cleanup = subscribeToNotifications();
+      return cleanup;
     } else {
       setNotifications([]);
       setUnreadCount(0);
@@ -54,23 +55,34 @@ export const useNotifications = () => {
   };
 
   const subscribeToNotifications = () => {
-    if (!user) return;
+    if (!user) return () => {};
 
     const channel = supabase
-      .channel('notifications-channel')
+      .channel('notifications-hook-channel')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-        },
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
         (payload) => {
           const newNotif = payload.new as Notification;
           if (newNotif.user_id === user.id || newNotif.user_id === null) {
             setNotifications(prev => [newNotif, ...prev]);
             setUnreadCount(prev => prev + 1);
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications' },
+        (payload) => {
+          const updated = payload.new as Notification;
+          setNotifications(prev =>
+            prev.map(n => n.id === updated.id ? updated : n)
+          );
+          // Recalculate unread
+          setNotifications(prev => {
+            setUnreadCount(prev.filter(n => !n.is_read).length);
+            return prev;
+          });
         }
       )
       .subscribe();
@@ -105,6 +117,7 @@ export const useNotifications = () => {
 
     try {
       const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+      if (unreadIds.length === 0) return;
       
       const { error } = await supabase
         .from('notifications')
