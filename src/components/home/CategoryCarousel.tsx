@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import FloatingProductCard from './FloatingProductCard';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +12,7 @@ interface Product {
   rental_unit?: string | null;
   sponsored?: boolean | null;
   admin_posted?: boolean | null;
+  currency_symbol?: string | null;
 }
 
 interface CategoryCarouselProps {
@@ -30,13 +30,12 @@ const CategoryCarousel = ({
   categoryIcon,
   categoryColor,
   products,
-  autoScrollInterval = 4000, // Changed to 4 seconds
+  autoScrollInterval = 4000,
 }: CategoryCarouselProps) => {
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Auto-scroll logic - every 4 seconds
   useEffect(() => {
     if (products.length <= 2 || isPaused) return;
 
@@ -46,12 +45,9 @@ const CategoryCarousel = ({
         const maxScroll = scrollWidth - clientWidth;
         
         if (scrollLeft >= maxScroll - 10) {
-          // Reset to start
           scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
-          // Scroll by one card width (roughly 180px)
-          const newPosition = scrollLeft + 180;
-          scrollRef.current.scrollTo({ left: newPosition, behavior: 'smooth' });
+          scrollRef.current.scrollTo({ left: scrollLeft + 170, behavior: 'smooth' });
         }
       }
     }, autoScrollInterval);
@@ -61,62 +57,68 @@ const CategoryCarousel = ({
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
-    
-    const scrollAmount = 300;
-    const newPosition = direction === 'left' 
-      ? scrollRef.current.scrollLeft - scrollAmount
-      : scrollRef.current.scrollLeft + scrollAmount;
-    
-    scrollRef.current.scrollTo({ left: newPosition, behavior: 'smooth' });
+    const amount = 300;
+    scrollRef.current.scrollTo({ 
+      left: scrollRef.current.scrollLeft + (direction === 'left' ? -amount : amount), 
+      behavior: 'smooth' 
+    });
   };
 
   if (products.length === 0) return null;
 
   return (
     <div 
-      className="py-5 animate-fade-up"
+      className="animate-fade-up"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
     >
-      {/* Header with gradient */}
+      {/* Header */}
       <div className={cn(
-        "flex items-center justify-between px-4 py-3 rounded-t-2xl",
+        "flex items-center justify-between px-4 py-3.5 rounded-t-2xl",
         `bg-gradient-to-r ${categoryColor}`
       )}>
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{categoryIcon}</span>
-          <h3 className="font-bold text-white text-lg">{categoryName}</h3>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl drop-shadow-md">{categoryIcon}</span>
+          <h3 className="font-bold text-white text-base tracking-tight">{categoryName}</h3>
+          <span className="text-[10px] font-medium bg-white/25 text-white px-2 py-0.5 rounded-full backdrop-blur-sm">
+            {products.length}
+          </span>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
+        <button
           onClick={() => navigate(`/category/${categorySlug}`)}
-          className="bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 gap-1 rounded-full"
+          className="flex items-center gap-1 text-white/90 hover:text-white text-xs font-semibold bg-white/15 px-3 py-1.5 rounded-full backdrop-blur-sm hover:bg-white/25 transition-all"
         >
-          View More
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+          View All <ArrowRight className="h-3 w-3" />
+        </button>
       </div>
 
-      {/* Carousel Container */}
-      <div className="relative bg-card rounded-b-2xl shadow-soft p-4">
-        {/* Left Arrow */}
-        <button
-          onClick={() => handleScroll('left')}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-background/90 shadow-md flex items-center justify-center hover:bg-background transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
+      {/* Carousel */}
+      <div className="relative bg-card/80 backdrop-blur-sm rounded-b-2xl shadow-lg border border-border/50 p-3">
+        {products.length > 2 && (
+          <>
+            <button
+              onClick={() => handleScroll('left')}
+              className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-background/90 shadow-md flex items-center justify-center hover:bg-background transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleScroll('right')}
+              className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-background/90 shadow-md flex items-center justify-center hover:bg-background transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        )}
 
-        {/* Scrollable Products */}
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth px-4"
+          className="flex gap-2.5 overflow-x-auto scrollbar-hide scroll-smooth px-1"
         >
           {products.map((product) => (
-            <div key={product.id} className="w-[160px] shrink-0">
+            <div key={product.id} className="w-[155px] shrink-0">
               <FloatingProductCard
                 id={product.id}
                 title={product.title}
@@ -125,18 +127,11 @@ const CategoryCarousel = ({
                 rentalUnit={product.rental_unit}
                 isSponsored={product.admin_posted ? false : product.sponsored}
                 hideSponsored={product.admin_posted}
+                currencySymbol={product.currency_symbol}
               />
             </div>
           ))}
         </div>
-
-        {/* Right Arrow */}
-        <button
-          onClick={() => handleScroll('right')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-background/90 shadow-md flex items-center justify-center hover:bg-background transition-colors"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
       </div>
     </div>
   );

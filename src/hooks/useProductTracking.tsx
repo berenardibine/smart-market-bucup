@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 
-const SUPABASE_URL = "https://tbykrulfzhhkmtgjhvjh.supabase.co";
-const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRieWtydWxmemhoa210Z2podmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjgxNTksImV4cCI6MjA4MDQ0NDE1OX0.Bm5bMN6QGgXeF2EOvmF7nmNBksmrPCLTkcXy-bXWiV0";
+const SUPABASE_URL = "https://tsrnmrnfmvsivnvdkqrj.supabase.co";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzcm5tcm5mbXZzaXZudmRrcXJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MDQ0MTUsImV4cCI6MjA4NjQ4MDQxNX0.oWOAbgjhZgcXkmetIQA0fwI_qq7LrZ-J74bKR8JDCQ8";
 
 // Generate or retrieve a persistent session ID for guests
 const getSessionId = (): string => {
