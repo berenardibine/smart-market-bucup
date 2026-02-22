@@ -2709,6 +2709,10 @@ export type Database = {
         Args: { p_hours?: number; p_product_id: string; p_session_id: string }
         Returns: boolean
       }
+      check_recent_view: {
+        Args: { p_minutes?: number; p_product_id: string; p_session_id: string }
+        Returns: boolean
+      }
       get_nearby_products: {
         Args: {
           max_results?: number

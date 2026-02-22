@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FloatingProductCard from './FloatingProductCard';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Product {
@@ -13,6 +13,7 @@ interface Product {
   sponsored?: boolean | null;
   admin_posted?: boolean | null;
   is_negotiable?: boolean | null;
+  currency_symbol?: string | null;
 }
 
 interface AutoScrollCarouselProps {
@@ -33,76 +34,73 @@ const AutoScrollCarousel = ({
   autoScrollInterval = 3000
 }: AutoScrollCarouselProps) => {
   const navigate = useNavigate();
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-scroll
+  // Auto-scroll with smooth looping
   useEffect(() => {
     if (isPaused || products.length <= 2) return;
 
-    intervalRef.current = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % products.length);
+    const interval = setInterval(() => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        const maxScroll = scrollWidth - clientWidth;
+        
+        if (scrollLeft >= maxScroll - 10) {
+          scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          scrollRef.current.scrollTo({ left: scrollLeft + 170, behavior: 'smooth' });
+        }
+      }
     }, autoScrollInterval);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => clearInterval(interval);
   }, [isPaused, products.length, autoScrollInterval]);
 
-  // Scroll to current index
-  useEffect(() => {
-    if (scrollRef.current && products.length > 0) {
-      const cardWidth = 160;
-      const gap = 12;
-      scrollRef.current.scrollTo({
-        left: currentIndex * (cardWidth + gap),
-        behavior: 'smooth'
-      });
-    }
-  }, [currentIndex, products.length]);
-
-  const handlePrev = useCallback(() => {
-    setCurrentIndex(prev => (prev - 1 + products.length) % products.length);
-  }, [products.length]);
-
-  const handleNext = useCallback(() => {
-    setCurrentIndex(prev => (prev + 1) % products.length);
-  }, [products.length]);
+  const handleScroll = useCallback((dir: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const amount = 300;
+    scrollRef.current.scrollTo({ 
+      left: scrollRef.current.scrollLeft + (dir === 'left' ? -amount : amount), 
+      behavior: 'smooth' 
+    });
+  }, []);
 
   if (products.length === 0) return null;
 
   return (
     <div 
-      className="relative"
+      className="relative group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onFocus={() => setIsPaused(true)}
-      onBlur={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)}
     >
       {/* Header */}
       <div className={cn(
-        "flex items-center justify-between px-4 py-3 rounded-t-2xl",
+        "flex items-center justify-between px-4 py-3.5 rounded-t-2xl",
         `bg-gradient-to-r ${color}`
       )}>
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{icon}</span>
-          <h3 className="font-bold text-white">{title}</h3>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl drop-shadow-md">{icon}</span>
+          <h3 className="font-bold text-white text-base tracking-tight">{title}</h3>
+          <span className="text-[10px] font-medium bg-white/25 text-white px-2 py-0.5 rounded-full backdrop-blur-sm">
+            {products.length}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {products.length > 2 && (
             <>
               <button
-                onClick={handlePrev}
-                className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                onClick={() => handleScroll('left')}
+                className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-all"
                 aria-label="Previous"
               >
                 <ChevronLeft className="h-4 w-4 text-white" />
               </button>
               <button
-                onClick={handleNext}
-                className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                onClick={() => handleScroll('right')}
+                className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/40 transition-all"
                 aria-label="Next"
               >
                 <ChevronRight className="h-4 w-4 text-white" />
@@ -112,22 +110,22 @@ const AutoScrollCarousel = ({
           {viewAllLink && (
             <button
               onClick={() => navigate(viewAllLink)}
-              className="text-white/90 hover:text-white text-sm font-medium transition-colors"
+              className="flex items-center gap-1 text-white/90 hover:text-white text-xs font-semibold ml-1 transition-colors bg-white/15 px-3 py-1.5 rounded-full backdrop-blur-sm hover:bg-white/25"
             >
-              View All →
+              All <ArrowRight className="h-3 w-3" />
             </button>
           )}
         </div>
       </div>
       
       {/* Products */}
-      <div className="bg-card rounded-b-2xl shadow-soft p-3">
+      <div className="bg-card/80 backdrop-blur-sm rounded-b-2xl shadow-lg border border-border/50 p-3">
         <div 
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth pb-1"
+          className="flex gap-2.5 overflow-x-auto scrollbar-hide scroll-smooth pb-1"
         >
           {products.map((product) => (
-            <div key={product.id} className="w-[160px] shrink-0">
+            <div key={product.id} className="w-[155px] shrink-0">
               <FloatingProductCard
                 id={product.id}
                 title={product.title}
@@ -137,29 +135,11 @@ const AutoScrollCarousel = ({
                 isSponsored={product.sponsored}
                 isAdminPosted={product.admin_posted}
                 isNegotiable={product.is_negotiable}
+                currencySymbol={product.currency_symbol}
               />
             </div>
           ))}
         </div>
-
-        {/* Dot indicators */}
-        {products.length > 3 && (
-          <div className="flex justify-center gap-1 mt-3">
-            {products.slice(0, Math.min(products.length, 8)).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={cn(
-                  "w-1.5 h-1.5 rounded-full transition-all",
-                  index === currentIndex % Math.min(products.length, 8)
-                    ? "bg-primary w-4" 
-                    : "bg-muted-foreground/30"
-                )}
-                aria-label={`Go to product ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
