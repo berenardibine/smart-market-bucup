@@ -49,9 +49,9 @@ const CompleteProfile = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // If profile already exists, skip
+  // If profile already complete (has phone numbers), skip
   useEffect(() => {
-    if (profile?.id) {
+    if (profile?.id && profile?.call_number && profile?.whatsapp_number) {
       navigate('/');
     }
   }, [profile, navigate]);

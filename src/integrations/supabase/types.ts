@@ -2705,6 +2705,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_recent_impression: {
+        Args: { p_hours?: number; p_product_id: string; p_session_id: string }
+        Returns: boolean
+      }
       get_nearby_products: {
         Args: {
           max_results?: number
@@ -2768,6 +2772,23 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_daily_agg: {
+        Args: {
+          p_date: string
+          p_increment_impressions?: number
+          p_increment_views?: number
+          p_product_id: string
+        }
+        Returns: undefined
+      }
+      increment_product_metrics: {
+        Args: {
+          p_increment_impressions?: number
+          p_increment_views?: number
+          p_product_id: string
+        }
+        Returns: undefined
       }
       increment_product_view: {
         Args: { product_uuid: string }
