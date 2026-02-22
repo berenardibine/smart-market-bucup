@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { 
   Bell, ArrowLeft, Check, CheckCheck, Trash2, 
   Megaphone, MessageCircle, ShoppingBag, AlertCircle,
-  Shield, Lock
+  Shield, ChevronDown, ChevronUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ const NotificationsPage = () => {
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -51,19 +52,13 @@ const NotificationsPage = () => {
     if (user) {
       fetchNotifications();
 
-      // Subscribe to realtime notifications
       const channel = supabase
-        .channel('notifications-channel')
+        .channel('notifications-page-channel')
         .on(
           'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-          },
+          { event: 'INSERT', schema: 'public', table: 'notifications' },
           (payload) => {
             const newNotification = payload.new as Notification;
-            // Only add if it's for this user or global
             if (newNotification.user_id === user.id || newNotification.user_id === null) {
               setNotifications(prev => [newNotification, ...prev]);
             }
@@ -91,24 +86,23 @@ const NotificationsPage = () => {
   const markAllAsRead = async () => {
     if (!user) return;
     
+    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+    if (unreadIds.length === 0) return;
+
     await supabase
       .from('notifications')
       .update({ is_read: true })
-      .or(`user_id.eq.${user.id},user_id.is.null`);
+      .in('id', unreadIds);
     
     setNotifications(prev => 
       prev.map(n => ({ ...n, is_read: true }))
     );
+    toast({ title: "All notifications marked as read" });
   };
 
   const deleteNotification = async (id: string) => {
-    // Only admin can delete notifications
     if (!isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "",
-        variant: "destructive"
-      });
+      toast({ title: "Permission Denied", variant: "destructive" });
       return;
     }
 
@@ -117,41 +111,44 @@ const NotificationsPage = () => {
     toast({ title: "Notification deleted" });
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    // Toggle expand
+    if (expandedId === notification.id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(notification.id);
+      // Mark as read when opened
+      if (!notification.is_read) {
+        markAsRead(notification.id);
+      }
+    }
+  };
+
   const getIcon = (type: string | null) => {
     switch (type) {
-      case 'promotion':
-        return Megaphone;
-      case 'message':
-        return MessageCircle;
-      case 'order':
-        return ShoppingBag;
-      case 'alert':
-        return AlertCircle;
-      case 'admin':
-        return Shield;
-      default:
-        return Bell;
+      case 'promotion': return Megaphone;
+      case 'message': return MessageCircle;
+      case 'order': return ShoppingBag;
+      case 'alert': return AlertCircle;
+      case 'admin': case 'push': return Shield;
+      default: return Bell;
     }
   };
 
   const getIconColor = (type: string | null) => {
     switch (type) {
-      case 'promotion':
-        return 'bg-purple-100 text-purple-600';
-      case 'message':
-        return 'bg-blue-100 text-blue-600';
-      case 'order':
-        return 'bg-green-100 text-green-600';
-      case 'alert':
-        return 'bg-red-100 text-red-600';
-      case 'admin':
-        return 'bg-orange-100 text-orange-600';
-      default:
-        return 'bg-orange-100 text-orange-600';
+      case 'promotion': return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'message': return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'order': return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+      case 'alert': return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+      case 'admin': case 'push': return 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400';
+      default: return 'bg-primary/10 text-primary';
     }
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const isHtmlMessage = (msg: string) => /<[a-z][\s\S]*>/i.test(msg);
 
   if (!user) {
     return (
@@ -166,9 +163,9 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-primary/5 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-lg border-b shadow-sm">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <button 
@@ -177,10 +174,12 @@ const NotificationsPage = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div>
+            <div className="flex items-center gap-2">
               <h1 className="font-bold text-lg">Notifications</h1>
               {unreadCount > 0 && (
-                <p className="text-xs text-muted-foreground">{unreadCount} unread</p>
+                <Badge className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0 min-w-[20px] h-5 flex items-center justify-center">
+                  {unreadCount}
+                </Badge>
               )}
             </div>
           </div>
@@ -190,31 +189,15 @@ const NotificationsPage = () => {
                 variant="ghost" 
                 size="sm" 
                 onClick={markAllAsRead}
-                className="gap-2"
+                className="gap-1.5 text-xs"
               >
-                <CheckCheck className="h-4 w-4" />
-                Mark all read
+                <CheckCheck className="h-3.5 w-3.5" />
+                Read all
               </Button>
-            )}
-            {isAdmin && (
-              <Badge className="bg-primary/10 text-primary">
-                <Shield className="h-3 w-3 mr-1" />
-                Admin
-              </Badge>
             )}
           </div>
         </div>
       </div>
-
-      {/* Admin Notice *
-      {!isAdmin && (
-        <div className="mx-4 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
-          <Lock className="h-5 w-5 text-amber-600 shrink-0" />
-          <p className="text-sm text-amber-700">
-            Only administrators can delete notifications. You can read and mark them as read.
-          </p>
-        </div>
-      )} */}
 
       {/* Notifications List */}
       <div className="p-4">
@@ -235,70 +218,110 @@ const NotificationsPage = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {notifications.map(notification => {
               const Icon = getIcon(notification.type);
+              const isExpanded = expandedId === notification.id;
               return (
                 <div 
                   key={notification.id}
                   className={cn(
-                    "bg-white rounded-xl p-4 border shadow-sm transition-all",
-                    !notification.is_read && "border-l-4 border-l-primary bg-primary/5"
+                    "bg-card rounded-xl border shadow-sm transition-all cursor-pointer active:scale-[0.99]",
+                    !notification.is_read && "border-l-4 border-l-primary"
                   )}
+                  onClick={() => handleNotificationClick(notification)}
                 >
-                  <div className="flex gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                      getIconColor(notification.type)
-                    )}>
-                      <Icon className="h-5 w-5" />
+                  <div className="p-3.5">
+                    <div className="flex gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                        getIconColor(notification.type)
+                      )}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className={cn("font-semibold text-sm", !notification.is_read && "text-foreground")}>{notification.title}</h3>
+                              {!notification.is_read && (
+                                <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                              )}
+                            </div>
+                            {!isExpanded && (
+                              <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
+                                {isHtmlMessage(notification.message) 
+                                  ? notification.message.replace(/<[^>]*>/g, '').slice(0, 80) 
+                                  : notification.message.slice(0, 80)
+                                }
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isExpanded ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] text-muted-foreground">
+                            {notification.created_at && format(new Date(notification.created_at), 'MMM d, h:mm a')}
+                          </span>
+                          {notification.type && (
+                            <Badge variant="outline" className="text-[10px] capitalize h-4 px-1.5">
+                              {notification.type}
+                            </Badge>
+                          )}
+                          {notification.user_id === null && (
+                            <Badge className="text-[10px] bg-primary/10 text-primary h-4 px-1.5">
+                              Global
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold text-sm">{notification.title}</h3>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+
+                    {/* Expanded full message */}
+                    {isExpanded && (
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        {isHtmlMessage(notification.message) ? (
+                          <div 
+                            className="prose prose-sm max-w-none text-foreground text-sm"
+                            dangerouslySetInnerHTML={{ __html: notification.message }}
+                          />
+                        ) : (
+                          <p className="text-sm text-foreground whitespace-pre-wrap">
                             {notification.message}
                           </p>
-                        </div>
-                        <div className="flex items-center gap-1">
+                        )}
+                        <div className="flex items-center gap-2 mt-3">
                           {!notification.is_read && (
-                            <button
-                              onClick={() => markAsRead(notification.id)}
-                              className="p-1.5 rounded-full hover:bg-gray-100 text-muted-foreground hover:text-primary"
-                              title="Mark as read"
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5 text-xs h-7"
+                              onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
                             >
-                              <Check className="h-4 w-4" />
-                            </button>
+                              <Check className="h-3 w-3" />
+                              Mark read
+                            </Button>
                           )}
-                          {/* Only show delete button for admins */}
                           {isAdmin && (
-                            <button
-                              onClick={() => deleteNotification(notification.id)}
-                              className="p-1.5 rounded-full hover:bg-gray-100 text-muted-foreground hover:text-destructive"
-                              title="Delete (Admin only)"
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="gap-1.5 text-xs h-7 text-destructive hover:text-destructive"
+                              onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </Button>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-muted-foreground">
-                          {notification.created_at && format(new Date(notification.created_at), 'MMM d, h:mm a')}
-                        </span>
-                        {notification.type && (
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {notification.type}
-                          </Badge>
-                        )}
-                        {notification.user_id === null && (
-                          <Badge className="text-xs bg-purple-100 text-purple-700">
-                            Global
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               );

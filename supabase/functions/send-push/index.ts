@@ -9,8 +9,17 @@ const corsHeaders = {
 };
 
 const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || '';
+const VAPID_PRIVATE_KEY_ENV = Deno.env.get('VAPID_PRIVATE_KEY') || '';
 const VAPID_SUBJECT = 'mailto:admin@smart-market.com';
 
+// Convert URL-safe base64 VAPID key to raw 65 bytes for P-256
+function vapidKeyToRaw(base64Key: string): Uint8Array {
+  // If it's already 65 bytes when decoded, it's raw
+  const decoded = decodeBase64Url(base64Key);
+  if (decoded.length === 65) return decoded;
+  // If 32 bytes, it's just the x-coordinate; shouldn't happen for public key
+  return decoded;
+}
 // ── VAPID JWT Generation ──
 async function createVapidJwt(audience: string, privateKeyBase64: string, publicKeyBase64: string): Promise<{ authorization: string; cryptoKey: string }> {
   // Import private key as JWK

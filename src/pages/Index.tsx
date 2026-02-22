@@ -4,6 +4,7 @@ import {
   Sparkles, Globe, TrendingUp, Zap
 } from "lucide-react";
 import Header from "@/components/layout/Header";
+import { useNotifications } from "@/hooks/useNotifications";
 import SearchModal from "@/components/layout/SearchModal";
 import SellerFAB from "@/components/layout/SellerFAB";
 import AdminFAB from "@/components/layout/AdminFAB";
@@ -35,6 +36,7 @@ const getCountryFlag = (code: string | null) => {
 const Index = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { unreadCount } = useNotifications();
   const { country, countryCode, currencySymbol, lat, lng, permissionDenied, requestLocationPermission, loading: geoLoading } = useGeo();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -59,7 +61,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 pb-8 pt-14">
-      <Header onSearchClick={() => setIsSearchOpen(true)} />
+      <Header onSearchClick={() => setIsSearchOpen(true)} notificationCount={unreadCount} />
       
       <main className="container px-4 py-4 space-y-6">
         {/* Location Header */}
