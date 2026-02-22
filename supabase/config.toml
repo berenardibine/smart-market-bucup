@@ -1,1 +1,49 @@
 project_id = "tsrnmrnfmvsivnvdkqrj"
+
+[functions.send-push]
+verify_jwt = false
+
+[functions.ai-notifications]
+verify_jwt = false
+
+[functions.record-impression]
+verify_jwt = false
+
+[functions.record-view]
+verify_jwt = false
+
+[functions.submit-comment]
+verify_jwt = false
+
+[functions.submit-report]
+verify_jwt = false
+
+[functions.get-recommendations]
+verify_jwt = false
+
+[functions.og-preview]
+verify_jwt = false
+
+[functions.optimize-file]
+verify_jwt = false
+
+[functions.auto-optimize]
+verify_jwt = false
+
+[functions.batch-optimize]
+verify_jwt = false
+
+[functions.remove-background]
+verify_jwt = false
+
+[functions.auth-sync]
+verify_jwt = false
+
+[functions.complete-profile]
+verify_jwt = false
+
+[functions.check-referrals]
+verify_jwt = false
+
+[functions.generate-sitemap]
+verify_jwt = false

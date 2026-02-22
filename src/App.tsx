@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { GeoProvider } from "@/context/GeoContext";
 import PreferenceThemeSync from "@/components/theme/PreferenceThemeSync";
 import ScrollToTop from "@/components/layout/ScrollToTop";
+import ProfileCompletionGuard from "@/components/auth/ProfileCompletionGuard";
 import SplashScreen from "@/components/pwa/SplashScreen";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import PermissionHandler from "@/components/pwa/PermissionHandler";
@@ -96,6 +97,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <ScrollToTop />
+              <ProfileCompletionGuard />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
