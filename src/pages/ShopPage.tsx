@@ -356,8 +356,6 @@ const ShopPage = () => {
           </>
         )}
       </div>
-
-      <BottomNav activeTab="home" onTabChange={() => {}} />
     </div>
   );
 };
