@@ -230,7 +230,7 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
       const productData: any = {
         title: formData.title,
         description: formData.description,
-        price: parseFloat(formData.price),
+        price: formData.price ? parseFloat(formData.price) : 0,
         quantity: parseInt(formData.quantity),
         category: formData.category || null,
         product_type: isRentalCategory ? 'rental' : formData.product_type,
@@ -368,15 +368,20 @@ const ProductForm = ({ product, shopId, onSuccess, onCancel }: ProductFormProps)
         {/* Price & Quantity */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="price">Price (RWF) *</Label>
+            <Label htmlFor="price">
+              Price (RWF) {!formData.is_negotiable && '*'}
+            </Label>
             <Input
               id="price"
               type="number"
               value={formData.price}
               onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-              placeholder="0"
-              required
+              placeholder={formData.is_negotiable ? "Optional" : "0"}
+              required={!formData.is_negotiable}
             />
+            {formData.is_negotiable && (
+              <p className="text-xs text-muted-foreground">Optional when price is negotiable</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="quantity">Quantity *</Label>
