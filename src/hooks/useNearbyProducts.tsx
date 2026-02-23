@@ -20,16 +20,15 @@ interface NearbyProduct {
   admin_posted: boolean | null;
   lat: number | null;
   lng: number | null;
-  distance_km: number;
+  distance_m: number;
   seller_id: string;
-  seller_name: string | null;
-  seller_image: string | null;
+  slug: string | null;
 }
 
 interface UseNearbyProductsOptions {
   lat: number | null;
   lng: number | null;
-  radiusKm?: number;
+  radiusM?: number;
   maxResults?: number;
   productType?: string | null;
 }
@@ -37,7 +36,7 @@ interface UseNearbyProductsOptions {
 export const useNearbyProducts = ({
   lat,
   lng,
-  radiusKm = 100,
+  radiusM = 10000, // 10km default
   maxResults = 20,
   productType = null,
 }: UseNearbyProductsOptions) => {
@@ -54,11 +53,11 @@ export const useNearbyProducts = ({
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_nearby_products', {
-        user_lat: lat,
-        user_lng: lng,
-        radius_km: radiusKm,
-        max_results: maxResults + 1, // +1 to check for more
+      const { data, error } = await supabase.rpc('get_nearby_products_postgis' as any, {
+        b_lat: lat,
+        b_lng: lng,
+        radius_m: radiusM,
+        limit_count: maxResults + 1,
       });
 
       if (error) throw error;
@@ -78,7 +77,7 @@ export const useNearbyProducts = ({
     } finally {
       setLoading(false);
     }
-  }, [lat, lng, radiusKm, maxResults, productType]);
+  }, [lat, lng, radiusM, maxResults, productType]);
 
   useEffect(() => {
     fetchNearby();
