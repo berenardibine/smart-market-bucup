@@ -13,11 +13,17 @@ interface NearbyProductsProps {
   onRequestPermission?: () => void;
 }
 
+const formatDistance = (meters: number): string => {
+  if (meters < 100) return `${Math.round(meters)}m away`;
+  if (meters < 1000) return `${Math.round(meters)}m away`;
+  return `${(meters / 1000).toFixed(1)}km away`;
+};
+
 const NearbyProducts = ({ lat, lng, permissionDenied, onRequestPermission }: NearbyProductsProps) => {
   const { products, loading, hasMore, refetch } = useNearbyProducts({
     lat,
     lng,
-    radiusKm: 100,
+    radiusM: 10000, // 10km
     maxResults: 12,
   });
   
@@ -29,14 +35,10 @@ const NearbyProducts = ({ lat, lng, permissionDenied, onRequestPermission }: Nea
   // Auto-scroll every 3 seconds
   useEffect(() => {
     if (isPaused || products.length <= 2) return;
-
     intervalRef.current = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % Math.ceil(products.length / 2));
     }, 3000);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isPaused, products.length]);
 
   useEffect(() => {
@@ -113,7 +115,7 @@ const NearbyProducts = ({ lat, lng, permissionDenied, onRequestPermission }: Nea
         </h3>
         <div className="bg-muted/30 rounded-2xl p-6 text-center">
           <p className="text-sm text-muted-foreground">
-            No products found within 100km. Check back later!
+            No products found within 10km. Check back later!
           </p>
           <Button size="sm" variant="ghost" className="mt-2" onClick={refetch}>
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -139,7 +141,7 @@ const NearbyProducts = ({ lat, lng, permissionDenied, onRequestPermission }: Nea
           <Navigation className="h-5 w-5 text-primary" />
           Products Near You
           <span className="text-xs text-muted-foreground font-normal">
-            ({products.length} within 100km)
+            ({products.length} nearby)
           </span>
         </h3>
         <div className="flex gap-1">
@@ -168,6 +170,7 @@ const NearbyProducts = ({ lat, lng, permissionDenied, onRequestPermission }: Nea
           <div key={product.id} className="w-[180px] shrink-0">
             <FloatingProductCard
               id={product.id}
+              slug={product.slug || undefined}
               title={product.title}
               price={product.price}
               images={product.images}
@@ -179,9 +182,7 @@ const NearbyProducts = ({ lat, lng, permissionDenied, onRequestPermission }: Nea
             />
             <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              {product.distance_km < 1
-                ? 'Less than 1 km'
-                : `${product.distance_km.toFixed(1)} km away`}
+              {formatDistance(product.distance_m)}
             </p>
           </div>
         ))}

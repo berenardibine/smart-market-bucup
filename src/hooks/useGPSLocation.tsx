@@ -13,11 +13,14 @@ interface GPSCoords {
 }
 
 const GPS_CACHE_KEY = 'smartmarket_gps';
-const GPS_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
-const UPDATE_INTERVAL = 15 * 60 * 1000; // 15 minutes
+const GPS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes for fresher data
+const UPDATE_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-// Round to ~100m precision for privacy
-const roundCoord = (n: number) => Math.round(n * 10000) / 10000;
+// Round to ~11m precision (3 decimals ≈ 111m, 4 decimals ≈ 11m)
+const roundCoord = (n: number, decimals = 4) => Math.round(n * Math.pow(10, decimals)) / Math.pow(10, decimals);
+
+// Round to 3 decimals (~111m) for frontend display privacy
+export const obfuscateCoord = (n: number) => Math.round(n * 1000) / 1000;
 
 export const useGPSLocation = () => {
   const { user, profile } = useAuth();
@@ -92,8 +95,8 @@ export const useGPSLocation = () => {
         cacheCoords(enriched);
         lastUpdateRef.current = Date.now();
         
-        // Save to DB for sellers
-        if (user && profile?.user_type === 'seller') {
+        // Save to DB for all authenticated users
+        if (user) {
           await saveLocationToDB(enriched);
         }
         
@@ -122,8 +125,8 @@ export const useGPSLocation = () => {
         cacheCoords(ipCoords);
         lastUpdateRef.current = Date.now();
         
-        // Save to DB for sellers
-        if (user && profile?.user_type === 'seller') {
+        // Save to DB for all authenticated users
+        if (user) {
           await saveLocationToDB(ipCoords);
         }
       }
@@ -158,9 +161,9 @@ export const useGPSLocation = () => {
           resolve(null);
         },
         {
-          enableHighAccuracy: false,
-          timeout: 10000,
-          maximumAge: GPS_CACHE_DURATION,
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000, // 1 minute max age for accuracy
         }
       );
     });
@@ -211,12 +214,11 @@ export const useGPSLocation = () => {
         })
         .eq('id', user.id);
       
-      // Also update seller's products with coordinates
+      // Auto-sync seller location to ALL their products (trigger also does this)
       await supabase
         .from('products')
         .update({ lat: data.lat, lng: data.lng })
-        .eq('seller_id', user.id)
-        .is('lat', null);
+        .eq('seller_id', user.id);
       
       // Update seller's shop
       await supabase
