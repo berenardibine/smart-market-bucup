@@ -21,7 +21,8 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
-    phone_number: "",
+    call_number: "",
+    whatsapp_number: "",
     bio: "",
     business_name: "",
   });
@@ -30,7 +31,8 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
     if (profile) {
       setFormData({
         full_name: profile.full_name || "",
-        phone_number: profile.phone_number || "",
+        call_number: (profile as any).call_number || profile.phone_number || "",
+        whatsapp_number: (profile as any).whatsapp_number || profile.phone_number || "",
         bio: (profile as any).bio || "",
         business_name: (profile as any).business_name || "",
       });
@@ -43,11 +45,58 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
 
     setLoading(true);
     try {
+      // Auto-fill: if user has only one number, use it for both
+      const callNum = formData.call_number?.trim() || formData.whatsapp_number?.trim() || "";
+      const whatsappNum = formData.whatsapp_number?.trim() || formData.call_number?.trim() || "";
+
+      // Check for duplicate phone numbers
+      if (callNum) {
+        const { data: existingCall } = await supabase
+          .from("profiles")
+          .select("id")
+          .neq("id", profile.id)
+          .or(`call_number.eq.${callNum},phone_number.eq.${callNum},whatsapp_number.eq.${callNum}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingCall) {
+          toast({
+            title: "Phone number already used",
+            description: "This phone number is already used by another account. Please use a different number.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (whatsappNum && whatsappNum !== callNum) {
+        const { data: existingWhatsapp } = await supabase
+          .from("profiles")
+          .select("id")
+          .neq("id", profile.id)
+          .eq("whatsapp_number", whatsappNum)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingWhatsapp) {
+          toast({
+            title: "WhatsApp number already used",
+            description: "This WhatsApp number is already used by another account. Please use a different number.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({
           full_name: formData.full_name,
-          phone_number: formData.phone_number,
+          phone_number: callNum,
+          call_number: callNum,
+          whatsapp_number: whatsappNum,
           bio: formData.bio,
           business_name: formData.business_name,
         })
@@ -55,10 +104,30 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
 
       if (error) throw error;
 
+      // Sync updated numbers to all user's products
+      if (callNum || whatsappNum) {
+        await supabase
+          .from("products")
+          .update({
+            contact_call: callNum || null,
+            contact_whatsapp: whatsappNum || null,
+          })
+          .eq("seller_id", profile.id);
+
+        // Sync to user's shops
+        await supabase
+          .from("shops")
+          .update({
+            contact_phone: callNum || null,
+            whatsapp: whatsappNum || null,
+          })
+          .eq("seller_id", profile.id);
+      }
+
       await refreshProfile();
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully!",
+        description: "Your profile and all listings have been updated!",
       });
       onClose();
     } catch (err: any) {
@@ -174,13 +243,24 @@ const EditProfileModal = ({ open, onClose }: EditProfileModalProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone_number">Phone Number</Label>
+            <Label htmlFor="call_number">Call Number</Label>
             <Input
-              id="phone_number"
-              value={formData.phone_number}
-              onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-              placeholder="Enter your phone number"
+              id="call_number"
+              value={formData.call_number}
+              onChange={(e) => setFormData({ ...formData, call_number: e.target.value })}
+              placeholder="Enter your call number"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp_number">WhatsApp Number</Label>
+            <Input
+              id="whatsapp_number"
+              value={formData.whatsapp_number}
+              onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
+              placeholder="Enter your WhatsApp number (leave empty to use call number)"
+            />
+            <p className="text-xs text-muted-foreground">Leave empty to use the same as call number</p>
           </div>
 
           <div className="space-y-2">

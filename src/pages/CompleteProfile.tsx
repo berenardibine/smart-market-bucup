@@ -144,7 +144,12 @@ const CompleteProfile = () => {
         throw new Error(data?.error || 'Failed to save profile');
       }
     } catch (err: any) {
-      setFormError(err.message || 'Failed to create profile. Please try again.');
+      const msg = err.message || '';
+      if (msg.includes('already used') || msg.includes('already exists') || msg.includes('duplicate')) {
+        setFormError(msg);
+      } else {
+        setFormError(msg || 'Failed to create profile. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
