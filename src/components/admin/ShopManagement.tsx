@@ -132,9 +132,20 @@ const ShopManagement = () => {
   const handleEditShop = async () => {
     if (!selectedShop) return;
 
+    const updatePayload: any = { ...editData };
+    // Map field names to match DB columns
+    if ('phone_number' in updatePayload) {
+      updatePayload.contact_phone = updatePayload.phone_number;
+      delete updatePayload.phone_number;
+    }
+    if ('whatsapp_number' in updatePayload) {
+      updatePayload.whatsapp = updatePayload.whatsapp_number;
+      delete updatePayload.whatsapp_number;
+    }
+
     const { error } = await supabase
       .from('shops')
-      .update(editData)
+      .update(updatePayload)
       .eq('id', selectedShop.id);
 
     if (error) {
@@ -156,7 +167,7 @@ const ShopManagement = () => {
             placeholder="Search shops by name, owner, or location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 rounded-xl bg-white"
+            className="pl-10 h-12 rounded-xl"
           />
         </div>
         <Button variant="outline" size="icon" className="h-12 w-12" onClick={fetchShops}>
@@ -166,22 +177,22 @@ const ShopManagement = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl p-4 border">
-          <div className="flex items-center gap-2 text-green-600 mb-1">
+        <div className="bg-card rounded-xl p-4 border">
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
             <Store className="h-4 w-4" />
             <span className="text-xs font-medium">Total Shops</span>
           </div>
           <p className="text-2xl font-bold">{shops.length}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border">
-          <div className="flex items-center gap-2 text-blue-600 mb-1">
+        <div className="bg-card rounded-xl p-4 border">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
             <CheckCircle className="h-4 w-4" />
             <span className="text-xs font-medium">Active</span>
           </div>
           <p className="text-2xl font-bold">{shops.filter(s => s.is_active !== false).length}</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border">
-          <div className="flex items-center gap-2 text-red-600 mb-1">
+        <div className="bg-card rounded-xl p-4 border">
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-1">
             <Ban className="h-4 w-4" />
             <span className="text-xs font-medium">Blocked</span>
           </div>
@@ -190,8 +201,8 @@ const ShopManagement = () => {
       </div>
 
       {/* Shop List */}
-      <div className="bg-white rounded-2xl border overflow-hidden">
-        <div className="p-4 border-b bg-gradient-to-r from-green-50 to-white">
+      <div className="bg-card rounded-2xl border overflow-hidden">
+        <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-transparent">
           <h3 className="font-semibold">All Shops ({filteredShops.length})</h3>
         </div>
         <div className="divide-y max-h-[500px] overflow-y-auto">
@@ -207,7 +218,7 @@ const ShopManagement = () => {
             </div>
           ) : (
             filteredShops.map(shop => (
-              <div key={shop.id} className="p-4 flex items-start gap-4 hover:bg-gray-50 transition-colors">
+              <div key={shop.id} className="p-4 flex items-start gap-4 hover:bg-accent transition-colors">
                 <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-400 flex items-center justify-center overflow-hidden">
                   {shop.logo_url ? (
                     <img src={shop.logo_url} alt={shop.name} className="w-full h-full object-cover" />
@@ -248,7 +259,7 @@ const ShopManagement = () => {
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-white">
+                  <DropdownMenuContent align="end" className="bg-popover">
                     <DropdownMenuItem onClick={() => {
                       setSelectedShop(shop);
                       setShowDetailDialog(true);
@@ -285,7 +296,7 @@ const ShopManagement = () => {
 
       {/* Shop Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle>Shop Details</DialogTitle>
           </DialogHeader>
@@ -356,7 +367,7 @@ const ShopManagement = () => {
 
       {/* Edit Shop Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-white">
+        <DialogContent className="bg-card">
           <DialogHeader>
             <DialogTitle>Edit Shop</DialogTitle>
           </DialogHeader>

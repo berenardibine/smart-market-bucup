@@ -99,7 +99,10 @@ const HomeAds = () => {
               <img 
                 src={currentAd.image_url} 
                 alt={currentAd.title}
-                className="w-full h-32 sm:h-40 object-cover"
+                className={cn(
+                  "w-full object-cover",
+                  currentAd.type === 'banner' ? "h-48 sm:h-56" : "h-36 sm:h-44"
+                )}
               />
             )}
             {/* Overlay with text */}
