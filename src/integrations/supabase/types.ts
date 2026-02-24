@@ -1563,6 +1563,7 @@ export type Database = {
           lng: number | null
           location: string | null
           phone_number: string | null
+          preferred_view: string | null
           profile_image: string | null
           province_id: string | null
           rating: number | null
@@ -1607,6 +1608,7 @@ export type Database = {
           lng?: number | null
           location?: string | null
           phone_number?: string | null
+          preferred_view?: string | null
           profile_image?: string | null
           province_id?: string | null
           rating?: number | null
@@ -1651,6 +1653,7 @@ export type Database = {
           lng?: number | null
           location?: string | null
           phone_number?: string | null
+          preferred_view?: string | null
           profile_image?: string | null
           province_id?: string | null
           rating?: number | null
@@ -2727,6 +2730,33 @@ export type Database = {
           last_active?: string | null
           location?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      visitor_preferences: {
+        Row: {
+          created_at: string | null
+          detected_country: string | null
+          filter_preference: string | null
+          id: string
+          ip_address: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          detected_country?: string | null
+          filter_preference?: string | null
+          id?: string
+          ip_address?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          detected_country?: string | null
+          filter_preference?: string | null
+          id?: string
+          ip_address?: string | null
+          session_id?: string
         }
         Relationships: []
       }
