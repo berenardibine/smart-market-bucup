@@ -69,7 +69,9 @@ import {
 import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminComments from "./pages/admin/AdminComments";
 import AdminReports from "./pages/admin/AdminReports";
+import AdminSeoPages from "./pages/admin/AdminSeoPages";
 import MenuPage from "./pages/MenuPage";
+import SitePage from "./pages/SitePage";
 
 const queryClient = new QueryClient();
 
@@ -134,8 +136,10 @@ const App = () => {
                 <Route path="/admin/referrals" element={<AdminReferrals />} />
                 <Route path="/admin/comments" element={<AdminComments />} />
                 <Route path="/admin/reports" element={<AdminReports />} />
+                <Route path="/admin/seo" element={<AdminSeoPages />} />
 
                 <Route path="/menu" element={<MenuPage />} />
+                <Route path="/page/:slug" element={<SitePage />} />
 
                 <Route path="/assets" element={<AssetPage />} />
                 <Route path="/agriculture" element={<AgriculturePage />} />

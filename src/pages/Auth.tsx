@@ -12,6 +12,7 @@ import CountrySelect from '@/components/location/CountrySelect';
 import { Country } from '@/hooks/useCountries';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import TermsModal from '@/components/auth/TermsModal';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const Auth = () => {
   const [callNumber, setCallNumber] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [showTerms, setShowTerms] = useState(false);
 
   // Load referral code from session
   useEffect(() => {
@@ -156,6 +158,12 @@ const Auth = () => {
       return;
     }
 
+    // Show terms modal instead of submitting directly
+    setShowTerms(true);
+  };
+
+  const proceedWithSignUp = async () => {
+    setShowTerms(false);
     setLoading(true);
 
     const { error } = await signUp({
@@ -471,11 +479,18 @@ const Auth = () => {
         {/* Footer */}
         <p className="text-center text-sm text-muted-foreground mt-8">
           By continuing, you agree to our{' '}
-          <a href="#" className="text-primary hover:underline">Terms of Service</a>
+          <a href="/page/terms" className="text-primary hover:underline">Terms of Service</a>
           {' '}and{' '}
-          <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+          <a href="/page/privacy" className="text-primary hover:underline">Privacy Policy</a>
         </p>
       </div>
+
+      {/* Terms Modal */}
+      <TermsModal
+        open={showTerms}
+        onAccept={proceedWithSignUp}
+        onCancel={() => setShowTerms(false)}
+      />
     </div>
   );
 };

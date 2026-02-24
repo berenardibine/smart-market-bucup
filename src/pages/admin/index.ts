@@ -17,3 +17,4 @@ export { default as AdminFileOptimization } from './AdminFileOptimization';
 export { default as AdminViewsAnalytics } from './AdminViewsAnalytics';
 export { default as AdminReports } from './AdminReports';
 export { default as AdminComments } from './AdminComments';
+export { default as AdminSeoPages } from './AdminSeoPages';

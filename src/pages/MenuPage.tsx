@@ -40,6 +40,13 @@ const MenuPage = () => {
     { icon: Phone, label: "Contact Support", href: "/support", color: "bg-teal-500" },
   ];
 
+  const legalItems = [
+    { label: "Privacy Policy", href: "/page/privacy" },
+    { label: "Terms & Conditions", href: "/page/terms" },
+    { label: "Disclaimer", href: "/page/disclaimer" },
+    { label: "About Us", href: "/page/about" },
+  ];
+
   const filteredAuthItems = authMenuItems.filter(item => {
     if (item.sellerOnly && profile?.user_type !== 'seller') return false;
     return true;
@@ -246,6 +253,23 @@ const MenuPage = () => {
             <span className="font-semibold text-white text-base">Sign In / Sign Up</span>
           </button>
         )}
+      </div>
+
+      {/* Legal Pages */}
+      <div className="px-4 py-2">
+        <div className="h-px bg-border my-2" />
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Legal</p>
+        <div className="grid grid-cols-2 gap-2">
+          {legalItems.map(item => (
+            <button
+              key={item.label}
+              onClick={() => navigate(item.href)}
+              className="p-3 rounded-xl bg-card border text-left hover:shadow-md transition-all"
+            >
+              <span className="text-sm font-medium text-foreground">{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Footer */}

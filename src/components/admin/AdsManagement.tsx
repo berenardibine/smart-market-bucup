@@ -361,6 +361,7 @@ const AdsManagement = () => {
                       <SelectItem value="all">All Users</SelectItem>
                       <SelectItem value="seller">Sellers Only</SelectItem>
                       <SelectItem value="buyer">Buyers Only</SelectItem>
+                      <SelectItem value="seller_dashboard">Seller Dashboard Only</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -529,7 +530,10 @@ const AdsManagement = () => {
                     <img 
                       src={formData.image_url} 
                       alt="Preview" 
-                      className="w-full h-32 object-cover rounded-lg mb-3"
+                      className={cn(
+                        "w-full object-cover rounded-lg mb-3",
+                        formData.type === 'banner' ? "h-48" : "h-32"
+                      )}
                     />
                   )}
                   <p className={cn(
