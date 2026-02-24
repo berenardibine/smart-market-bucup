@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Sparkles, Globe, TrendingUp, Zap
+  Sparkles, Globe, Zap, MapPin
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -17,13 +17,14 @@ import ShopNearMe from "@/components/home/ShopNearMe";
 import NearbyProducts from "@/components/home/NearbyProducts";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
 import ReferralBanner from "@/components/referral/ReferralBanner";
-import SectionHeader from "@/components/home/SectionHeader";
 import CategoryCarousel from "@/components/home/CategoryCarousel";
 import { useAuth } from "@/hooks/useAuth";
 import { useDynamicHomeFeed } from "@/hooks/useDynamicHomeFeed";
 import { useGeo } from "@/context/GeoContext";
+import { useViewPreference } from "@/hooks/useViewPreference";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 const getCountryFlag = (code: string | null) => {
@@ -38,16 +39,20 @@ const Index = () => {
   const { profile } = useAuth();
   const { unreadCount } = useNotifications();
   const { country, countryCode, currencySymbol, lat, lng, permissionDenied, requestLocationPermission, loading: geoLoading } = useGeo();
+  const { preference, updatePreference, isCountryOnly } = useViewPreference();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [showGlobalProducts, setShowGlobalProducts] = useState(false);
+
+  // When preference is 'global', pass null to show all products
+  // When preference is 'country_only', pass the detected country
+  const feedCountry = isCountryOnly ? country : null;
   
   const { 
     dynamicFeed,
     newArrivals,
     categorySections,
     loading,
-  } = useDynamicHomeFeed(showGlobalProducts ? null : country);
+  } = useDynamicHomeFeed(feedCountry);
 
   const isSeller = profile?.user_type === 'seller';
 
@@ -79,11 +84,11 @@ const Index = () => {
             </div>
             <div className="flex-1 text-left">
               <p className="text-[11px] text-muted-foreground font-medium">
-                {showGlobalProducts ? '🌍 Showing products from' : '📍 Products near you in'}
+                {isCountryOnly ? '📍 Products from' : '🌍 Showing all products'}
               </p>
               <p className="font-bold text-foreground text-sm">
-                {geoLoading ? 'Detecting...' : (showGlobalProducts ? 'All Countries' : country || 'Select Location')}
-                {currencySymbol && !showGlobalProducts && (
+                {geoLoading ? 'Detecting...' : (isCountryOnly ? (country || 'Your Country') : 'All Countries')}
+                {currencySymbol && isCountryOnly && (
                   <span className="ml-2 text-xs font-normal text-muted-foreground">({currencySymbol})</span>
                 )}
               </p>
@@ -91,19 +96,20 @@ const Index = () => {
             <Globe className="h-4 w-4 text-muted-foreground" />
           </button>
 
-          <div className="flex justify-center mt-2.5">
-            <button
-              onClick={() => setShowGlobalProducts(!showGlobalProducts)}
-              className={cn(
-                "text-xs px-4 py-1.5 rounded-full transition-all font-medium shadow-sm",
-                showGlobalProducts 
-                  ? "bg-primary text-primary-foreground shadow-primary/20" 
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {showGlobalProducts ? '🌍 Showing Global' : '🔄 Show Global'}
-            </button>
-          </div>
+          {/* Country Filter Toggle */}
+          {country && (
+            <div className="flex items-center justify-center gap-3 mt-3 p-2.5 rounded-xl bg-muted/40 border border-border/30">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                Show only products from <span className="font-semibold text-foreground">{country}</span>
+              </span>
+              <Switch
+                checked={isCountryOnly}
+                onCheckedChange={(checked) => updatePreference(checked ? 'country_only' : 'global')}
+                className="ml-auto"
+              />
+            </div>
+          )}
         </section>
 
         {/* Permission Banner */}
@@ -121,7 +127,7 @@ const Index = () => {
         </section>
 
         {/* Featured */}
-        <FeaturedProducts userCountry={showGlobalProducts ? null : country} />
+        <FeaturedProducts userCountry={feedCountry} />
 
         {/* New Arrivals */}
         {newArrivals.length > 0 && (
@@ -163,7 +169,7 @@ const Index = () => {
 
         {/* Shop Near Me */}
         <section className="animate-fade-up" style={{ animationDelay: "0.28s" }}>
-          <ShopNearMe userCountry={showGlobalProducts ? undefined : country || undefined} />
+          <ShopNearMe userCountry={isCountryOnly ? country || undefined : undefined} />
         </section>
 
         {/* Dynamic Feed */}
@@ -229,16 +235,16 @@ const Index = () => {
             <div className="text-center py-16 bg-gradient-to-br from-muted/40 to-muted/20 rounded-2xl border border-border/30">
               <Sparkles className="h-12 w-12 text-primary/40 mx-auto mb-4" />
               <p className="text-muted-foreground font-medium">
-                {showGlobalProducts 
-                  ? 'No products available yet. Check back soon!' 
-                  : `No products in ${country || 'your area'}.`
+                {isCountryOnly 
+                  ? `No products in ${country || 'your area'}.` 
+                  : 'No products available yet. Check back soon!'
                 }
               </p>
-              {!showGlobalProducts && (
+              {isCountryOnly && (
                 <Button 
                   variant="outline" 
                   className="mt-4 rounded-full"
-                  onClick={() => setShowGlobalProducts(true)}
+                  onClick={() => updatePreference('global')}
                 >
                   <Globe className="h-4 w-4 mr-2" />
                   Show Global Products
