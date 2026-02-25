@@ -7,6 +7,7 @@ import { Shield, Copy, Check, Loader2, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { generateSecret, formatSecret, verifyTOTP, generateTOTPUri } from "@/lib/totp";
 
 interface TwoFactorSetupModalProps {
   open: boolean;
@@ -15,33 +16,22 @@ interface TwoFactorSetupModalProps {
 }
 
 const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalProps) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [step, setStep] = useState<'generate' | 'verify'>('generate');
-  const [secretKey, setSecretKey] = useState('');
+  const [rawSecret, setRawSecret] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Generate a random secret key (in production, use a proper TOTP library)
-  const generateSecretKey = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    let key = '';
-    for (let i = 0; i < 32; i++) {
-      key += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    // Format with spaces for readability
-    return key.match(/.{1,4}/g)?.join(' ') || key;
-  };
-
   const handleGenerateKey = () => {
-    const key = generateSecretKey();
-    setSecretKey(key);
+    const secret = generateSecret();
+    setRawSecret(secret);
     setStep('verify');
   };
 
   const handleCopyKey = () => {
-    navigator.clipboard.writeText(secretKey.replace(/\s/g, ''));
+    navigator.clipboard.writeText(rawSecret);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     toast({ title: "Secret key copied!" });
@@ -55,16 +45,29 @@ const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalPr
 
     setLoading(true);
     try {
-      // In production, verify the TOTP code against the secret
-      // For demo, we'll accept any 6-digit code
-      
+      // Actually verify the TOTP code against the secret
+      const isValid = verifyTOTP(verificationCode, rawSecret);
+
+      if (!isValid) {
+        toast({ 
+          title: "Invalid code", 
+          description: "The code doesn't match. Make sure you entered the secret key correctly in your authenticator app and try the current code.",
+          variant: "destructive" 
+        });
+        setVerificationCode('');
+        setLoading(false);
+        return;
+      }
+
       // Save to user_security table
       const { error: securityError } = await supabase
         .from('user_security')
         .upsert({
           user_id: user?.id,
           two_factor_enabled: true,
-          secret_key: secretKey.replace(/\s/g, ''), // Store without spaces
+          secret_key: rawSecret,
+          last_2fa_verified_at: new Date().toISOString(),
+          session_expires_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
         });
 
       if (securityError) throw securityError;
@@ -75,7 +78,7 @@ const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalPr
         .update({ two_factor_enabled: true })
         .eq('user_id', user?.id);
 
-      toast({ title: "Two-factor authentication enabled successfully!" });
+      toast({ title: "Two-factor authentication enabled successfully! 🔒" });
       onSuccess();
       handleClose();
     } catch (err: any) {
@@ -91,10 +94,14 @@ const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalPr
 
   const handleClose = () => {
     setStep('generate');
-    setSecretKey('');
+    setRawSecret('');
     setVerificationCode('');
     onClose();
   };
+
+  const totpUri = rawSecret && profile?.email 
+    ? generateTOTPUri(rawSecret, profile.email) 
+    : '';
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -108,19 +115,29 @@ const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalPr
 
         {step === 'generate' ? (
           <div className="space-y-4 py-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <h4 className="font-medium text-amber-800 mb-2">Why enable 2FA?</h4>
-              <p className="text-sm text-amber-700">
-                Two-factor authentication adds an extra layer of security to your account. 
-                You'll need both your password and a code from your authenticator app to sign in.
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+              <h4 className="font-medium text-amber-800 dark:text-amber-300 mb-2">Why enable 2FA?</h4>
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                Two-factor authentication adds an extra layer of security. 
+                You'll need a code from your authenticator app to sign in, access your seller dashboard, and manage security settings.
               </p>
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+              <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">What happens with 2FA:</h4>
+              <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-disc list-inside">
+                <li>Code required every time you sign in</li>
+                <li>Code required to access seller/admin dashboards</li>
+                <li>Auto-logout after 3 days of inactivity</li>
+                <li>Code required to turn off 2FA</li>
+              </ul>
             </div>
 
             <div className="space-y-2">
               <h4 className="font-medium">Requirements:</h4>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Install an authenticator app (Google Authenticator, Authy, etc.)</li>
-                <li>Have your phone ready to scan or enter the secret key</li>
+                <li>Have your phone ready to enter the secret key</li>
               </ul>
             </div>
 
@@ -134,7 +151,7 @@ const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalPr
             <div className="bg-muted rounded-xl p-4 text-center">
               <p className="text-sm text-muted-foreground mb-2">Your Secret Key</p>
               <p className="font-mono text-lg font-bold tracking-wider break-all">
-                {secretKey}
+                {formatSecret(rawSecret)}
               </p>
               <Button 
                 variant="outline" 
@@ -147,9 +164,9 @@ const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalPr
               </Button>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <h4 className="font-medium text-blue-800 mb-2">Setup Instructions:</h4>
-              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+              <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">Setup Instructions:</h4>
+              <ol className="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
                 <li>Open your authenticator app</li>
                 <li>Add a new account</li>
                 <li>Choose "Enter setup key manually"</li>
@@ -164,9 +181,14 @@ const TwoFactorSetupModal = ({ open, onClose, onSuccess }: TwoFactorSetupModalPr
                 placeholder="Enter 6-digit code"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleVerify(); }}
                 maxLength={6}
                 className="text-center text-2xl tracking-widest font-mono"
+                autoComplete="one-time-code"
               />
+              <p className="text-xs text-muted-foreground text-center">
+                This verifies your authenticator is set up correctly
+              </p>
             </div>
 
             <div className="flex gap-3">

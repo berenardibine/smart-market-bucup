@@ -13,6 +13,7 @@ import { Country } from '@/hooks/useCountries';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import TermsModal from '@/components/auth/TermsModal';
+import TwoFactorVerifyModal from '@/components/settings/TwoFactorVerifyModal';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ const Auth = () => {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [referralCode, setReferralCode] = useState('');
   const [showTerms, setShowTerms] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [pending2FAUserId, setPending2FAUserId] = useState<string | null>(null);
 
   // Load referral code from session
   useEffect(() => {
@@ -109,13 +112,33 @@ const Auth = () => {
         description: error.message || 'Invalid email or password',
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'Welcome back!',
-        description: 'You have successfully signed in.',
-      });
-      navigate('/');
+      setLoading(false);
+      return;
     }
+
+    // Check if user has 2FA enabled
+    const { data: { user: signedInUser } } = await supabase.auth.getUser();
+    if (signedInUser) {
+      const { data: security } = await supabase
+        .from('user_security')
+        .select('two_factor_enabled')
+        .eq('user_id', signedInUser.id)
+        .eq('two_factor_enabled', true)
+        .maybeSingle();
+
+      if (security?.two_factor_enabled) {
+        setPending2FAUserId(signedInUser.id);
+        setShow2FA(true);
+        setLoading(false);
+        return;
+      }
+    }
+
+    toast({
+      title: 'Welcome back!',
+      description: 'You have successfully signed in.',
+    });
+    navigate('/');
     setLoading(false);
   };
 
@@ -491,6 +514,29 @@ const Auth = () => {
         onAccept={proceedWithSignUp}
         onCancel={() => setShowTerms(false)}
       />
+
+      {/* 2FA Verification Modal after login */}
+      {pending2FAUserId && (
+        <TwoFactorVerifyModal
+          open={show2FA}
+          onClose={async () => {
+            setShow2FA(false);
+            setPending2FAUserId(null);
+            // Sign out since they didn't verify
+            await supabase.auth.signOut();
+            toast({ title: "2FA verification required to sign in", variant: "destructive" });
+          }}
+          onVerified={() => {
+            setShow2FA(false);
+            setPending2FAUserId(null);
+            toast({ title: 'Welcome back!', description: 'Signed in with 2FA.' });
+            navigate('/');
+          }}
+          userId={pending2FAUserId}
+          title="Verify Your Identity"
+          description="Enter the 6-digit code from your authenticator app to complete sign in."
+        />
+      )}
     </div>
   );
 };

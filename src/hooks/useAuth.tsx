@@ -120,6 +120,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (result?.blocked) {
               // User was blocked, redirect to blocked page
               window.location.href = '/blocked';
+              return;
+            }
+            
+            // Check 2FA session expiry (auto-logout after 3 days)
+            const { data: security } = await supabase
+              .from('user_security')
+              .select('two_factor_enabled, session_expires_at')
+              .eq('user_id', session.user.id)
+              .eq('two_factor_enabled', true)
+              .maybeSingle();
+            
+            if (security?.session_expires_at) {
+              const expiresAt = new Date(security.session_expires_at);
+              if (new Date() > expiresAt) {
+                // Session expired, sign out
+                await supabase.auth.signOut();
+                setUser(null);
+                setSession(null);
+                setProfile(null);
+                return;
+              }
             }
           }, 0);
         } else {

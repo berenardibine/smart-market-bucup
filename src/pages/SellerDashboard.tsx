@@ -16,10 +16,12 @@ import { useProductRequests } from "@/hooks/useProductRequests";
 import { useToast } from "@/hooks/use-toast";
 import ShopForm from "@/components/seller/ShopForm";
 import ProductForm from "@/components/seller/ProductForm";
-import AdsManagement from "@/components/admin/AdsManagement";
+import HomeAds from "@/components/home/HomeAds";
 import ProductList from "@/components/seller/ProductList";
 import RequestList from "@/components/seller/RequestList";
 import SellerReferralTab from "@/components/seller/SellerReferralTab";
+import TwoFactorVerifyModal from "@/components/settings/TwoFactorVerifyModal";
+import { useTwoFactor } from "@/hooks/useTwoFactor";
 import { cn } from "@/lib/utils";
 
 const SellerDashboard = () => {
@@ -29,12 +31,15 @@ const SellerDashboard = () => {
   const { shop, loading: shopLoading, createShop, updateShop } = useMyShop();
   const { products, loading: productsLoading, refetch: refetchProducts } = useMyProducts();
   const { requests, loading: requestsLoading, updateRequestStatus } = useProductRequests();
+  const twoFactor = useTwoFactor(user?.id);
   
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [showShopForm, setShowShopForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [show2FAGate, setShow2FAGate] = useState(false);
+  const [twoFAVerified, setTwoFAVerified] = useState(false);
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
 
@@ -65,6 +70,9 @@ const SellerDashboard = () => {
     toast({ title: editingProduct ? "Product updated!" : "Product created! 🎉" });
   };
 
+  // 2FA gate: if 2FA is enabled but not verified in this session
+  const needs2FA = twoFactor.enabled && !twoFactor.verified && !twoFAVerified;
+
   if (!profile || profile.user_type !== 'seller') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
@@ -79,6 +87,24 @@ const SellerDashboard = () => {
             Go Home
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (needs2FA && !twoFactor.loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+        <TwoFactorVerifyModal
+          open={true}
+          onClose={() => navigate('/')}
+          onVerified={() => {
+            setTwoFAVerified(true);
+            twoFactor.refresh();
+          }}
+          userId={user!.id}
+          title="Seller Dashboard Access"
+          description="Enter your 2FA code to access the seller dashboard."
+        />
       </div>
     );
   }
@@ -112,7 +138,6 @@ const SellerDashboard = () => {
     { id: 'shop', label: 'My Shop', icon: Store, color: 'from-purple-500 to-violet-500', bg: 'bg-purple-50 dark:bg-purple-950/30', description: 'Shop settings' },
     { id: 'referrals', label: 'Referrals', icon: Gift, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', description: 'Earn rewards' },
     { id: 'requests', label: 'Requests', icon: MessageSquare, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', description: `${pendingRequests.length} pending` },
-    { id: 'ads', label: 'Smart Ads', icon: Zap, color: 'from-pink-500 to-rose-500', bg: 'bg-pink-50 dark:bg-pink-950/30', description: 'Promotions' },
   ];
 
   // Render module content
@@ -197,7 +222,7 @@ const SellerDashboard = () => {
           />
         );
       case 'ads':
-        return <AdsManagement />;
+        return null;
       default:
         return null;
     }
@@ -429,6 +454,9 @@ const SellerDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Seller Ads from Admin */}
+        <HomeAds />
 
         {/* Footer */}
         <div className="text-center py-4">

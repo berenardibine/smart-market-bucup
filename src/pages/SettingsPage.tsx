@@ -22,7 +22,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import TwoFactorSetupModal from "@/components/settings/TwoFactorSetupModal";
+import TwoFactorVerifyModal from "@/components/settings/TwoFactorVerifyModal";
 import ConnectedDevicesModal from "@/components/settings/ConnectedDevicesModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -34,6 +36,7 @@ const SettingsPage = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [showDevicesModal, setShowDevicesModal] = useState(false);
+  const [showDisable2FAVerify, setShowDisable2FAVerify] = useState(false);
 
   const isSeller = profile?.user_type === 'seller';
 
@@ -49,10 +52,17 @@ const SettingsPage = () => {
       return;
     }
 
-    // Special handling for 2FA - show setup modal
-    if (key === 'two_factor_enabled' && checked && !preferences.two_factor_enabled) {
-      setShow2FAModal(true);
-      return;
+    // Special handling for 2FA - show setup modal to enable, verify to disable
+    if (key === 'two_factor_enabled') {
+      if (checked && !preferences.two_factor_enabled) {
+        setShow2FAModal(true);
+        return;
+      }
+      if (!checked && preferences.two_factor_enabled) {
+        // Require 2FA code to disable
+        setShowDisable2FAVerify(true);
+        return;
+      }
     }
 
     updatePreference(key as any, checked);
@@ -269,6 +279,31 @@ const SettingsPage = () => {
         open={showDevicesModal}
         onClose={() => setShowDevicesModal(false)}
       />
+
+      {/* 2FA Verify to Disable */}
+      {user && (
+        <TwoFactorVerifyModal
+          open={showDisable2FAVerify}
+          onClose={() => setShowDisable2FAVerify(false)}
+          onVerified={async () => {
+            setShowDisable2FAVerify(false);
+            // Disable 2FA
+            await supabase
+              .from('user_security')
+              .update({ two_factor_enabled: false, secret_key: null })
+              .eq('user_id', user.id);
+            await supabase
+              .from('user_preferences')
+              .update({ two_factor_enabled: false })
+              .eq('user_id', user.id);
+            updatePreference('two_factor_enabled' as any, false);
+            toast({ title: "Two-factor authentication disabled" });
+          }}
+          userId={user.id}
+          title="Confirm Disable 2FA"
+          description="Enter your authenticator code to confirm disabling two-factor authentication."
+        />
+      )}
 
       {/* Delete Account Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
