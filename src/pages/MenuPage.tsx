@@ -1,7 +1,9 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  User, Store, Heart, Settings, Phone, LogOut, LogIn, 
-  ChevronRight, Shield, Bell, HelpCircle, ArrowLeft, Home, Loader2
+import {
+  User, Store, Heart, Settings, Phone, LogOut, LogIn,
+  ChevronRight, Shield, Bell, HelpCircle, ArrowLeft, Home,
+  FileText, ShieldCheck, ScrollText, Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCategories } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+
+interface LegalDbPage {
+  title: string;
+  slug: string;
+}
 
 // All categories are now shown in menu
 
@@ -21,6 +29,7 @@ const MenuPage = () => {
   const { toast } = useToast();
   const { unreadCount } = useNotifications();
   const { categories, loading: categoriesLoading } = useCategories();
+  const [legalPages, setLegalPages] = useState<LegalDbPage[]>([]);
 
   // Show all categories
   const visibleCategories = categories;
@@ -34,23 +43,73 @@ const MenuPage = () => {
   ];
 
   // Items visible to all users (guests + authenticated)
-  const publicItems = [
+  const staticSupportItems = [
     { icon: Settings, label: "Settings", href: "/settings", color: "bg-slate-500" },
     { icon: HelpCircle, label: "Help Center", href: "/help", color: "bg-cyan-500" },
     { icon: Phone, label: "Contact Support", href: "/support", color: "bg-teal-500" },
   ];
 
-  const legalItems = [
-    { label: "Privacy Policy", href: "/page/privacy" },
-    { label: "Terms & Conditions", href: "/page/terms" },
-    { label: "Disclaimer", href: "/page/disclaimer" },
-    { label: "About Us", href: "/page/about" },
+  const legalFallbackOrder = [
+    { slug: "about-us", label: "About Us" },
+    { slug: "privacy-policy", label: "Privacy Policy" },
+    { slug: "terms-and-condition", label: "Terms & Conditions" },
+    { slug: "disclaimer", label: "Disclaimer" },
   ];
+
+  const legalIconBySlug = {
+    "about-us": Info,
+    "privacy-policy": ShieldCheck,
+    "terms-and-condition": ScrollText,
+    disclaimer: FileText,
+  };
+
+  useEffect(() => {
+    const fetchLegalPages = async () => {
+      const slugs = legalFallbackOrder.map((item) => item.slug);
+      const { data } = await supabase
+        .from("site_pages")
+        .select("title,slug")
+        .in("slug", slugs)
+        .eq("is_published", true);
+
+      if (!data) {
+        setLegalPages(legalFallbackOrder.map((item) => ({ title: item.label, slug: item.slug })));
+        return;
+      }
+
+      const mapBySlug = new Map(data.map((page) => [page.slug, page.title]));
+      const ordered = legalFallbackOrder
+        .filter((item) => mapBySlug.has(item.slug))
+        .map((item) => ({
+          slug: item.slug,
+          title: mapBySlug.get(item.slug) || item.label,
+        }));
+
+      setLegalPages(ordered.length > 0 ? ordered : legalFallbackOrder.map((item) => ({ title: item.label, slug: item.slug })));
+    };
+
+    fetchLegalPages();
+  }, []);
 
   const filteredAuthItems = authMenuItems.filter(item => {
     if (item.sellerOnly && profile?.user_type !== 'seller') return false;
     return true;
   });
+
+  const supportItems = useMemo(() => {
+    const legalAsMenu = legalPages.map((page) => ({
+      icon: legalIconBySlug[page.slug as keyof typeof legalIconBySlug] ?? FileText,
+      label: page.title,
+      href: `/${page.slug}`,
+      color: "bg-primary",
+    }));
+
+    return [
+      staticSupportItems[0],
+      ...legalAsMenu,
+      ...staticSupportItems.slice(1),
+    ];
+  }, [legalPages]);
 
   const handleLogout = async () => {
     await signOut();
@@ -212,7 +271,7 @@ const MenuPage = () => {
         <div className="h-px bg-border my-2" />
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Support</p>
         <div className="space-y-2">
-          {publicItems.map((item) => (
+          {supportItems.map((item) => (
             <button
               key={item.label}
               onClick={() => navigate(item.href)}
@@ -255,22 +314,6 @@ const MenuPage = () => {
         )}
       </div>
 
-      {/* Legal Pages */}
-      <div className="px-4 py-2">
-        <div className="h-px bg-border my-2" />
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 px-1">Legal</p>
-        <div className="grid grid-cols-2 gap-2">
-          {legalItems.map(item => (
-            <button
-              key={item.label}
-              onClick={() => navigate(item.href)}
-              className="p-3 rounded-xl bg-card border text-left hover:shadow-md transition-all"
-            >
-              <span className="text-sm font-medium text-foreground">{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Footer */}
       <div className="px-4 py-8">

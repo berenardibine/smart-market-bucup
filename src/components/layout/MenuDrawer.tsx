@@ -1,9 +1,11 @@
-import { 
-  X, User, Store, Heart, Trophy, Settings, Phone, LogOut, LogIn, 
-  ChevronRight, Shield, Bell, HelpCircle, Star, Gift 
+import { useEffect, useMemo, useState } from "react";
+import {
+  X, User, Store, LogOut, LogIn,
+  ChevronRight, Shield, Bell, HelpCircle, Star, Settings,
+  ShieldCheck, ScrollText, Info, FileText, Phone
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -12,6 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 interface MenuDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface LegalDbPage {
+  title: string;
+  slug: string;
 }
 
 const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
@@ -33,17 +40,76 @@ const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
     { icon: Store, label: "My Shop", href: "/my-shop", requiresAuth: true, sellerOnly: true, color: "bg-green-500" },
     { icon: Bell, label: "Notifications", href: "/notifications", requiresAuth: true, color: "bg-purple-500" },
   ];
-  const supportItems = [
+  const staticSupportItems = [
     { icon: Settings, label: "Settings", href: "/settings", color: "bg-slate-500" },
     { icon: HelpCircle, label: "Help Center", href: "/help", color: "bg-cyan-500" },
     { icon: Phone, label: "Contact Support", href: "/support", color: "bg-teal-500" },
   ];
+
+  const legalFallbackOrder = [
+    { slug: "about-us", label: "About Us" },
+    { slug: "privacy-policy", label: "Privacy Policy" },
+    { slug: "terms-and-condition", label: "Terms & Conditions" },
+    { slug: "disclaimer", label: "Disclaimer" },
+  ];
+
+  const legalIconBySlug = {
+    "about-us": Info,
+    "privacy-policy": ShieldCheck,
+    "terms-and-condition": ScrollText,
+    disclaimer: FileText,
+  };
+
+  const [legalPages, setLegalPages] = useState<LegalDbPage[]>([]);
 
   const filteredItems = menuItems.filter(item => {
     if (item.sellerOnly && profile?.user_type !== 'seller') return false;
     if (item.requiresAuth && !user) return false;
     return true;
   });
+
+  const supportItems = useMemo(() => {
+    const legalAsMenu = legalPages.map((page) => ({
+      icon: legalIconBySlug[page.slug as keyof typeof legalIconBySlug] ?? FileText,
+      label: page.title,
+      href: `/${page.slug}`,
+      color: "bg-primary",
+    }));
+
+    return [
+      staticSupportItems[0],
+      ...legalAsMenu,
+      ...staticSupportItems.slice(1),
+    ];
+  }, [legalPages]);
+
+  useEffect(() => {
+    const fetchLegalPages = async () => {
+      const slugs = legalFallbackOrder.map((item) => item.slug);
+      const { data } = await supabase
+        .from("site_pages")
+        .select("title,slug")
+        .in("slug", slugs)
+        .eq("is_published", true);
+
+      if (!data) {
+        setLegalPages(legalFallbackOrder.map((item) => ({ title: item.label, slug: item.slug })));
+        return;
+      }
+
+      const mapBySlug = new Map(data.map((page) => [page.slug, page.title]));
+      const ordered = legalFallbackOrder
+        .filter((item) => mapBySlug.has(item.slug))
+        .map((item) => ({
+          slug: item.slug,
+          title: mapBySlug.get(item.slug) || item.label,
+        }));
+
+      setLegalPages(ordered.length > 0 ? ordered : legalFallbackOrder.map((item) => ({ title: item.label, slug: item.slug })));
+    };
+
+    fetchLegalPages();
+  }, []);
 
   const handleLogout = async () => {
     await signOut();
@@ -187,25 +253,6 @@ const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
             </div>
           </div>
 
-          {/* Legal Links - horizontal */}
-          <div className="px-4 pb-2">
-            <div className="flex items-center justify-center gap-3 flex-wrap">
-              {[
-                { label: "About Us", slug: "about-us" },
-                { label: "Privacy", slug: "privacy-policy" },
-                { label: "Terms", slug: "terms-and-condition" },
-                { label: "Disclaimer", slug: "disclaimer" },
-              ].map((item) => (
-                <button
-                  key={item.slug}
-                  onClick={() => handleNavigate(`/${item.slug}`)}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Login/Logout */}
           <div className="p-4 border-t border-border">

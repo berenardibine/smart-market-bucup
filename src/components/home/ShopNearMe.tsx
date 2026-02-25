@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Store, MapPin, ChevronLeft, ChevronRight, Star, Package } from 'lucide-react';
+import { Store, MapPin, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Shop {
@@ -108,14 +108,11 @@ const ShopNearMe = ({ userCountry }: ShopNearMeProps) => {
 
   if (shops.length === 0) return null;
 
-  // Generate random gradient colors for shops without logos
-  const gradients = [
-    'from-orange-500 to-rose-500',
-    'from-emerald-500 to-teal-500',
-    'from-violet-500 to-purple-500',
-    'from-blue-500 to-cyan-500',
-    'from-pink-500 to-fuchsia-500',
-    'from-amber-500 to-orange-500',
+  const coverStyles = [
+    'from-primary/90 to-primary',
+    'from-secondary to-secondary/70',
+    'from-accent to-accent/70',
+    'from-muted to-muted/70',
   ];
 
   return (
@@ -156,33 +153,46 @@ const ShopNearMe = ({ userCountry }: ShopNearMeProps) => {
             key={shop.id}
             onClick={() => navigate(`/shop/${shop.id}`)}
             className={cn(
-              "w-[220px] shrink-0 rounded-2xl border bg-card overflow-hidden",
-              "hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group text-left"
+              "w-[240px] shrink-0 rounded-3xl border bg-card overflow-hidden",
+              "hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group text-left"
             )}
           >
-            {/* Top section with gradient or logo */}
-            <div className={cn(
-              "h-20 relative flex items-center justify-center bg-gradient-to-br",
-              gradients[index % gradients.length]
-            )}>
+            <div className="relative h-28 overflow-hidden">
+              <div
+                className={cn(
+                  "absolute inset-0 bg-gradient-to-br",
+                  coverStyles[index % coverStyles.length]
+                )}
+              />
               {shop.logo_url ? (
-                <img 
-                  src={shop.logo_url} 
-                  alt={shop.name}
-                  className="w-full h-full object-cover"
+                <img
+                  src={shop.logo_url}
+                  alt={`${shop.name} logo`}
+                  className="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
                 />
               ) : (
-                <Store className="h-10 w-10 text-white/80" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Store className="h-11 w-11 text-primary-foreground/85" />
+                </div>
               )}
-              {/* Verified badge */}
-              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 dark:bg-card/90 flex items-center justify-center">
-                <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+
+              <div className="absolute left-3 right-3 -bottom-8 flex items-end justify-between">
+                <div className="h-16 w-16 rounded-2xl border border-border bg-background/95 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-md">
+                  {shop.logo_url ? (
+                    <img src={shop.logo_url} alt={shop.name} className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <Store className="h-7 w-7 text-primary" />
+                  )}
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-full bg-card/95 px-2.5 py-1 text-[10px] font-semibold text-foreground border border-border shadow-sm">
+                  <Star className="h-3 w-3 fill-primary text-primary" />
+                  Trusted
+                </span>
               </div>
             </div>
-            
-            {/* Info */}
-            <div className="p-3">
+
+            <div className="px-3 pb-3 pt-10">
               <h4 className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
                 {shop.name}
               </h4>
@@ -193,14 +203,16 @@ const ShopNearMe = ({ userCountry }: ShopNearMeProps) => {
                 </p>
               )}
               {shop.description && (
-                <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5 min-h-[32px]">
                   {shop.description}
                 </p>
               )}
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                  Visit Shop →
+
+              <div className="mt-3 flex items-center justify-between">
+                <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-[10px] font-medium text-secondary-foreground">
+                  Explore shop
                 </span>
+                <ChevronRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-0.5" />
               </div>
             </div>
           </button>
