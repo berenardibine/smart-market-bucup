@@ -12,14 +12,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useTwoFactor } from "@/hooks/useTwoFactor";
+import TwoFactorVerifyModal from "@/components/settings/TwoFactorVerifyModal";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin();
+  const twoFactor = useTwoFactor(user?.id);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [twoFAVerified, setTwoFAVerified] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProducts: 0,
@@ -88,6 +92,26 @@ const AdminDashboard = () => {
             Return Home
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  // 2FA gate for admin dashboard
+  const needs2FA = twoFactor.enabled && !twoFactor.verified && !twoFAVerified;
+  if (needs2FA && !twoFactor.loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center">
+        <TwoFactorVerifyModal
+          open={true}
+          onClose={() => navigate('/')}
+          onVerified={() => {
+            setTwoFAVerified(true);
+            twoFactor.refresh();
+          }}
+          userId={user!.id}
+          title="Admin Dashboard Access"
+          description="Enter your 2FA code to access the admin dashboard."
+        />
       </div>
     );
   }

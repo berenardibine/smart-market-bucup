@@ -2732,7 +2732,9 @@ export type Database = {
           backup_codes: string[] | null
           created_at: string | null
           id: string
+          last_2fa_verified_at: string | null
           secret_key: string | null
+          session_expires_at: string | null
           two_factor_enabled: boolean | null
           updated_at: string | null
           user_id: string
@@ -2741,7 +2743,9 @@ export type Database = {
           backup_codes?: string[] | null
           created_at?: string | null
           id?: string
+          last_2fa_verified_at?: string | null
           secret_key?: string | null
+          session_expires_at?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id: string
@@ -2750,7 +2754,9 @@ export type Database = {
           backup_codes?: string[] | null
           created_at?: string | null
           id?: string
+          last_2fa_verified_at?: string | null
           secret_key?: string | null
+          session_expires_at?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string
