@@ -56,17 +56,16 @@ const ShopForm = ({ shop, onSubmit, onCancel }: ShopFormProps) => {
         return;
       }
 
-      const fileName = `${Date.now()}.webp`;
-      const filePath = `shop-logos/${fileName}`;
+      const fileName = `${profile?.id || 'unknown'}/${Date.now()}.webp`;
 
       const { error } = await supabase.storage
-        .from('profile-images')
-        .upload(filePath, compressed.blob, { contentType: compressed.format });
+        .from('shop-logos')
+        .upload(fileName, compressed.blob, { contentType: compressed.format });
 
       if (!error) {
         const { data: { publicUrl } } = supabase.storage
-          .from('profile-images')
-          .getPublicUrl(filePath);
+          .from('shop-logos')
+          .getPublicUrl(fileName);
 
         // Server-side AI enhancement
         const optimizeResult = await optimizeFile(publicUrl, 'profile', true);
