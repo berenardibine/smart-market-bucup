@@ -27,6 +27,8 @@ interface SitePage {
   slug: string;
   title: string;
   meta_description: string | null;
+  seo_title: string | null;
+  seo_image: string | null;
   content: string;
   is_published: boolean;
   updated_at: string | null;
@@ -47,7 +49,9 @@ interface CategorySeo {
   id: string;
   name: string;
   slug: string;
+  seo_title: string | null;
   seo_description: string | null;
+  seo_image: string | null;
   icon: string | null;
 }
 
@@ -65,7 +69,7 @@ const AdminSeoPages = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isHtmlMode, setIsHtmlMode] = useState(true);
   const [savingPage, setSavingPage] = useState(false);
-  const [pageForm, setPageForm] = useState({ title: '', meta_description: '', content: '', is_published: true });
+  const [pageForm, setPageForm] = useState({ title: '', meta_description: '', seo_title: '', seo_image: '', content: '', is_published: true });
 
   // Products SEO state
   const [products, setProducts] = useState<ProductSeo[]>([]);
@@ -82,7 +86,7 @@ const AdminSeoPages = () => {
   const [editingCategory, setEditingCategory] = useState<CategorySeo | null>(null);
   const [showCategoryEditor, setShowCategoryEditor] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
-  const [categoryForm, setCategoryForm] = useState({ seo_description: '' });
+  const [categoryForm, setCategoryForm] = useState({ seo_title: '', seo_description: '', seo_image: '' });
 
   // Sitemap state
   const [sitemapLoading, setSitemapLoading] = useState(false);
@@ -95,7 +99,6 @@ const AdminSeoPages = () => {
     }
   }, [isAdmin]);
 
-  // ---- Pages ----
   const fetchPages = async () => {
     setLoadingPages(true);
     const { data } = await supabase.from('site_pages').select('*').order('created_at');
@@ -105,7 +108,14 @@ const AdminSeoPages = () => {
 
   const openPageEditor = (page: SitePage) => {
     setEditingPage(page);
-    setPageForm({ title: page.title, meta_description: page.meta_description || '', content: page.content, is_published: page.is_published });
+    setPageForm({
+      title: page.title,
+      meta_description: page.meta_description || '',
+      seo_title: page.seo_title || '',
+      seo_image: page.seo_image || '',
+      content: page.content,
+      is_published: page.is_published,
+    });
     setShowPageEditor(true);
     setShowPreview(false);
   };
@@ -114,16 +124,20 @@ const AdminSeoPages = () => {
     if (!editingPage) return;
     setSavingPage(true);
     const { error } = await supabase.from('site_pages').update({
-      title: pageForm.title, meta_description: pageForm.meta_description,
-      content: pageForm.content, is_published: pageForm.is_published,
-      updated_at: new Date().toISOString(), updated_by: user?.id,
+      title: pageForm.title,
+      meta_description: pageForm.meta_description,
+      seo_title: pageForm.seo_title || null,
+      seo_image: pageForm.seo_image || null,
+      content: pageForm.content,
+      is_published: pageForm.is_published,
+      updated_at: new Date().toISOString(),
+      updated_by: user?.id,
     }).eq('id', editingPage.id);
     if (error) toast({ title: "Failed to save", description: error.message, variant: "destructive" });
     else { toast({ title: "Page saved!" }); fetchPages(); setShowPageEditor(false); }
     setSavingPage(false);
   };
 
-  // ---- Products SEO ----
   const fetchProducts = async () => {
     setLoadingProducts(true);
     const { data } = await supabase.from('products')
@@ -158,17 +172,20 @@ const AdminSeoPages = () => {
     setSavingProduct(false);
   };
 
-  // ---- Categories SEO ----
   const fetchCategories = async () => {
     setLoadingCategories(true);
-    const { data } = await supabase.from('categories').select('id, name, slug, seo_description, icon').order('name');
+    const { data } = await supabase.from('categories').select('id, name, slug, seo_title, seo_description, seo_image, icon').order('name');
     if (data) setCategories(data as CategorySeo[]);
     setLoadingCategories(false);
   };
 
   const openCategoryEditor = (c: CategorySeo) => {
     setEditingCategory(c);
-    setCategoryForm({ seo_description: c.seo_description || '' });
+    setCategoryForm({
+      seo_title: c.seo_title || '',
+      seo_description: c.seo_description || '',
+      seo_image: c.seo_image || '',
+    });
     setShowCategoryEditor(true);
   };
 
@@ -176,14 +193,15 @@ const AdminSeoPages = () => {
     if (!editingCategory) return;
     setSavingCategory(true);
     const { error } = await supabase.from('categories').update({
-      seo_description: categoryForm.seo_description,
+      seo_title: categoryForm.seo_title || null,
+      seo_description: categoryForm.seo_description || null,
+      seo_image: categoryForm.seo_image || null,
     }).eq('id', editingCategory.id);
     if (error) toast({ title: "Failed", description: error.message, variant: "destructive" });
     else { toast({ title: "Category SEO updated!" }); fetchCategories(); setShowCategoryEditor(false); }
     setSavingCategory(false);
   };
 
-  // ---- Sitemap ----
   const handlePingSitemap = async () => {
     setSitemapLoading(true);
     try {
@@ -269,8 +287,12 @@ const AdminSeoPages = () => {
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">{c.icon || '📦'}</div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-sm">{c.name}</h3>
-                      <p className="text-xs text-muted-foreground">/{c.slug}</p>
-                      {c.seo_description && <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-1">SEO ✓</Badge>}
+                      <p className="text-xs text-muted-foreground">/category/{c.slug}</p>
+                      <div className="flex gap-1 mt-1">
+                        {c.seo_title && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Title ✓</Badge>}
+                        {c.seo_description && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Desc ✓</Badge>}
+                        {c.seo_image && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Image ✓</Badge>}
+                      </div>
                     </div>
                     <Button size="sm" variant="outline" onClick={() => openCategoryEditor(c)}><Edit className="h-4 w-4" /></Button>
                   </div>
@@ -299,6 +321,10 @@ const AdminSeoPages = () => {
                       </div>
                       <p className="text-sm text-muted-foreground line-clamp-1">{page.meta_description}</p>
                       <span className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><Globe className="h-3 w-3" />/page/{page.slug}</span>
+                      <div className="flex gap-1 mt-1">
+                        {page.seo_title && <Badge variant="outline" className="text-[10px] px-1.5 py-0">SEO Title ✓</Badge>}
+                        {page.seo_image && <Badge variant="outline" className="text-[10px] px-1.5 py-0">SEO Image ✓</Badge>}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => navigate(`/page/${page.slug}`)}><Eye className="h-4 w-4" /></Button>
@@ -353,9 +379,19 @@ const AdminSeoPages = () => {
           <div className="space-y-4 py-2">
             <div><Label>Page Title</Label><Input value={pageForm.title} onChange={e => setPageForm({ ...pageForm, title: e.target.value })} /></div>
             <div>
+              <Label>SEO Title (for search engines & social)</Label>
+              <Input value={pageForm.seo_title} onChange={e => setPageForm({ ...pageForm, seo_title: e.target.value })} placeholder="Custom SEO title (leave empty to use page title)" />
+              <p className="text-xs text-muted-foreground mt-1">{pageForm.seo_title.length}/60</p>
+            </div>
+            <div>
               <Label>Meta Description (SEO)</Label>
               <Textarea value={pageForm.meta_description} onChange={e => setPageForm({ ...pageForm, meta_description: e.target.value })} rows={2} placeholder="Under 160 chars..." />
               <p className="text-xs text-muted-foreground mt-1">{pageForm.meta_description.length}/160</p>
+            </div>
+            <div>
+              <Label>SEO Image URL (for social preview)</Label>
+              <Input value={pageForm.seo_image} onChange={e => setPageForm({ ...pageForm, seo_image: e.target.value })} placeholder="Image URL for Open Graph preview" />
+              {pageForm.seo_image && <img src={pageForm.seo_image} alt="Preview" className="mt-2 h-20 rounded-lg object-cover" />}
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -439,9 +475,19 @@ const AdminSeoPages = () => {
           <DialogHeader><DialogTitle>Category SEO: {editingCategory?.name}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div>
+              <Label>SEO Title</Label>
+              <Input value={categoryForm.seo_title} onChange={e => setCategoryForm({ ...categoryForm, seo_title: e.target.value })} placeholder={`${editingCategory?.name} | Smart Market`} />
+              <p className="text-xs text-muted-foreground mt-1">{categoryForm.seo_title.length}/60 chars</p>
+            </div>
+            <div>
               <Label>SEO Description</Label>
-              <Textarea value={categoryForm.seo_description} onChange={e => setCategoryForm({ seo_description: e.target.value })} rows={4} placeholder="Describe this category for search engines..." />
+              <Textarea value={categoryForm.seo_description} onChange={e => setCategoryForm({ ...categoryForm, seo_description: e.target.value })} rows={4} placeholder="Describe this category for search engines..." />
               <p className="text-xs text-muted-foreground mt-1">{categoryForm.seo_description.length}/160 chars</p>
+            </div>
+            <div>
+              <Label>SEO Image URL</Label>
+              <Input value={categoryForm.seo_image} onChange={e => setCategoryForm({ ...categoryForm, seo_image: e.target.value })} placeholder="Image URL for social preview" />
+              {categoryForm.seo_image && <img src={categoryForm.seo_image} alt="Preview" className="mt-2 h-20 rounded-lg object-cover" />}
             </div>
             <div className="bg-muted/50 rounded-lg p-3">
               <p className="text-xs font-medium mb-1">Category URL:</p>

@@ -250,6 +250,8 @@ export type Database = {
           id: string
           name: string
           seo_description: string | null
+          seo_image: string | null
+          seo_title: string | null
           slug: string
           type: string | null
         }
@@ -259,6 +261,8 @@ export type Database = {
           id?: string
           name: string
           seo_description?: string | null
+          seo_image?: string | null
+          seo_title?: string | null
           slug: string
           type?: string | null
         }
@@ -268,6 +272,8 @@ export type Database = {
           id?: string
           name?: string
           seo_description?: string | null
+          seo_image?: string | null
+          seo_title?: string | null
           slug?: string
           type?: string | null
         }
@@ -2396,6 +2402,8 @@ export type Database = {
           id: string
           is_published: boolean | null
           meta_description: string | null
+          seo_image: string | null
+          seo_title: string | null
           slug: string
           title: string
           updated_at: string | null
@@ -2407,6 +2415,8 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           meta_description?: string | null
+          seo_image?: string | null
+          seo_title?: string | null
           slug: string
           title: string
           updated_at?: string | null
@@ -2418,6 +2428,8 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           meta_description?: string | null
+          seo_image?: string | null
+          seo_title?: string | null
           slug?: string
           title?: string
           updated_at?: string | null
