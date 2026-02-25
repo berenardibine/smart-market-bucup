@@ -72,6 +72,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminSeoPages from "./pages/admin/AdminSeoPages";
 import MenuPage from "./pages/MenuPage";
 import SitePage from "./pages/SitePage";
+import DynamicSlugPage from "./pages/DynamicSlugPage";
 
 const queryClient = new QueryClient();
 
@@ -160,6 +161,9 @@ const App = () => {
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/help" element={<HelpPage />} />
                 <Route path="/support" element={<SupportPage />} />
+
+                {/* Dynamic slug resolver: checks category → site page → 404 */}
+                <Route path="/:slug" element={<DynamicSlugPage />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

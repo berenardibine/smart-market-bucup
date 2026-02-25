@@ -63,6 +63,9 @@ const CategoriesManagement = () => {
     icon: '',
     type: 'general',
     isActive: true,
+    seo_title: '',
+    seo_description: '',
+    seo_image: '',
   });
 
   const fetchCategories = async () => {
@@ -105,6 +108,9 @@ const CategoriesManagement = () => {
       slug,
       icon: formData.icon || null,
       type: formData.type,
+      seo_title: formData.seo_title || null,
+      seo_description: formData.seo_description || null,
+      seo_image: formData.seo_image || null,
     };
 
     if (editingCategory) {
@@ -142,6 +148,9 @@ const CategoriesManagement = () => {
       icon: '',
       type: 'general',
       isActive: true,
+      seo_title: '',
+      seo_description: '',
+      seo_image: '',
     });
     setEditingCategory(null);
     setShowDialog(false);
@@ -155,6 +164,9 @@ const CategoriesManagement = () => {
       icon: category.icon || '',
       type: category.type || 'general',
       isActive: true,
+      seo_title: (category as any).seo_title || '',
+      seo_description: (category as any).seo_description || '',
+      seo_image: (category as any).seo_image || '',
     });
     setShowDialog(true);
   };
@@ -385,6 +397,34 @@ const CategoriesManagement = () => {
                 value={formData.icon}
                 onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">SEO Title (for search engines)</label>
+              <Input
+                placeholder="Custom title for Google & social"
+                value={formData.seo_title}
+                onChange={(e) => setFormData({ ...formData, seo_title: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">{formData.seo_title.length}/60 chars</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">SEO Description</label>
+              <Textarea
+                placeholder="Description for search engines & social previews"
+                value={formData.seo_description}
+                onChange={(e) => setFormData({ ...formData, seo_description: e.target.value })}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground mt-1">{formData.seo_description.length}/160 chars</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">SEO Image URL</label>
+              <Input
+                placeholder="Image URL for social preview"
+                value={formData.seo_image}
+                onChange={(e) => setFormData({ ...formData, seo_image: e.target.value })}
+              />
+              {formData.seo_image && <img src={formData.seo_image} alt="Preview" className="mt-2 h-16 rounded-lg object-cover" />}
             </div>
             <Button onClick={handleSubmit} className="w-full">
               {editingCategory ? 'Update Category' : 'Create Category'}
