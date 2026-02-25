@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import PageMetaTags from "@/components/seo/PageMetaTags";
 
 const SitePage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -24,13 +25,6 @@ const SitePage = () => {
     
     setPage(data);
     setLoading(false);
-
-    // Set document title for SEO
-    if (data) {
-      document.title = data.title;
-      const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc) metaDesc.setAttribute('content', data.meta_description || '');
-    }
   };
 
   if (loading) {
@@ -54,8 +48,17 @@ const SitePage = () => {
     );
   }
 
+  const metaTitle = page.seo_title || `${page.title} | Smart Market`;
+  const metaDescription = page.meta_description || `Learn more about ${page.title} at Smart Market.`;
+
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PageMetaTags
+        title={metaTitle}
+        description={metaDescription}
+        image={page.seo_image || undefined}
+        url={`/page/${page.slug}`}
+      />
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b">
         <div className="flex items-center gap-3 p-4">
           <button
