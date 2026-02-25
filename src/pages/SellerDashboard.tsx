@@ -16,6 +16,7 @@ import { useProductRequests } from "@/hooks/useProductRequests";
 import { useToast } from "@/hooks/use-toast";
 import ShopForm from "@/components/seller/ShopForm";
 import ProductForm from "@/components/seller/ProductForm";
+import AdsManagement from "@/components/admin/AdsManagement";
 import ProductList from "@/components/seller/ProductList";
 import RequestList from "@/components/seller/RequestList";
 import SellerReferralTab from "@/components/seller/SellerReferralTab";
@@ -111,6 +112,7 @@ const SellerDashboard = () => {
     { id: 'shop', label: 'My Shop', icon: Store, color: 'from-purple-500 to-violet-500', bg: 'bg-purple-50 dark:bg-purple-950/30', description: 'Shop settings' },
     { id: 'referrals', label: 'Referrals', icon: Gift, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', description: 'Earn rewards' },
     { id: 'requests', label: 'Requests', icon: MessageSquare, color: 'from-green-500 to-emerald-500', bg: 'bg-green-50 dark:bg-green-950/30', description: `${pendingRequests.length} pending` },
+    { id: 'ads', label: 'Smart Ads', icon: Zap, color: 'from-pink-500 to-rose-500', bg: 'bg-pink-50 dark:bg-pink-950/30', description: 'Promotions' },
   ];
 
   // Render module content
@@ -194,6 +196,8 @@ const SellerDashboard = () => {
             onUpdateStatus={updateRequestStatus}
           />
         );
+      case 'ads':
+        return <AdsManagement />;
       default:
         return null;
     }

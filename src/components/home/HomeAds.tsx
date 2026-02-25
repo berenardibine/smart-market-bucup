@@ -81,9 +81,9 @@ const HomeAds = () => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative -mx-4">
       <div
-        className="rounded-2xl overflow-hidden shadow-lg transition-all duration-500"
+        className="overflow-hidden shadow-lg transition-all duration-500"
         style={{ 
           backgroundColor: currentAd.bg_color || '#f97316',
         }}
@@ -99,10 +99,7 @@ const HomeAds = () => {
               <img 
                 src={currentAd.image_url} 
                 alt={currentAd.title}
-                className={cn(
-                  "w-full object-cover",
-                  currentAd.type === 'banner' ? "h-48 sm:h-56" : "h-36 sm:h-44"
-                )}
+                className="w-full object-cover"
               />
             )}
             {/* Overlay with text */}

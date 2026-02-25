@@ -187,6 +187,26 @@ const MenuDrawer = ({ isOpen, onClose }: MenuDrawerProps) => {
             </div>
           </div>
 
+          {/* Legal Links - horizontal */}
+          <div className="px-4 pb-2">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              {[
+                { label: "About Us", slug: "about-us" },
+                { label: "Privacy", slug: "privacy-policy" },
+                { label: "Terms", slug: "terms-and-condition" },
+                { label: "Disclaimer", slug: "disclaimer" },
+              ].map((item) => (
+                <button
+                  key={item.slug}
+                  onClick={() => handleNavigate(`/${item.slug}`)}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Login/Logout */}
           <div className="p-4 border-t border-border">
             {user ? (
