@@ -24,13 +24,36 @@ function formatPrice(amount: number): string {
   return new Intl.NumberFormat("en-RW", { style: "currency", currency: "RWF", minimumFractionDigits: 0 }).format(amount);
 }
 
-function generateProductHtml(product: any, productUrl: string, baseUrl: string): string {
-  const title = escapeHtml(`${product.title} – ${formatPrice(product.price)}`);
-  const shortDescription = escapeHtml(
-    product.description?.length > 150 ? product.description.substring(0, 147) + "..." : product.description || "Available on Smart Market."
-  );
-  const image = product.images?.[0]?.startsWith('http') ? product.images[0] : `${baseUrl}/og-image.jpg`;
+function generateProductHtml(product: any, shop: any, productUrl: string, baseUrl: string): string {
+  const shopName = shop?.name || '';
+  const titleText = shopName 
+    ? `${product.seo_title || product.title} by ${shopName} – ${formatPrice(product.price)}`
+    : `${product.seo_title || product.title} – ${formatPrice(product.price)}`;
+  const title = escapeHtml(titleText);
+  const rawDesc = product.seo_description || product.description || "Available on Smart Market.";
+  const shortDescription = escapeHtml(rawDesc.length > 150 ? rawDesc.substring(0, 147) + "..." : rawDesc);
+  const image = product.seo_image || product.images?.[0]?.startsWith('http') ? (product.seo_image || product.images[0]) : `${baseUrl}/og-image-v3.jpg`;
   const siteName = "Smart Market — Buy Smart, Live Smart";
+
+  // JSON-LD structured data
+  const jsonLd = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.seo_title || product.title,
+    "description": rawDesc.substring(0, 500),
+    "image": [image],
+    "url": productUrl,
+    "sku": product.id,
+    ...(shopName && { "brand": { "@type": "Brand", "name": shopName } }),
+    "offers": {
+      "@type": "Offer",
+      "price": product.price.toString(),
+      "priceCurrency": product.currency_code || "RWF",
+      "availability": "https://schema.org/InStock",
+      "url": productUrl,
+      ...(shopName && { "seller": { "@type": "Organization", "name": shopName } }),
+    }
+  });
 
   return `<!DOCTYPE html>
 <html lang="en" prefix="og: https://ogp.me/ns#">
@@ -43,10 +66,12 @@ function generateProductHtml(product: any, productUrl: string, baseUrl: string):
   <meta property="og:title" content="${title}"><meta property="og:description" content="${shortDescription}">
   <meta property="og:image" content="${image}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="${escapeHtml(product.title)}"><meta property="og:site_name" content="${siteName}">
-  <meta property="product:price:amount" content="${product.price}"><meta property="product:price:currency" content="RWF">
+  <meta property="product:price:amount" content="${product.price}"><meta property="product:price:currency" content="${product.currency_code || 'RWF'}">
   <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}">
   <meta name="twitter:description" content="${shortDescription}"><meta name="twitter:image" content="${image}">
-  <meta http-equiv="refresh" content="0;url=${productUrl}"><link rel="canonical" href="${productUrl}">
+  <link rel="canonical" href="${productUrl}">
+  <script type="application/ld+json">${jsonLd}</script>
+  <meta http-equiv="refresh" content="0;url=${productUrl}">
 </head>
 <body><p>Redirecting...</p><script>window.location.href="${productUrl}";</script></body>
 </html>`;
@@ -55,7 +80,7 @@ function generateProductHtml(product: any, productUrl: string, baseUrl: string):
 function generateReferralHtml(referrerName: string, code: string, baseUrl: string): string {
   const title = escapeHtml(`${referrerName} invited you to Smart Market!`);
   const description = escapeHtml(`Join Smart Market today and discover amazing deals near you! Buy, sell & rent products easily. Sign up with code ${code} and start shopping smarter. 🛒✨`);
-  const image = `${baseUrl}/og-image.jpg`;
+  const image = `${baseUrl}/og-image-v3.jpg`;
   const url = `${baseUrl}/r/${code}`;
 
   return `<!DOCTYPE html>
@@ -71,7 +96,8 @@ function generateReferralHtml(referrerName: string, code: string, baseUrl: strin
   <meta property="og:site_name" content="Smart Market — Buy Smart, Live Smart">
   <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}">
   <meta name="twitter:description" content="${description}"><meta name="twitter:image" content="${image}">
-  <meta http-equiv="refresh" content="0;url=${url}"><link rel="canonical" href="${url}">
+  <link rel="canonical" href="${url}">
+  <meta http-equiv="refresh" content="0;url=${url}">
 </head>
 <body><p>Redirecting to Smart Market...</p><script>window.location.href="${url}";</script></body>
 </html>`;
@@ -95,15 +121,12 @@ Deno.serve(async (req) => {
       if (!crawlerDetected) {
         return new Response(null, { status: 302, headers: { ...corsHeaders, "Location": `${baseUrl}/r/${referralCode}` } });
       }
-
       const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
       const { data: profile } = await supabase.from("profiles").select("full_name").eq("referral_code", referralCode).maybeSingle();
-      
       const html = generateReferralHtml(profile?.full_name || "a friend", referralCode, baseUrl);
       return new Response(html, { headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
     }
 
-    // Handle product slug
     if (!slug) {
       return new Response(null, { status: 302, headers: { ...corsHeaders, "Location": baseUrl } });
     }
@@ -115,7 +138,9 @@ Deno.serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
     
-    let query = supabase.from("products").select("id, title, description, price, images, slug, status").eq("status", "active");
+    let query = supabase.from("products")
+      .select("id, title, description, price, images, slug, status, seo_title, seo_description, seo_image, currency_code, shop_id")
+      .eq("status", "active");
     if (isUUID) query = query.eq("id", slug); else query = query.eq("slug", slug);
 
     const { data: product } = await query.maybeSingle();
@@ -123,8 +148,19 @@ Deno.serve(async (req) => {
       return new Response(null, { status: 302, headers: { ...corsHeaders, "Location": baseUrl } });
     }
 
-    const finalUrl = product.slug ? `${baseUrl}/product/${product.slug}` : `${baseUrl}/product/${product.id}`;
-    const html = generateProductHtml(product, finalUrl, baseUrl);
+    // Fetch shop info for SEO URL
+    let shop = null;
+    if (product.shop_id) {
+      const { data: shopData } = await supabase.from("shops").select("name, slug").eq("id", product.shop_id).maybeSingle();
+      shop = shopData;
+    }
+
+    const productSlug = product.slug || product.id;
+    const finalUrl = shop?.slug
+      ? `${baseUrl}/products/${productSlug}/by/${shop.slug}`
+      : `${baseUrl}/product/${productSlug}`;
+    
+    const html = generateProductHtml(product, shop, finalUrl, baseUrl);
     return new Response(html, { headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
   } catch (error) {
     console.error("[og-preview] Error:", error);

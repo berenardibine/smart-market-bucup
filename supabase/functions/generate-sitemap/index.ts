@@ -19,26 +19,39 @@ Deno.serve(async (req) => {
     const baseUrl = "https://smart-market-online.vercel.app";
     const now = new Date().toISOString().split("T")[0];
 
-    // Fetch active products with slugs
+    // Fetch active products with slugs and shop info
     const { data: products } = await supabase
       .from("products")
-      .select("slug, id, updated_at")
+      .select("slug, id, updated_at, shop_id")
       .eq("status", "active")
       .order("updated_at", { ascending: false })
       .limit(5000);
 
-    // Fetch active shops
+    // Fetch shops for slug mapping
     const { data: shops } = await supabase
       .from("shops")
-      .select("id, updated_at, name")
+      .select("id, slug, updated_at, name")
       .eq("is_active", true)
       .limit(1000);
+
+    // Create shop slug lookup
+    const shopSlugMap = new Map<string, string>();
+    for (const s of shops || []) {
+      if (s.slug) shopSlugMap.set(s.id, s.slug);
+    }
 
     // Fetch categories
     const { data: categories } = await supabase
       .from("categories")
       .select("slug, created_at")
       .limit(200);
+
+    // Fetch site pages
+    const { data: sitePages } = await supabase
+      .from("site_pages")
+      .select("slug, updated_at")
+      .eq("is_published", true)
+      .limit(50);
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -49,16 +62,28 @@ Deno.serve(async (req) => {
   <url><loc>${baseUrl}/rent</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
 `;
 
+    // Site pages (privacy, terms, about, disclaimer)
+    for (const page of sitePages || []) {
+      const lastmod = page.updated_at ? new Date(page.updated_at).toISOString().split("T")[0] : now;
+      xml += `  <url><loc>${baseUrl}/page/${page.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>\n`;
+    }
+
     // Category pages
     for (const cat of categories || []) {
       xml += `  <url><loc>${baseUrl}/category/${cat.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
     }
 
-    // Product pages
+    // Product pages - use SEO-friendly URLs with shop slug when available
     for (const p of products || []) {
       const slug = p.slug || p.id;
       const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().split("T")[0] : now;
-      xml += `  <url><loc>${baseUrl}/product/${slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+      const shopSlug = p.shop_id ? shopSlugMap.get(p.shop_id) : null;
+      
+      if (shopSlug) {
+        xml += `  <url><loc>${baseUrl}/products/${slug}/by/${shopSlug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+      } else {
+        xml += `  <url><loc>${baseUrl}/product/${slug}</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n`;
+      }
     }
 
     // Shop pages

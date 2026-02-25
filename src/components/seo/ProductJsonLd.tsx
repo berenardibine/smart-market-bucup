@@ -11,6 +11,7 @@ interface ProductJsonLdProps {
   location?: string;
   category?: string;
   availability?: string;
+  sku?: string;
 }
 
 const ProductJsonLd = ({
@@ -24,11 +25,12 @@ const ProductJsonLd = ({
   location,
   category,
   availability = 'InStock',
+  sku,
 }: ProductJsonLdProps) => {
   useEffect(() => {
-    const fullImage = image.startsWith('http') ? image : `https://smart-market-online.vercel.app${image}`;
+    const fullImage = image?.startsWith('http') ? image : `https://smart-market-online.vercel.app${image || '/og-image-v3.jpg'}`;
     
-    const jsonLd = {
+    const jsonLd: any = {
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: title,
@@ -36,12 +38,15 @@ const ProductJsonLd = ({
       image: [fullImage],
       url,
       ...(category && { category }),
+      ...(sku && { sku }),
+      ...(seller && { brand: { '@type': 'Brand', name: seller } }),
       ...(price && {
         offers: {
           '@type': 'Offer',
           price: price.toString(),
           priceCurrency: currency,
           availability: `https://schema.org/${availability}`,
+          url,
           ...(seller && {
             seller: {
               '@type': 'Organization',
@@ -70,7 +75,7 @@ const ProductJsonLd = ({
     return () => {
       script?.remove();
     };
-  }, [title, description, image, url, price, currency, seller, location, category, availability]);
+  }, [title, description, image, url, price, currency, seller, location, category, availability, sku]);
 
   return null;
 };

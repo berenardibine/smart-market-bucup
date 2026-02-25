@@ -24,6 +24,13 @@ export interface Product {
   contact_call: string | null;
   created_at: string | null;
   slug: string | null;
+  // SEO fields
+  seo_title: string | null;
+  seo_description: string | null;
+  seo_image: string | null;
+  currency_code: string | null;
+  currency_symbol: string | null;
+  country: string | null;
   // Admin & Rental fields
   admin_posted: boolean | null;
   admin_phone: string | null;
@@ -46,6 +53,7 @@ export interface Product {
     name: string;
     logo_url: string | null;
     trading_center: string | null;
+    slug?: string | null;
   } | null;
 }
 
