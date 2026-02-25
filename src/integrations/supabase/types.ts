@@ -249,6 +249,7 @@ export type Database = {
           icon: string | null
           id: string
           name: string
+          seo_description: string | null
           slug: string
           type: string | null
         }
@@ -257,6 +258,7 @@ export type Database = {
           icon?: string | null
           id?: string
           name: string
+          seo_description?: string | null
           slug: string
           type?: string | null
         }
@@ -265,6 +267,7 @@ export type Database = {
           icon?: string | null
           id?: string
           name?: string
+          seo_description?: string | null
           slug?: string
           type?: string | null
         }
@@ -1409,6 +1412,9 @@ export type Database = {
           rental_status: string | null
           rental_unit: string | null
           seller_id: string
+          seo_description: string | null
+          seo_image: string | null
+          seo_title: string | null
           share_count: number | null
           shop_id: string | null
           show_connect_button: boolean | null
@@ -1453,6 +1459,9 @@ export type Database = {
           rental_status?: string | null
           rental_unit?: string | null
           seller_id: string
+          seo_description?: string | null
+          seo_image?: string | null
+          seo_title?: string | null
           share_count?: number | null
           shop_id?: string | null
           show_connect_button?: boolean | null
@@ -1497,6 +1506,9 @@ export type Database = {
           rental_status?: string | null
           rental_unit?: string | null
           seller_id?: string
+          seo_description?: string | null
+          seo_image?: string | null
+          seo_title?: string | null
           share_count?: number | null
           shop_id?: string | null
           show_connect_button?: boolean | null
@@ -2289,6 +2301,7 @@ export type Database = {
           region: string | null
           sector_id: string | null
           seller_id: string
+          slug: string | null
           trading_center: string | null
           updated_at: string | null
           whatsapp: string | null
@@ -2314,6 +2327,7 @@ export type Database = {
           region?: string | null
           sector_id?: string | null
           seller_id: string
+          slug?: string | null
           trading_center?: string | null
           updated_at?: string | null
           whatsapp?: string | null
@@ -2339,6 +2353,7 @@ export type Database = {
           region?: string | null
           sector_id?: string | null
           seller_id?: string
+          slug?: string | null
           trading_center?: string | null
           updated_at?: string | null
           whatsapp?: string | null
@@ -3010,6 +3025,7 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      generate_slug: { Args: { input_text: string }; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }

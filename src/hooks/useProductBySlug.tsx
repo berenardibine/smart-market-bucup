@@ -33,7 +33,7 @@ export const useProductBySlug = (slugOrId: string | undefined) => {
         .select(`
           *,
           seller:profiles!products_seller_id_fkey(id, full_name, profile_image, whatsapp_number, call_number),
-          shop:shops(id, name, logo_url, trading_center)
+          shop:shops(id, name, logo_url, trading_center, slug)
         `);
       
       if (isUUID) {

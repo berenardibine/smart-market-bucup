@@ -84,14 +84,16 @@ const ProductDetail = () => {
     return <ProductNotFound />;
   }
 
-  // Generate product URLs for sharing
+  // Generate product URLs for sharing - SEO-friendly with shop slug
+  const shopSlug = product?.shop?.slug;
   const productSlugOrId = product?.slug || product?.id;
+  const seoPath = shopSlug 
+    ? `/products/${productSlugOrId}/by/${shopSlug}`
+    : `/product/${productSlugOrId}`;
   const shareableUrl = productSlugOrId 
     ? `https://smart-market-online.vercel.app/p/${productSlugOrId}`
     : window.location.href;
-  const productUrl = product?.slug 
-    ? `https://smart-market-online.vercel.app/product/${product.slug}`
-    : window.location.href;
+  const productUrl = `https://smart-market-online.vercel.app${seoPath}`;
 
   const handleWhatsApp = () => {
     const phone = product?.contact_whatsapp || product?.seller?.whatsapp_number;
@@ -154,21 +156,25 @@ const ProductDetail = () => {
     <>
       {/* SEO Meta Tags */}
       <ProductMetaTags
-        title={product.title}
-        description={product.description}
-        image={images[0]}
+        title={product.seo_title || product.title}
+        description={product.seo_description || product.description}
+        image={product.seo_image || images[0]}
         url={productUrl}
         price={product.price}
+        currency={product.currency_code || 'RWF'}
+        shopName={product.shop?.name || product.seller?.full_name}
       />
       <ProductJsonLd
-        title={product.title}
-        description={product.description}
-        image={images[0]}
+        title={product.seo_title || product.title}
+        description={product.seo_description || product.description}
+        image={product.seo_image || images[0]}
         url={productUrl}
         price={product.price}
+        currency={product.currency_code || 'RWF'}
         seller={product.shop?.name || product.seller?.full_name}
         location={product.location || undefined}
         category={product.category?.replace(/-/g, ' ')}
+        sku={product.id}
       />
       
       {/* Fullscreen Image Lightbox */}
