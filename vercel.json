@@ -1,6 +1,8 @@
 {
   "rewrites": [
     { "source": "/p/:slug", "destination": "https://tsrnmrnfmvsivnvdkqrj.supabase.co/functions/v1/og-preview?slug=:slug" },
+    { "source": "/c/:slug", "destination": "https://tsrnmrnfmvsivnvdkqrj.supabase.co/functions/v1/og-preview?category=:slug" },
+    { "source": "/pg/:slug", "destination": "https://tsrnmrnfmvsivnvdkqrj.supabase.co/functions/v1/og-preview?page=:slug" },
     { "source": "/sitemap.xml", "destination": "https://tsrnmrnfmvsivnvdkqrj.supabase.co/functions/v1/generate-sitemap" },
     { "source": "/products/:name/by/:seller", "destination": "/index.html" },
     { "source": "/products/:name", "destination": "/index.html" },

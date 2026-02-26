@@ -106,7 +106,7 @@ const CategoryPage = () => {
           title={metaTitle}
           description={metaDescription}
           image={category.seo_image || undefined}
-          url={`/category/${category.slug}`}
+          url={`/${category.slug}`}
         />
       )}
       <Header onSearchClick={() => setIsSearchOpen(true)} />

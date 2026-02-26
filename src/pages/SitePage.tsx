@@ -57,7 +57,7 @@ const SitePage = () => {
         title={metaTitle}
         description={metaDescription}
         image={page.seo_image || undefined}
-        url={`/page/${page.slug}`}
+        url={`/${page.slug}`}
       />
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b">
         <div className="flex items-center gap-3 p-4">

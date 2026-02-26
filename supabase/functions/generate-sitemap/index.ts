@@ -62,15 +62,15 @@ Deno.serve(async (req) => {
   <url><loc>${baseUrl}/rent</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
 `;
 
-    // Site pages (privacy, terms, about, disclaimer)
+    // Site pages (privacy, terms, about, disclaimer) — use top-level slugs
     for (const page of sitePages || []) {
       const lastmod = page.updated_at ? new Date(page.updated_at).toISOString().split("T")[0] : now;
-      xml += `  <url><loc>${baseUrl}/page/${page.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>\n`;
+      xml += `  <url><loc>${baseUrl}/${page.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>\n`;
     }
 
-    // Category pages
+    // Category pages — use top-level slugs
     for (const cat of categories || []) {
-      xml += `  <url><loc>${baseUrl}/category/${cat.slug}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>\n`;
+      xml += `  <url><loc>${baseUrl}/${cat.slug}</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>\n`;
     }
 
     // Product pages - use SEO-friendly URLs with shop slug when available
