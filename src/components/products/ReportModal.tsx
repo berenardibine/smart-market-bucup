@@ -49,20 +49,20 @@ const ReportModal = ({ isOpen, onClose, productId, sellerId, productTitle, selle
 
     setLoading(true);
     try {
-      const { error: insertError } = await supabase
-        .from('reports')
-        .insert({
-          product_id: reportType === 'product' ? productId : null,
-          reported_seller_id: reportType === 'seller' ? sellerId : null,
-          reporter_name: name,
-          reporter_phone: phone,
-          reporter_email: email || null,
+      const { data, error: fnError } = await supabase.functions.invoke('submit-report', {
+        body: {
+          productId: reportType === 'product' ? productId : null,
+          sellerId: reportType === 'seller' ? sellerId : null,
+          reporterName: name,
+          reporterPhone: phone,
+          reporterEmail: email || null,
           reason,
           details: details || null,
-          status: 'new',
-        });
+        },
+      });
 
-      if (insertError) throw insertError;
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
       
       setSubmitted(true);
       toast({ title: 'Report submitted successfully', description: 'We will review it shortly.' });

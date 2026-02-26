@@ -43,7 +43,7 @@ const ReportsManagement = () => {
 
   const fetchReports = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('reports')
         .select('*')
         .order('created_at', { ascending: false });
@@ -59,7 +59,7 @@ const ReportsManagement = () => {
 
   const updateStatus = async (reportId: string, newStatus: 'new' | 'in_review' | 'resolved') => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('reports')
         .update({ status: newStatus })
         .eq('id', reportId);

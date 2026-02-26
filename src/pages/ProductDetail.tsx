@@ -225,9 +225,9 @@ const ProductDetail = () => {
         </div>
 
         {/* Image Carousel - No zoom, click opens lightbox */}
-        <div className="relative bg-background">
+        <div className="relative bg-background max-w-2xl mx-auto">
           <div 
-            className="aspect-square relative overflow-hidden cursor-pointer"
+            className="aspect-square md:aspect-[4/3] relative overflow-hidden cursor-pointer"
             onClick={() => setLightboxOpen(true)}
           >
             <img 
@@ -320,7 +320,7 @@ const ProductDetail = () => {
         )}
 
         {/* Product Info */}
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 max-w-2xl mx-auto">
           {/* Title & Price with Negotiable display */}
           <div>
             <div className="flex items-start justify-between gap-4">
