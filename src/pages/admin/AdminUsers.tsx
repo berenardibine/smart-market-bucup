@@ -293,11 +293,16 @@ const AdminUsers = () => {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{user.full_name}</p>
                   <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <Badge variant="outline" className="text-xs capitalize">
                       {user.user_type}
                     </Badge>
                     {getStatusBadge(user.status)}
+                    {user.identity_verified ? (
+                      <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">✔ Verified</Badge>
+                    ) : user.user_type === 'seller' ? (
+                      <Badge className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Unverified</Badge>
+                    ) : null}
                   </div>
                   {user.blocking_reason && (user.status === 'blocked' || user.status === 'banned') && (
                     <p className="text-xs text-destructive mt-1 truncate">Reason: {user.blocking_reason}</p>
