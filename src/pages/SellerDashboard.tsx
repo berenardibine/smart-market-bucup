@@ -5,7 +5,7 @@ import {
   Settings, ChevronRight, Phone,
   Menu, X, Home, Gift,
   Zap,
-  Sparkles, Rocket
+  Sparkles, Rocket, Shield, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { useMyShop } from "@/hooks/useShops";
 import { useMyProducts } from "@/hooks/useProducts";
 import { useProductRequests } from "@/hooks/useProductRequests";
 import { useToast } from "@/hooks/use-toast";
+import { useIdentityVerification } from "@/hooks/useIdentityVerification";
 import ShopForm from "@/components/seller/ShopForm";
 import ProductForm from "@/components/seller/ProductForm";
 import HomeAds from "@/components/home/HomeAds";
@@ -32,6 +33,7 @@ const SellerDashboard = () => {
   const { products, loading: productsLoading, refetch: refetchProducts } = useMyProducts();
   const { requests, loading: requestsLoading, updateRequestStatus } = useProductRequests();
   const twoFactor = useTwoFactor(user?.id);
+  const { verification: idVerification, loading: idLoading } = useIdentityVerification(user?.id);
   
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const [showShopForm, setShowShopForm] = useState(false);
@@ -297,6 +299,43 @@ const SellerDashboard = () => {
             <p className="text-sm opacity-80">{shop ? shop.name : 'Set up your shop to start selling'}</p>
           </div>
         </div>
+
+        {/* Identity Verification Warning */}
+        {!idLoading && (profile as any).identity_verified !== true && (
+          <div className="bg-amber-50 dark:bg-amber-950/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-800">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-amber-800 dark:text-amber-300 mb-1">Verify Your Identity</h3>
+                <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+                  {idVerification?.status === 'pending_review'
+                    ? 'Your verification is under review. You\'ll be notified once approved.'
+                    : idVerification?.status === 'rejected'
+                    ? `Verification rejected: ${idVerification.admin_notes || 'Please retry.'}`
+                    : 'To sell safely on Smart Market, please verify your identity first.'}
+                </p>
+                {(!idVerification || idVerification.status === 'rejected' || idVerification.status === 'retry_required') && (
+                  <Button onClick={() => navigate('/verify-identity')} size="sm" className="gap-2 rounded-xl bg-amber-600 hover:bg-amber-700">
+                    <Shield className="h-4 w-4" /> Verify Now
+                  </Button>
+                )}
+                {idVerification?.status === 'pending_review' && (
+                  <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">Under Review</Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verified Badge */}
+        {(profile as any).identity_verified === true && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-200 dark:border-green-800">
+            <Shield className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">✔ Verified Seller</span>
+          </div>
+        )}
 
         {/* Create Shop CTA */}
         {!shop && !shopLoading && (

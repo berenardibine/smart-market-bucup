@@ -134,6 +134,7 @@ const AdminDashboard = () => {
     { id: 'comments', label: 'Comments', icon: MessageCircle, color: 'from-lime-500 to-green-500', bg: 'bg-lime-50 dark:bg-lime-950/30', path: '/admin/comments', description: 'Moderation' },
     { id: 'reports', label: 'Reports', icon: Flag, color: 'from-red-600 to-rose-600', bg: 'bg-red-50 dark:bg-red-950/30', path: '/admin/reports', description: 'User reports' },
     { id: 'seo', label: 'SEO Pages', icon: Globe, color: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', path: '/admin/seo', description: 'Legal & SEO' },
+    { id: 'verifications', label: 'Verifications', icon: Shield, color: 'from-emerald-600 to-teal-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', path: '/admin/verifications', description: 'ID verification' },
   ];
 
   return (
