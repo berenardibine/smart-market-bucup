@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom"
 import { 
   ArrowLeft, Heart, MessageCircle, Phone, Share2, 
   MapPin, Store, ShieldCheck, ChevronLeft, ChevronRight,
-  Package, Tag, Home, Loader2, Flag, HelpCircle
+  Package, Tag, Home, Loader2, Flag, HelpCircle, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,9 @@ import ImageLightbox from "@/components/ui/image-lightbox";
 import ReportModal from "@/components/products/ReportModal";
 import ProductComments from "@/components/products/ProductComments";
 import AIRecommendations from "@/components/products/AIRecommendations";
+import SellerRatingModal from "@/components/products/SellerRatingModal";
+import SellerRatingDisplay from "@/components/products/SellerRatingDisplay";
+import { useSellerReviews } from "@/hooks/useSellerReviews";
 import { cn } from "@/lib/utils";
 
 // Loading Component
@@ -62,6 +65,9 @@ const ProductDetail = () => {
   const [currentImage, setCurrentImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const sellerId = product?.seller?.id || product?.seller_id;
+  const { averageRating, totalReviews, hasReviewed, submitReview } = useSellerReviews(sellerId);
 
   // Determine ref source from URL params or default to 'direct'
   const refSource = searchParams.get('ref') || 'direct';
@@ -437,8 +443,20 @@ const ProductDetail = () => {
                     {product.shop.trading_center}
                   </p>
                 )}
+                <SellerRatingDisplay averageRating={averageRating} totalReviews={totalReviews} compact />
               </div>
             </div>
+            {/* Rate Seller Button */}
+            {!hasReviewed && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setRatingModalOpen(true)}
+                className="w-full mt-3 gap-2 rounded-xl"
+              >
+                <Star className="h-4 w-4" /> Rate this Seller
+              </Button>
+            )}
           </div>
 
           {/* Contact Buttons Section */}
@@ -508,6 +526,14 @@ const ProductDetail = () => {
           sellerId={product.seller?.id}
           productTitle={product.title}
           sellerName={product.shop?.name || product.seller?.full_name}
+        />
+
+        {/* Seller Rating Modal */}
+        <SellerRatingModal
+          isOpen={ratingModalOpen}
+          onClose={() => setRatingModalOpen(false)}
+          sellerName={product.shop?.name || product.seller?.full_name || 'Seller'}
+          onSubmit={submitReview}
         />
       </div>
     </>

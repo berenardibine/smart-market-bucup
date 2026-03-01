@@ -1,4 +1,5 @@
-import { Package, Edit, Trash2, MoreVertical } from "lucide-react";
+import { useState } from "react";
+import { Package, Edit, Trash2, MoreVertical, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -9,6 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSellerBoosts } from "@/hooks/useBoostedProducts";
+import BoostProductModal from "@/components/seller/BoostProductModal";
 
 interface ProductListProps {
   products: any[];
@@ -19,6 +22,8 @@ interface ProductListProps {
 
 const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps) => {
   const { toast } = useToast();
+  const { requestBoost } = useSellerBoosts();
+  const [boostProduct, setBoostProduct] = useState<any>(null);
 
   const handleDelete = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
@@ -68,6 +73,7 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
   }
 
   return (
+    <>
     <div className="space-y-3">
       {products.map(product => (
         <div key={product.id} className="bg-card rounded-xl p-3 border flex items-center gap-3">
@@ -100,6 +106,10 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setBoostProduct(product)}>
+                    <Rocket className="h-4 w-4 mr-2" />
+                    Boost
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -122,6 +132,20 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
         </div>
       ))}
     </div>
+
+    {/* Boost Modal */}
+    {boostProduct && (
+      <BoostProductModal
+        isOpen={!!boostProduct}
+        onClose={() => setBoostProduct(null)}
+        productTitle={boostProduct.title}
+        onSubmit={async (days) => {
+          await requestBoost(boostProduct.id, days);
+          setBoostProduct(null);
+        }}
+      />
+    )}
+    </>
   );
 };
 

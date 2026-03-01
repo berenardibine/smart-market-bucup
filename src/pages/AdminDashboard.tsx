@@ -7,7 +7,7 @@ import {
   Home, Eye, LogOut, ChevronRight, TrendingUp, Activity,
   MessageSquare, Plus, Settings, Sparkles, Crown, 
   Zap, Target, Layers, PieChart, Rocket, Globe,
-  Calendar, Clock, CheckCircle2, AlertCircle, MessageCircle, Flag
+  Calendar, Clock, CheckCircle2, AlertCircle, MessageCircle, Flag, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -136,6 +136,8 @@ const AdminDashboard = () => {
     { id: 'seo', label: 'SEO Pages', icon: Globe, color: 'from-emerald-500 to-green-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30', path: '/admin/seo', description: 'Legal & SEO' },
     { id: 'verifications', label: 'Verifications', icon: Shield, color: 'from-emerald-600 to-teal-600', bg: 'bg-emerald-50 dark:bg-emerald-950/30', path: '/admin/verifications', description: 'ID verification' },
     { id: 'email-center', label: 'Email', icon: MessageSquare, color: 'from-orange-600 to-red-500', bg: 'bg-orange-50 dark:bg-orange-950/30', path: '/admin/email-center', description: 'Send emails' },
+    { id: 'boosts', label: 'Boosts', icon: Rocket, color: 'from-pink-500 to-rose-500', bg: 'bg-pink-50 dark:bg-pink-950/30', path: '/admin/boosts', description: 'Product boosts' },
+    { id: 'reviews', label: 'Reviews', icon: Star, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', path: '/admin/reviews', description: 'Seller ratings' },
   ];
 
   return (
