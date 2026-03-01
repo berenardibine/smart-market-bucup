@@ -16,6 +16,7 @@ import AutoScrollCarousel from "@/components/home/AutoScrollCarousel";
 import ShopNearMe from "@/components/home/ShopNearMe";
 import NearbyProducts from "@/components/home/NearbyProducts";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
+import BoostedProducts from "@/components/home/BoostedProducts";
 import ReferralBanner from "@/components/referral/ReferralBanner";
 import CategoryCarousel from "@/components/home/CategoryCarousel";
 import { useAuth } from "@/hooks/useAuth";
@@ -127,6 +128,7 @@ const Index = () => {
         </section>
 
         {/* Featured */}
+        <BoostedProducts />
         <FeaturedProducts userCountry={feedCountry} />
 
         {/* New Arrivals */}

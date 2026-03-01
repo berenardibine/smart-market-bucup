@@ -243,6 +243,60 @@ export type Database = {
         }
         Relationships: []
       }
+      boosted_products: {
+        Row: {
+          admin_notes: string | null
+          amount: number | null
+          created_at: string | null
+          duration_days: number
+          end_date: string
+          id: string
+          product_id: string
+          seller_id: string
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount?: number | null
+          created_at?: string | null
+          duration_days?: number
+          end_date: string
+          id?: string
+          product_id: string
+          seller_id: string
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number | null
+          created_at?: string | null
+          duration_days?: number
+          end_date?: string
+          id?: string
+          product_id?: string
+          seller_id?: string
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boosted_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "boosted_products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -2376,6 +2430,60 @@ export type Database = {
           },
           {
             foreignKeyName: "seller_connections_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_reviews: {
+        Row: {
+          buyer_id: string | null
+          comment: string | null
+          created_at: string | null
+          device_id: string | null
+          id: string
+          ip_address: string | null
+          is_hidden: boolean | null
+          rating: number
+          seller_id: string
+          source: string | null
+        }
+        Insert: {
+          buyer_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: string
+          ip_address?: string | null
+          is_hidden?: boolean | null
+          rating: number
+          seller_id: string
+          source?: string | null
+        }
+        Update: {
+          buyer_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          id?: string
+          ip_address?: string | null
+          is_hidden?: boolean | null
+          rating?: number
+          seller_id?: string
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_reviews_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_reviews_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
