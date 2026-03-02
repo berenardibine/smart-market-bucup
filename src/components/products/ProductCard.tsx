@@ -7,6 +7,9 @@ import { useAuth, useAuthAction } from "@/hooks/useAuth";
 import { useSellerConnections } from "@/hooks/useSellerConnections";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import DiscountBadge from "@/components/discount/DiscountBadge";
+import DiscountCountdown from "@/components/discount/DiscountCountdown";
+import { hasActiveDiscount, getDiscountedPrice } from "@/lib/discount";
 
 interface ProductCardProps {
   id: string;
@@ -19,6 +22,9 @@ interface ProductCardProps {
   category?: string | null;
   sellerId?: string;
   compact?: boolean;
+  discount?: number | null;
+  discountExpiry?: string | null;
+  currencySymbol?: string | null;
 }
 
 const ProductCard = ({ 
@@ -30,7 +36,10 @@ const ProductCard = ({
   is_negotiable,
   quantity,
   sellerId,
-  compact = false
+  compact = false,
+  discount,
+  discountExpiry,
+  currencySymbol = "Fr",
 }: ProductCardProps) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -40,6 +49,8 @@ const ProductCard = ({
   const { connectionCount, isConnected, toggleConnection, loading: connectionLoading } = useSellerConnections(sellerId);
   const [isAnimating, setIsAnimating] = useState(false);
   const favorite = isFavorite(id);
+  const isDiscounted = hasActiveDiscount(discount, discountExpiry);
+  const discountedPrice = isDiscounted ? getDiscountedPrice(price, discount!) : price;
 
   const handleClick = () => {
     // Redirect guests to auth page
@@ -156,6 +167,11 @@ const ProductCard = ({
             </div>
           )}
 
+          {/* Discount Badge */}
+          {isDiscounted && (
+            <DiscountBadge percentage={discount!} size="sm" />
+          )}
+
           {/* Connection Count Badge */}
           {sellerId && connectionCount > 0 && (
             <div className="px-2.5 py-1 rounded-full bg-secondary shadow-sm">
@@ -183,8 +199,24 @@ const ProductCard = ({
           {title}
         </h3>
         <p className="font-bold text-primary text-base mb-2">
-          {is_negotiable || price <= 0 ? 'Price Negotiable' : formatPrice(price)}
+          {is_negotiable || price <= 0 ? (
+            'Price Negotiable'
+          ) : isDiscounted ? (
+            <span className="flex flex-col">
+              <span className="text-xs line-through text-muted-foreground font-normal">
+                {currencySymbol} {new Intl.NumberFormat('en-RW', { minimumFractionDigits: 0 }).format(price)}
+              </span>
+              <span className="text-blue-600 dark:text-blue-400">
+                {currencySymbol} {new Intl.NumberFormat('en-RW', { minimumFractionDigits: 0 }).format(discountedPrice)}
+              </span>
+            </span>
+          ) : (
+            formatPrice(price)
+          )}
         </p>
+        {isDiscounted && discountExpiry && (
+          <DiscountCountdown expiryDate={discountExpiry} compact />
+        )}
         {location && (
           <div className="flex items-center gap-1.5 text-muted-foreground mb-3">
             <MapPin className="h-3 w-3 text-primary shrink-0" />

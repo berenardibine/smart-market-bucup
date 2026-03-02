@@ -41,6 +41,8 @@ export interface Product {
   rental_fee: number | null;
   rental_unit: string | null;
   rental_status: string | null;
+  discount: number | null;
+  discount_expiry: string | null;
   seller?: {
     id: string;
     full_name: string;

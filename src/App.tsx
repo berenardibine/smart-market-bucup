@@ -74,6 +74,7 @@ import AdminVerifications from "./pages/admin/AdminVerifications";
 import AdminEmailCenter from "./pages/admin/AdminEmailCenter";
 import AdminBoosts from "./pages/admin/AdminBoosts";
 import AdminReviews from "./pages/admin/AdminReviews";
+import AdminDiscounts from "./pages/admin/AdminDiscounts";
 import VerifyIdentity from "./pages/VerifyIdentity";
 import MenuPage from "./pages/MenuPage";
 import SitePage from "./pages/SitePage";
@@ -148,6 +149,7 @@ const App = () => {
                 <Route path="/admin/email-center" element={<AdminEmailCenter />} />
                 <Route path="/admin/boosts" element={<AdminBoosts />} />
                 <Route path="/admin/reviews" element={<AdminReviews />} />
+                <Route path="/admin/discounts" element={<AdminDiscounts />} />
                 <Route path="/verify-identity" element={<VerifyIdentity />} />
 
                 <Route path="/menu" element={<MenuPage />} />

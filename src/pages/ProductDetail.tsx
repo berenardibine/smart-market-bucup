@@ -23,6 +23,9 @@ import AIRecommendations from "@/components/products/AIRecommendations";
 import SellerRatingModal from "@/components/products/SellerRatingModal";
 import SellerRatingDisplay from "@/components/products/SellerRatingDisplay";
 import { useSellerReviews } from "@/hooks/useSellerReviews";
+import DiscountBadge from "@/components/discount/DiscountBadge";
+import DiscountCountdown from "@/components/discount/DiscountCountdown";
+import { hasActiveDiscount, getDiscountedPrice } from "@/lib/discount";
 import { cn } from "@/lib/utils";
 
 // Loading Component
@@ -244,6 +247,13 @@ const ProductDetail = () => {
                 e.currentTarget.src = '/placeholder.svg';
               }}
             />
+
+            {/* Discount Badge on Image */}
+            {hasActiveDiscount(product.discount, product.discount_expiry) && (
+              <div className="absolute top-3 right-3 z-10">
+                <DiscountBadge percentage={product.discount!} size="lg" />
+              </div>
+            )}
             
             {/* Image Navigation */}
             {images.length > 1 && (
@@ -348,26 +358,69 @@ const ProductDetail = () => {
               )}
             </div>
             <div className="mt-2">
-              {product.is_negotiable && product.price > 0 ? (
-                <p className="text-2xl font-bold text-primary">
-                  From {formatPrice(product.price)}
-                  <span className="text-base font-medium text-muted-foreground ml-2">(Negotiable)</span>
-                  {product.rental_unit && (
-                    <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
-                  )}
-                </p>
-              ) : product.is_negotiable ? (
-                <p className="text-2xl font-bold text-primary">Price Negotiable</p>
-              ) : product.price > 0 ? (
-                <p className="text-3xl font-bold text-primary">
-                  {formatPrice(product.price)}
-                  {product.rental_unit && (
-                    <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
-                  )}
-                </p>
-              ) : (
-                <p className="text-2xl font-bold text-primary">Price Negotiable</p>
-              )}
+              {(() => {
+                const isDiscounted = hasActiveDiscount(product.discount, product.discount_expiry);
+                const discountedPrice = isDiscounted ? getDiscountedPrice(product.price, product.discount!) : product.price;
+
+                if (product.is_negotiable && product.price > 0) {
+                  return (
+                    <div>
+                      {isDiscounted && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <DiscountCountdown expiryDate={product.discount_expiry!} />
+                        </div>
+                      )}
+                      <p className="text-2xl font-bold text-primary">
+                        From {isDiscounted ? (
+                          <>
+                            <span className="line-through text-muted-foreground text-lg">{formatPrice(product.price)}</span>
+                            {' '}
+                            <span className="text-blue-600 dark:text-blue-400">{formatPrice(discountedPrice)}</span>
+                          </>
+                        ) : formatPrice(product.price)}
+                        <span className="text-base font-medium text-muted-foreground ml-2">(Negotiable)</span>
+                        {product.rental_unit && (
+                          <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
+                        )}
+                      </p>
+                    </div>
+                  );
+                } else if (product.is_negotiable) {
+                  return <p className="text-2xl font-bold text-primary">Price Negotiable</p>;
+                } else if (product.price > 0) {
+                  return (
+                    <div>
+                      {isDiscounted && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <DiscountCountdown expiryDate={product.discount_expiry!} />
+                        </div>
+                      )}
+                      {isDiscounted ? (
+                        <div>
+                          <p className="text-lg line-through text-muted-foreground">
+                            {formatPrice(product.price)}
+                          </p>
+                          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                            {formatPrice(discountedPrice)}
+                            {product.rental_unit && (
+                              <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
+                            )}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-3xl font-bold text-primary">
+                          {formatPrice(product.price)}
+                          {product.rental_unit && (
+                            <span className="text-lg font-medium text-muted-foreground">/{product.rental_unit}</span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  );
+                } else {
+                  return <p className="text-2xl font-bold text-primary">Price Negotiable</p>;
+                }
+              })()}
             </div>
             {product.admin_posted && (
               <Badge className="mt-2 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">
