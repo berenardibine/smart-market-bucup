@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Crown } from "lucide-react";
 import { useProductTracking } from "@/hooks/useProductTracking";
+import DiscountBadge from "@/components/discount/DiscountBadge";
+import DiscountCountdown from "@/components/discount/DiscountCountdown";
+import { hasActiveDiscount, getDiscountedPrice } from "@/lib/discount";
 
 interface FloatingProductCardProps {
   id: string;
@@ -17,6 +20,8 @@ interface FloatingProductCardProps {
   isNegotiable?: boolean | null;
   refSource?: string;
   currencySymbol?: string | null;
+  discount?: number | null;
+  discountExpiry?: string | null;
 }
 
 const FloatingProductCard = ({
@@ -32,6 +37,8 @@ const FloatingProductCard = ({
   isNegotiable,
   refSource = 'home',
   currencySymbol = 'Fr',
+  discount,
+  discountExpiry,
 }: FloatingProductCardProps) => {
   const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -60,8 +67,9 @@ const FloatingProductCard = ({
 
   const productImage = images?.[0] || '/placeholder.svg';
 
-  // Don't show sponsored badge if hideSponsored is true OR if product is admin posted
   const showSponsoredBadge = isSponsored && !hideSponsored && !isAdminPosted;
+  const isDiscounted = hasActiveDiscount(discount, discountExpiry);
+  const discountedPrice = isDiscounted ? getDiscountedPrice(price, discount!) : price;
 
   return (
     <div
@@ -82,6 +90,13 @@ const FloatingProductCard = ({
         <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
           <Crown className="h-3 w-3" />
           Featured
+        </div>
+      )}
+
+      {/* Discount Badge */}
+      {isDiscounted && (
+        <div className="absolute top-2 right-2 z-10">
+          <DiscountBadge percentage={discount!} size="sm" />
         </div>
       )}
 
@@ -116,16 +131,25 @@ const FloatingProductCard = ({
         </h3>
 
         {/* Price with rental unit */}
-        <p className="font-bold text-base text-primary">
-          {price <= 0 || isNegotiable ? (
-            'Price Negotiable'
-          ) : (
-            <>
+        {price <= 0 || isNegotiable ? (
+          <p className="font-bold text-base text-primary">Price Negotiable</p>
+        ) : isDiscounted ? (
+          <div>
+            <p className="text-xs line-through text-muted-foreground">
               {currencySymbol || 'Fr'} {formatPrice(price)}
+            </p>
+            <p className="font-bold text-base text-blue-600 dark:text-blue-400">
+              {currencySymbol || 'Fr'} {formatPrice(discountedPrice)}
               {rentalUnit && <span className="text-xs font-medium text-muted-foreground">/{rentalUnit}</span>}
-            </>
-          )}
-        </p>
+            </p>
+            <DiscountCountdown expiryDate={discountExpiry!} compact />
+          </div>
+        ) : (
+          <p className="font-bold text-base text-primary">
+            {currencySymbol || 'Fr'} {formatPrice(price)}
+            {rentalUnit && <span className="text-xs font-medium text-muted-foreground">/{rentalUnit}</span>}
+          </p>
+        )}
       </div>
     </div>
   );

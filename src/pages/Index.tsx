@@ -208,6 +208,8 @@ const Index = () => {
                           isAdminPosted={product.admin_posted}
                           isNegotiable={product.is_negotiable}
                           currencySymbol={product.currency_symbol}
+                          discount={product.discount}
+                          discountExpiry={product.discount_expiry}
                         />
                       ))}
                     </div>

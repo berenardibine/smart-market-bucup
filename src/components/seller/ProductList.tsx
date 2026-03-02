@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Package, Edit, Trash2, MoreVertical, Rocket } from "lucide-react";
+import { Package, Edit, Trash2, MoreVertical, Rocket, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -12,6 +12,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSellerBoosts } from "@/hooks/useBoostedProducts";
 import BoostProductModal from "@/components/seller/BoostProductModal";
+import DiscountModal from "@/components/discount/DiscountModal";
+import DiscountCountdown from "@/components/discount/DiscountCountdown";
+import { hasActiveDiscount, getDiscountedPrice } from "@/lib/discount";
 
 interface ProductListProps {
   products: any[];
@@ -24,6 +27,7 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
   const { toast } = useToast();
   const { requestBoost } = useSellerBoosts();
   const [boostProduct, setBoostProduct] = useState<any>(null);
+  const [discountProduct, setDiscountProduct] = useState<any>(null);
 
   const handleDelete = async (productId: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
@@ -110,12 +114,24 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
                     <Rocket className="h-4 w-4 mr-2" />
                     Boost
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setDiscountProduct(product)}>
+                    <Tag className="h-4 w-4 mr-2" />
+                    {hasActiveDiscount(product.discount, product.discount_expiry) ? 'Edit Discount' : 'Add Discount'}
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
             
             <p className="text-primary font-bold text-sm mt-1">
-              {product.is_negotiable || product.price <= 0 ? 'Price Negotiable' : formatPrice(product.price)}
+              {product.is_negotiable || product.price <= 0 ? 'Price Negotiable' : (
+                hasActiveDiscount(product.discount, product.discount_expiry) ? (
+                  <span className="flex items-center gap-2">
+                    <span className="line-through text-muted-foreground font-normal text-xs">{formatPrice(product.price)}</span>
+                    <span className="text-blue-600 dark:text-blue-400">{formatPrice(getDiscountedPrice(product.price, product.discount!))}</span>
+                    <Badge className="text-[10px] bg-destructive text-destructive-foreground">-{product.discount}%</Badge>
+                  </span>
+                ) : formatPrice(product.price)
+              )}
             </p>
             
             <div className="flex items-center gap-2 mt-2">
@@ -126,6 +142,9 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
                 <Badge className="text-xs bg-primary/10 text-primary">
                   Negotiable
                 </Badge>
+              )}
+              {hasActiveDiscount(product.discount, product.discount_expiry) && (
+                <DiscountCountdown expiryDate={product.discount_expiry!} compact />
               )}
             </div>
           </div>
@@ -143,6 +162,16 @@ const ProductList = ({ products, loading, onEdit, onRefresh }: ProductListProps)
           await requestBoost(boostProduct.id, days);
           setBoostProduct(null);
         }}
+      />
+    )}
+
+    {/* Discount Modal */}
+    {discountProduct && (
+      <DiscountModal
+        isOpen={!!discountProduct}
+        onClose={() => setDiscountProduct(null)}
+        product={discountProduct}
+        onSuccess={onRefresh}
       />
     )}
     </>
