@@ -1160,6 +1160,83 @@ export type Database = {
           },
         ]
       }
+      optimization_audit: {
+        Row: {
+          auto_fixed: boolean | null
+          current_size: number
+          detected_at: string
+          file_name: string
+          file_url: string
+          fixed_at: string | null
+          id: string
+          original_size: number
+          product_id: string | null
+          status: string
+        }
+        Insert: {
+          auto_fixed?: boolean | null
+          current_size?: number
+          detected_at?: string
+          file_name: string
+          file_url: string
+          fixed_at?: string | null
+          id?: string
+          original_size?: number
+          product_id?: string | null
+          status?: string
+        }
+        Update: {
+          auto_fixed?: boolean | null
+          current_size?: number
+          detected_at?: string
+          file_name?: string
+          file_url?: string
+          fixed_at?: string | null
+          id?: string
+          original_size?: number
+          product_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "optimization_audit_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      optimization_errors: {
+        Row: {
+          created_at: string
+          error_message: string
+          file_name: string
+          file_url: string | null
+          id: string
+          resolved: boolean | null
+          resolved_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          file_name: string
+          file_url?: string | null
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          file_name?: string
+          file_url?: string | null
+          id?: string
+          resolved?: boolean | null
+          resolved_at?: string | null
+        }
+        Relationships: []
+      }
       product_analytics: {
         Row: {
           created_at: string | null
@@ -2792,6 +2869,30 @@ export type Database = {
           reviewed_by?: string | null
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      system_logs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          job_type: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          job_type: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          job_type?: string
+          status?: string | null
         }
         Relationships: []
       }

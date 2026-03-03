@@ -139,6 +139,7 @@ const AdminDashboard = () => {
     { id: 'boosts', label: 'Boosts', icon: Rocket, color: 'from-pink-500 to-rose-500', bg: 'bg-pink-50 dark:bg-pink-950/30', path: '/admin/boosts', description: 'Product boosts' },
     { id: 'reviews', label: 'Reviews', icon: Star, color: 'from-amber-500 to-yellow-500', bg: 'bg-amber-50 dark:bg-amber-950/30', path: '/admin/reviews', description: 'Seller ratings' },
     { id: 'discounts', label: 'Discounts', icon: Tag, color: 'from-red-500 to-pink-500', bg: 'bg-red-50 dark:bg-red-950/30', path: '/admin/discounts', description: 'Smart discounts' },
+    { id: 'system-usage', label: 'System', icon: Activity, color: 'from-slate-500 to-zinc-500', bg: 'bg-slate-50 dark:bg-slate-950/30', path: '/admin/system-usage', description: 'Usage & health' },
   ];
 
   return (

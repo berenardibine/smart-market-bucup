@@ -67,19 +67,30 @@ export interface Category {
   type: string;
 }
 
-export const useProducts = (categoryType?: string) => {
+export const useProducts = (categoryType?: string, pageSize: number = 40) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
   const { profile } = useAuth();
 
   useEffect(() => {
-    fetchProducts();
+    setProducts([]);
+    setPage(0);
+    setHasMore(true);
+    fetchProducts(0);
   }, [categoryType, profile?.sector_id]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (pageNum: number) => {
     try {
-      setLoading(true);
+      if (pageNum === 0) setLoading(true);
+      else setLoadingMore(true);
+
+      const from = pageNum * pageSize;
+      const to = from + pageSize - 1;
+
       let query = supabase
         .from('products')
         .select(`
@@ -88,9 +99,9 @@ export const useProducts = (categoryType?: string) => {
           shop:shops(id, name, logo_url, trading_center)
         `)
         .eq('status', 'active')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-      // Filter by category type if provided
       if (categoryType) {
         const { data: categories } = await supabase
           .from('categories')
@@ -106,15 +117,31 @@ export const useProducts = (categoryType?: string) => {
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
-      setProducts(data || []);
+      
+      const newData = data || [];
+      setHasMore(newData.length === pageSize);
+      
+      if (pageNum === 0) {
+        setProducts(newData);
+      } else {
+        setProducts(prev => [...prev, ...newData]);
+      }
+      setPage(pageNum);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  return { products, loading, error, refetch: fetchProducts };
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchProducts(page + 1);
+    }
+  };
+
+  return { products, loading, loadingMore, error, hasMore, loadMore, refetch: () => { setPage(0); fetchProducts(0); } };
 };
 
 export const useProduct = (productId: string | undefined) => {
