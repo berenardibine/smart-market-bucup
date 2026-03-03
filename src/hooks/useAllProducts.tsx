@@ -37,18 +37,29 @@ export interface Product {
   } | null;
 }
 
-export const useAllProducts = (category?: string) => {
+export const useAllProducts = (category?: string, pageSize: number = 40) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
-    fetchAllProducts();
+    setProducts([]);
+    setPage(0);
+    setHasMore(true);
+    fetchAllProducts(0);
   }, [category]);
 
-  const fetchAllProducts = async () => {
+  const fetchAllProducts = async (pageNum: number) => {
     try {
-      setLoading(true);
+      if (pageNum === 0) setLoading(true);
+      else setLoadingMore(true);
+
+      const from = pageNum * pageSize;
+      const to = from + pageSize - 1;
+
       let query = supabase
         .from('products')
         .select(`
@@ -57,9 +68,9 @@ export const useAllProducts = (category?: string) => {
           shop:shops(id, name, logo_url, trading_center)
         `)
         .eq('status', 'active')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-      // Filter by category if provided and not 'all'
       if (category && category !== 'all') {
         query = query.eq('category', category);
       }
@@ -67,13 +78,29 @@ export const useAllProducts = (category?: string) => {
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
-      setProducts(data || []);
+      
+      const newData = data || [];
+      setHasMore(newData.length === pageSize);
+      
+      if (pageNum === 0) {
+        setProducts(newData);
+      } else {
+        setProducts(prev => [...prev, ...newData]);
+      }
+      setPage(pageNum);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  return { products, loading, error, refetch: fetchAllProducts };
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchAllProducts(page + 1);
+    }
+  };
+
+  return { products, loading, loadingMore, error, hasMore, loadMore, refetch: () => { setPage(0); fetchAllProducts(0); } };
 };
