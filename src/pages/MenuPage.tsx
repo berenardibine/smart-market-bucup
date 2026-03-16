@@ -170,7 +170,7 @@ const MenuPage = () => {
               onClick={() => navigate('/auth')}
               className="bg-white text-primary hover:bg-white/90"
             >
-              Sign In
+             Become seller/log in
             </Button>
           </div>
         )}
@@ -309,7 +309,7 @@ const MenuPage = () => {
             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
               <LogIn className="h-6 w-6 text-white" />
             </div>
-            <span className="font-semibold text-white text-base">Sign In / Sign Up</span>
+            <span className="font-semibold text-white text-base">Become Seller/log in</span>
           </button>
         )}
       </div>
@@ -318,7 +318,7 @@ const MenuPage = () => {
       {/* Footer */}
       <div className="px-4 py-8">
         <p className="text-center text-xs text-muted-foreground">
-          Smart Market v1.0.0 • Developed by Smart Technology
+          Smart Market Developed by Smart Technology
         </p>
       </div>
     </div>
